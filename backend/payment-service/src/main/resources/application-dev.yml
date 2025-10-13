@@ -1,0 +1,58 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5436/payment_db
+    username: payment_user
+    password: payment123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+# Momo Configuration - Development
+momo:
+  partner-code: MOMOBKUN20180529
+  access-key: klm05TvNBzhg7h7j
+  secret-key: at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa
+  endpoint: https://test-payment.momo.vn
+  redirect-url: http://localhost:3000/payment/result
+  ipn-url: http://localhost:8084/api/payments/momo/callback
+  request-type: captureWallet
+
+# JWT Configuration - Development
+jwt:
+  secret: dev-secret-key-for-testing-only
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.clinicbooking.paymentservice: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.kafka: INFO

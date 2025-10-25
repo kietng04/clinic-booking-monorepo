@@ -1,0 +1,45 @@
+export const PUBLIC_ROUTES = [
+  { path: '/', marker: /HealthFlow|Sức khỏe/i },
+  { path: '/login', marker: /Chào mừng trở lại/i },
+  { path: '/register', marker: /Đăng ký|Tạo tài khoản/i },
+  { path: '/forgot-password', marker: /Quên mật khẩu|Đặt lại mật khẩu/i },
+  { path: '/verify-email', marker: /xác minh|verify/i },
+  { path: '/verify-phone', marker: /điện thoại|xác minh/i },
+]
+
+export const ROLE_ROUTES = {
+  PATIENT: [
+    { path: '/dashboard', marker: /Tổng quan|sức khỏe/i },
+    { path: '/find-doctors', marker: /bác sĩ|tìm kiếm/i },
+    { path: '/appointments/book', marker: /Chọn Bác sĩ|Thông tin Chi tiết/i },
+    { path: '/appointments', marker: /Lịch hẹn/i },
+    { path: '/medical-records', marker: /Hồ sơ bệnh án/i },
+    { path: '/health-metrics', marker: /Chỉ số sức khỏe/i },
+    { path: '/family', marker: /Gia đình/i },
+    { path: '/notifications', marker: /Thông báo/i },
+    { path: '/messages', marker: /tin nhắn|messages/i },
+    { path: '/patient/consultations', marker: /Tư vấn trực tuyến|tư vấn/i },
+    { path: '/profile', marker: /Cài đặt tài khoản|hồ sơ/i },
+    { path: '/profile/security', marker: /Bảo mật/i },
+    { path: '/profile/notifications', marker: /Cài đặt thông báo/i },
+  ],
+  DOCTOR: [
+    { path: '/dashboard', marker: /Tổng quan|hôm nay/i },
+    { path: '/doctor/appointments', marker: /Lịch hẹn/i },
+    { path: '/schedule', marker: /Lịch làm việc/i },
+    { path: '/patients', marker: /Bệnh nhân/i },
+    { path: '/consultations', marker: /Tư vấn/i },
+    { path: '/doctor/analytics', marker: /Thống kê|analytics/i },
+    { path: '/profile', marker: /Cài đặt tài khoản|hồ sơ/i },
+  ],
+  ADMIN: [
+    { path: '/dashboard', marker: /Quản trị|Tổng quan/i },
+    { path: '/users', marker: /Quản lý người dùng|người dùng/i },
+    { path: '/doctors', marker: /Quản lý bác sĩ|bác sĩ/i },
+    { path: '/admin/clinics', marker: /Phòng khám/i },
+    { path: '/admin/services', marker: /Dịch vụ/i },
+    { path: '/admin/rooms', marker: /Quản lý Phòng|Phòng/i },
+    { path: '/admin/reports', marker: /Báo cáo/i },
+    { path: '/profile', marker: /Cài đặt tài khoản|hồ sơ/i },
+  ],
+}

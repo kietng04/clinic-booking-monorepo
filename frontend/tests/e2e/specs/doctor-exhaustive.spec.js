@@ -21,12 +21,6 @@ test.describe.serial('Doctor Exhaustive Flows (Real Backend)', () => {
       }
     }
 
-    const confirmButton = doctorPage.getByRole('button', { name: /Xác nhận/i }).first()
-    if (await confirmButton.isVisible().catch(() => false)) {
-      await confirmButton.click()
-      await doctorPage.waitForLoadState('networkidle')
-    }
-
     await doctorPage.goto('/patients')
     await assertOnRoute(doctorPage, '/patients')
     await assertRenderablePage(doctorPage, { requiredText: /Bệnh nhân/i })
@@ -46,7 +40,7 @@ test.describe.serial('Doctor Exhaustive Flows (Real Backend)', () => {
     await assertRenderablePage(doctorPage, { requiredText: /Thống kê|Analytics/i })
 
     const hasChart = await doctorPage.locator('svg.recharts-surface').count()
-    const hasNoData = await doctorPage.getByText(/No data available/i).count()
+    const hasNoData = await doctorPage.getByText(/No data available|Chưa có dữ liệu|Không có dữ liệu/i).count()
     expect(hasChart > 0 || hasNoData > 0).toBeTruthy()
 
     await doctorPage.goto('/profile')

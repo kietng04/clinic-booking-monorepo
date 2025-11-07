@@ -66,6 +66,26 @@ export const paymentApi = {
   },
 
   /**
+   * Query latest payment status directly from payment gateway via backend sync.
+   * @param {string} orderId - Payment order ID
+   * @returns {Promise} Payment result
+   */
+  queryPaymentStatus: async (orderId) => {
+    const response = await paymentServiceClient.get(`/api/payments/${orderId}/status`)
+    return response.data
+  },
+
+  /**
+   * Get payment detail by appointment ID.
+   * @param {number|string} appointmentId
+   * @returns {Promise} Payment result
+   */
+  getPaymentByAppointment: async (appointmentId) => {
+    const response = await paymentServiceClient.get(`/api/payments/appointment/${appointmentId}`)
+    return response.data
+  },
+
+  /**
    * Download receipt as PDF
    * @param {string} paymentId - Payment ID
    * @returns {Promise} Blob for PDF download

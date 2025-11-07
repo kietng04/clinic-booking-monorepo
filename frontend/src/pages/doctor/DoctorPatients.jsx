@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, User, Calendar, MessageCircle, FileText } from 'lucide-react'
+import { Search, User, Calendar, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -11,7 +11,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { userApi } from '@/api/userApiWrapper'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatPhone } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
 const DoctorPatients = () => {
@@ -52,7 +52,7 @@ const DoctorPatients = () => {
     }
     const filtered = patients.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.phone?.toLowerCase().includes(searchQuery.toLowerCase())
+      formatPhone(p.phone)?.toLowerCase().includes(searchQuery.toLowerCase())
     )
     setFilteredPatients(filtered)
   }
@@ -71,6 +71,13 @@ const DoctorPatients = () => {
       setPatientRecords([])
       setShowDetailModal(true)
     }
+  }
+
+  const getAgeLabel = (age) => {
+    if (typeof age === 'number' && Number.isFinite(age) && age >= 0) {
+      return `${age} tuổi`
+    }
+    return 'Chưa cập nhật tuổi'
   }
 
   if (isLoading) {
@@ -123,7 +130,7 @@ const DoctorPatients = () => {
                     <h3 className="font-semibold text-lg text-sage-900 mb-1">
                       {patient.name}
                     </h3>
-                    <p className="text-sm text-sage-600">{patient.age || 'N/A'} tuổi</p>
+                    <p className="text-sm text-sage-600">{getAgeLabel(patient.age)}</p>
                   </div>
                 </div>
 
@@ -138,23 +145,15 @@ const DoctorPatients = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => viewPatientDetails(patient)}
-                    leftIcon={<User className="w-4 h-4" />}
-                  >
-                    {vi.doctor.patients.viewProfile}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => viewPatientDetails(patient)}
+                  leftIcon={<User className="w-4 h-4" />}
+                >
+                  {vi.doctor.patients.viewProfile}
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -187,7 +186,7 @@ const DoctorPatients = () => {
               />
               <div>
                 <h3 className="font-semibold text-sage-900">{selectedPatient.name}</h3>
-                <p className="text-sm text-sage-600">{selectedPatient.phone || 'Chưa có SĐT'}</p>
+                <p className="text-sm text-sage-600 break-all">{formatPhone(selectedPatient.phone) || 'Chưa có SĐT'}</p>
               </div>
             </div>
 
@@ -222,15 +221,6 @@ const DoctorPatients = () => {
                   <p className="text-sm text-sage-500">Chưa có lịch sử khám</p>
                 )}
               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1">
-                {vi.doctor.patients.sendMessage}
-              </Button>
-              <Button className="flex-1">
-                Đặt lịch khám
-              </Button>
             </div>
           </div>
         )}

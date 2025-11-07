@@ -20,6 +20,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { adminApi } from '@/api/adminApiWrapper'
+import { formatPhone } from '@/lib/utils'
 
 const defaultForm = {
   name: '',
@@ -193,7 +194,7 @@ const ClinicManagement = () => {
                     {clinic.phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4" />
-                        <span>{clinic.phone}</span>
+                        <span className="break-all">{formatPhone(clinic.phone)}</span>
                       </div>
                     )}
                     {clinic.email && (

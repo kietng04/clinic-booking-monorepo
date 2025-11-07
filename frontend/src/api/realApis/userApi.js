@@ -7,6 +7,41 @@ import { createApiClient } from '../core/createApiClient'
 
 const userServiceClient = createApiClient()
 
+const normalizePhone = (phone) => {
+  if (phone === null || phone === undefined) return null
+  const raw = String(phone).trim()
+  if (!raw) return null
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return raw
+  if (digits.startsWith('84')) {
+    const local = `0${digits.slice(2)}`
+    if (local.length === 10 || local.length === 11) return local
+  }
+  if (digits.length === 9) return `0${digits}`
+  if (digits.length === 10 || digits.length === 11) return digits
+  return raw
+}
+
+const calculateAgeFromDate = (dateString) => {
+  if (!dateString) return null
+  const birthDate = new Date(dateString)
+  if (Number.isNaN(birthDate.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age >= 0 ? age : null
+}
+
+const parseAge = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return null
+  return parsed >= 0 ? Math.floor(parsed) : null
+}
+
 export const userApi = {
   /**
    * Create a new user
@@ -170,12 +205,16 @@ export const userApi = {
     const patientMap = new Map()
     appointments.forEach(apt => {
       if (apt.patientId && !patientMap.has(apt.patientId)) {
+        const fallbackDateOfBirth = apt.patientDateOfBirth || apt.dateOfBirth || apt.birthDate || apt.dob || null
+        const fallbackAge = parseAge(apt.patientAge ?? apt.age) ?? calculateAgeFromDate(fallbackDateOfBirth)
         patientMap.set(apt.patientId, {
           id: apt.patientId,
           name: apt.patientName || `Bệnh nhân #${apt.patientId}`,
-          phone: apt.patientPhone || null,
+          phone: normalizePhone(apt.patientPhone),
           email: apt.patientEmail || null,
           avatar: apt.patientAvatar || null,
+          dateOfBirth: fallbackDateOfBirth,
+          age: fallbackAge,
           lastVisit: apt.appointmentDate,
           appointmentCount: 1
         })
@@ -197,27 +236,18 @@ export const userApi = {
           const userDetails = await userServiceClient.get(`/api/users/${patient.id}`)
           const userData = userDetails.data
 
-          // Calculate age from dateOfBirth
-          let age = null
-          if (userData.dateOfBirth) {
-            const birthDate = new Date(userData.dateOfBirth)
-            const today = new Date()
-            age = today.getFullYear() - birthDate.getFullYear()
-            const monthDiff = today.getMonth() - birthDate.getMonth()
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-              age--
-            }
-          }
+          const normalizedDateOfBirth = userData.dateOfBirth || userData.birthDate || userData.dob || patient.dateOfBirth || null
+          const age = parseAge(userData.age) ?? calculateAgeFromDate(normalizedDateOfBirth) ?? patient.age ?? null
 
           return {
             ...patient,
             name: userData.fullName || patient.name,
-            phone: userData.phone || patient.phone,
+            phone: normalizePhone(userData.phone || patient.phone),
             email: userData.email || patient.email,
             avatar: userData.avatarUrl || patient.avatar,
             age: age,
             gender: userData.gender,
-            dateOfBirth: userData.dateOfBirth
+            dateOfBirth: normalizedDateOfBirth
           }
         } catch (error) {
           console.warn(`Could not fetch details for patient ${patient.id}`)

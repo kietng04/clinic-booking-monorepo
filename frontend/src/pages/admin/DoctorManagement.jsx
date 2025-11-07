@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { userApi } from '@/api/userApiWrapper'
+import { formatPhone } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
 const DoctorManagement = () => {
@@ -257,7 +258,7 @@ const DoctorManagement = () => {
               </div>
               <div>
                 <label className="text-sm text-sage-600">Số điện thoại</label>
-                <p className="font-medium text-sage-900">{selectedDoctor.phone || 'N/A'}</p>
+                <p className="font-medium text-sage-900 break-all">{formatPhone(selectedDoctor.phone) || 'N/A'}</p>
               </div>
               {selectedDoctor.licenseNumber && (
                 <div className="col-span-2">

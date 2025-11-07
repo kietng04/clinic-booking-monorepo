@@ -23,19 +23,19 @@ export const REAL_DEMO_ACCOUNTS = {
   PATIENT: {
     role: 'PATIENT',
     label: 'Bệnh nhân',
-    email: 'patient1@clinic.com',
+    email: 'patient.1@healthflow.vn',
     password: 'password',
   },
   DOCTOR: {
     role: 'DOCTOR',
     label: 'Bác sĩ',
-    email: 'dr.sarah@clinic.com',
+    email: 'doctor.1@healthflow.vn',
     password: 'password',
   },
   ADMIN: {
     role: 'ADMIN',
     label: 'Quản trị',
-    email: 'admin@clinic.com',
+    email: 'admin.1@healthflow.vn',
     password: 'password',
   },
 }

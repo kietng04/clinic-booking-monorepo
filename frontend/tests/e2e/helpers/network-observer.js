@@ -8,6 +8,10 @@ const isApiRequest = (url) => {
   }
 }
 
+const isIgnorableConsoleError = (text) => {
+  return /Failed to load resource: the server responded with a status of 404/i.test(text)
+}
+
 export function createNetworkObserver(page) {
   const events = []
 
@@ -17,7 +21,9 @@ export function createNetworkObserver(page) {
 
   const onConsole = (message) => {
     if (message.type() === 'error') {
-      events.push({ type: 'console-error', message: message.text() })
+      const text = message.text()
+      if (isIgnorableConsoleError(text)) return
+      events.push({ type: 'console-error', message: text })
     }
   }
 

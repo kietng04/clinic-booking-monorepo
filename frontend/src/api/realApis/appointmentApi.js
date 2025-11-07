@@ -38,9 +38,9 @@ export const appointmentApi = {
    * @returns {Promise} Paginated appointments or array
    */
   getAppointments: async (params = {}) => {
-    const { page = 0, size = 20, ...filters } = params
+    const { page = 0, size = 20, includeUnpaid = false, ...filters } = params
     const response = await appointmentServiceClient.get('/api/appointments/search', {
-      params: { page, size, ...filters },
+      params: { page, size, includeUnpaid, ...filters },
     })
 
     // If backend returns Page<Appointment>, extract content
@@ -111,6 +111,21 @@ export const appointmentApi = {
     }
 
     const response = await appointmentServiceClient.post('/api/appointments', appointmentData)
+    return normalizeAppointment(response.data)
+  },
+
+  /**
+   * Link a generated payment order to an existing appointment.
+   * @param {string|number} appointmentId
+   * @param {Object} data - { paymentOrderId, paymentMethod, paymentExpiresAt }
+   * @returns {Promise} Updated appointment
+   */
+  linkPaymentToAppointment: async (appointmentId, data) => {
+    const response = await appointmentServiceClient.patch(`/api/appointments/${appointmentId}/payment-link`, {
+      paymentOrderId: data?.paymentOrderId,
+      paymentMethod: data?.paymentMethod,
+      paymentExpiresAt: data?.paymentExpiresAt,
+    })
     return normalizeAppointment(response.data)
   },
 

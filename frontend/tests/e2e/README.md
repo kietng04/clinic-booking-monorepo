@@ -27,6 +27,7 @@ What it does:
 - CI sequence: `npm run test:e2e:ci`
 - Smoke subset: `npm run test:e2e:smoke`
 - Critical subset: `npm run test:e2e:critical`
+- Feature-contract subset: `npm run test:e2e:feature-contract`
 - Open HTML report: `npm run test:e2e:report`
 
 ## Deterministic Accounts
@@ -43,3 +44,5 @@ Default credentials (override via env if needed):
 ## Notes
 - Payment E2E is currently out of scope for gate tests.
 - Mock-based legacy specs remain in `tests/e2e/*.spec.js` but are ignored by current config.
+- DB verification is enabled by default in key flows (`E2E_VERIFY_DB=true`).
+  Set `E2E_VERIFY_DB=false` if DB containers/ports are not reachable in your environment.

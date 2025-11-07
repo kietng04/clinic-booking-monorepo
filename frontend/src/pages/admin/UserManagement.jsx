@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { userApi } from '@/api/userApiWrapper'
+import { formatPhone } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
 const UserManagement = () => {
@@ -200,7 +201,7 @@ const UserManagement = () => {
                       {user.phone && (
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4" />
-                          <span>{user.phone}</span>
+                          <span className="break-all">{formatPhone(user.phone)}</span>
                         </div>
                       )}
                     </div>

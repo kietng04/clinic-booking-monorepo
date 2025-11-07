@@ -17,6 +17,7 @@ import { useUIStore } from '@/store/uiStore'
 import { userApi } from '@/api/userApiWrapper'
 import { scheduleApi } from '@/api/scheduleApiWrapper'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { paymentApi } from '@/api/paymentApiWrapper'
 import { adminApi } from '@/api/adminApiWrapper'
 import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
@@ -75,6 +76,7 @@ export function BookAppointment() {
 
   const [availableSlots, setAvailableSlots] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     const preselectedDoctorId = searchParams.get('doctorId')
@@ -163,6 +165,7 @@ export function BookAppointment() {
   }
 
   const selectDoctor = (doctor) => {
+    setSubmitError('')
     setBookingData((prev) => ({ ...prev, doctorId: doctor.id, doctor }))
     setCurrentStep(2)
   }
@@ -199,6 +202,7 @@ export function BookAppointment() {
       return
     }
 
+    setSubmitError('')
     setBookingData((prev) => ({ ...prev, date, time }))
     setCurrentStep(3)
   }
@@ -206,6 +210,7 @@ export function BookAppointment() {
   const handleSubmit = async () => {
     try {
       setLoading(true)
+      setSubmitError('')
       if (!isFutureDate(bookingData.date)) {
         showToast('Ngày khám phải là ngày trong tương lai', 'error')
         return
@@ -216,6 +221,19 @@ export function BookAppointment() {
       }
       if (bookingData.type === 'IN_PERSON' && !bookingData.roomId) {
         showToast('Vui lòng chọn phòng khám cụ thể cho lịch hẹn trực tiếp', 'error')
+        return
+      }
+
+      // Re-check slot right before submit to prevent race condition:
+      // user A and user B may pick the same slot, but only first confirmed booking is valid.
+      const latestSlots = await scheduleApi.getAvailableSlots(bookingData.doctorId, bookingData.date)
+      const selectedSlot = (latestSlots || []).find((slot) => slot.time === bookingData.time)
+      if (!selectedSlot || !selectedSlot.available) {
+        const message = 'Bác sĩ đã có lịch hẹn trong khung giờ này. Vui lòng chọn giờ khác.'
+        setSubmitError(message)
+        showToast({ type: 'error', message })
+        setCurrentStep(2)
+        await loadAvailableSlots(bookingData.date)
         return
       }
 
@@ -237,11 +255,79 @@ export function BookAppointment() {
         notes: bookingData.notes,
       }
 
-      await appointmentApi.createAppointment(appointmentData)
-      showToast('Appointment booked successfully!', 'success')
-      navigate('/appointments')
+      const appointment = await appointmentApi.createAppointment(appointmentData)
+
+      const rawFee = Number(
+        selectedService?.basePrice ??
+          selectedService?.price ??
+          bookingData?.doctor?.consultationFee ??
+          0
+      )
+      const paymentAmount = Number.isFinite(rawFee) && rawFee >= 1000 ? Math.round(rawFee) : 1000
+
+      let paymentResult = null
+      try {
+        paymentResult = await paymentApi.createPayment({
+          appointmentId: appointment.id,
+          amount: paymentAmount,
+          description: `Thanh toán lịch khám #${appointment.id}`,
+          paymentMethod: 'MOMO_WALLET',
+          patientName: user.name || user.fullName || 'Bệnh nhân',
+          patientEmail: user.email || 'unknown@example.com',
+          patientPhone: user.phone || user.phoneNumber || '',
+          doctorId: bookingData.doctorId,
+          doctorName: bookingData.doctor?.name || '',
+        })
+      } catch (paymentCreateError) {
+        if (paymentCreateError?.response?.status === 409) {
+          paymentResult = await paymentApi.getPaymentByAppointment(appointment.id)
+        } else {
+          throw paymentCreateError
+        }
+      }
+
+      const orderId = paymentResult?.orderId || paymentResult?.paymentId
+      if (orderId) {
+        const fallbackExpiry = new Date(Date.now() + 15 * 60 * 1000)
+          .toISOString()
+          .replace('Z', '')
+          .slice(0, 19)
+        const expiresAt = paymentResult?.expiresAt || fallbackExpiry
+        try {
+          await appointmentApi.linkPaymentToAppointment(appointment.id, {
+            paymentOrderId: orderId,
+            paymentMethod: paymentResult?.paymentMethod || 'MOMO_WALLET',
+            paymentExpiresAt: expiresAt,
+          })
+        } catch (linkPaymentError) {
+          console.warn('Failed to link payment order to appointment before redirect', linkPaymentError)
+        }
+      }
+
+      const payUrl = paymentResult?.payUrl || paymentResult?.redirectUrl
+      if (payUrl) {
+        window.location.href = payUrl
+        return
+      }
+
+      showToast({
+        type: 'warning',
+        message: 'Đã tạo lịch hẹn nhưng chưa lấy được link thanh toán. Vui lòng thanh toán lại trong chi tiết lịch hẹn.',
+      })
+      navigate(`/appointments/${appointment.id}`)
     } catch (error) {
-      showToast(extractApiErrorMessage(error, 'Không thể đặt lịch hẹn'), 'error')
+      const errorMessage = extractApiErrorMessage(error, 'Không thể đặt lịch hẹn')
+      setSubmitError(errorMessage)
+      showToast({ type: 'error', message: errorMessage })
+
+      // For overlapping slot validation, return user to time selection
+      // and refresh available slots so user can immediately re-pick.
+      if (/trùng với lịch hẹn khác/i.test(errorMessage)) {
+        setCurrentStep(2)
+        if (bookingData.date) {
+          await loadAvailableSlots(bookingData.date)
+        }
+      }
     } finally {
       setLoading(false)
     }
@@ -420,6 +506,11 @@ export function BookAppointment() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {submitError && (
+                  <div className="mb-4 rounded-soft border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {submitError}
+                  </div>
+                )}
                 {/* Date Selection */}
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-sage-700 dark:text-sage-300 mb-3">
@@ -434,6 +525,7 @@ export function BookAppointment() {
                           key={dateStr}
                           data-testid={`booking-day-${dateStr}`}
                           onClick={() => {
+                            setSubmitError('')
                             setSelectedDate(dateStr)
                             loadAvailableSlots(dateStr)
                           }}
@@ -772,7 +864,7 @@ export function BookAppointment() {
                     isLoading={loading}
                     rightIcon={<CheckCircle className="w-4 h-4" />}
                   >
-                    Xác nhận Booking
+                    Xác nhận & Thanh toán
                   </Button>
                 </div>
               </CardContent>

@@ -30,12 +30,30 @@ const DoctorDashboard = () => {
     try {
       const statsData = await statsApi.getDoctorStats(user.id)
       const today = new Date().toISOString().split('T')[0]
+      const now = new Date()
+      const startOfWeek = new Date(now)
+      startOfWeek.setHours(0, 0, 0, 0)
+      startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7))
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(endOfWeek.getDate() + 7)
 
       // Get all doctor appointments and filter for today
       const appointmentsData = await appointmentApi.getAppointments({ doctorId: user.id })
       const todayAppts = appointmentsData.filter(apt => apt.appointmentDate === today)
+      const weeklyAppts = appointmentsData.filter((apt) => {
+        const rawDate = apt.appointmentDate || apt.date
+        if (!rawDate) return false
+        const aptDate = new Date(rawDate)
+        if (Number.isNaN(aptDate.getTime())) return false
+        return aptDate >= startOfWeek && aptDate < endOfWeek
+      })
 
-      setStats(statsData)
+      setStats({
+        ...statsData,
+        todayAppointments: todayAppts.length,
+        weeklyAppointments: weeklyAppts.length,
+        totalPatients: statsData?.totalPatients ?? statsData?.uniquePatients ?? 0,
+      })
       setTodayAppointments(todayAppts)
     } catch (error) {
       showToast({ type: 'error', message: 'Không thể tải dữ liệu' })
@@ -50,6 +68,9 @@ const DoctorDashboard = () => {
     if (hour < 18) return vi.doctor.dashboard.afternoon
     return vi.doctor.dashboard.evening
   }
+
+  const doctorDisplayName = (user?.name || user?.fullName || '').trim()
+  const doctorLastName = doctorDisplayName ? doctorDisplayName.split(' ').pop() : 'Doctor'
 
   const statsCards = [
     {
@@ -104,7 +125,7 @@ const DoctorDashboard = () => {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="text-3xl font-display font-bold text-sage-900 mb-2">
-          {vi.doctor.dashboard.welcome} {getGreeting()}, Dr. {user.name?.split(' ').pop()}
+          {vi.doctor.dashboard.welcome} {getGreeting()}, Dr. {doctorLastName}
         </h1>
         <p className="text-sage-600">
           {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -159,41 +180,48 @@ const DoctorDashboard = () => {
           ) : (
             <div className="space-y-3">
               {todayAppointments.map((appointment) => (
-                <div
-                  key={`${appointment.id ?? 'apt'}-${appointment.patientId ?? 'unknown'}-${appointment.time ?? 'time'}`}
-                  className="flex items-center justify-between p-4 bg-sage-50 rounded-lg hover:bg-sage-100 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-sage-900">
-                        {formatTime(appointment.time).split(':')[0]}
+                (() => {
+                  const rawTime = appointment.time || appointment.appointmentTime
+                  const formattedTime = rawTime ? formatTime(rawTime) : '--:--'
+                  const [hour, minute] = formattedTime.split(':')
+                  return (
+                    <div
+                      key={`${appointment.id ?? 'apt'}-${appointment.patientId ?? 'unknown'}-${rawTime ?? 'time'}`}
+                      className="flex items-center justify-between p-4 bg-sage-50 rounded-lg hover:bg-sage-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-sage-900">
+                            {hour || '--'}
+                          </div>
+                          <div className="text-xs text-sage-600">
+                            {minute || '--'}
+                          </div>
+                        </div>
+                        <Avatar
+                          src={`https://i.pravatar.cc/150?u=${appointment.patientId}`}
+                          alt={appointment.patientName}
+                        />
+                        <div>
+                          <h4 className="font-semibold text-sage-900">{appointment.patientName}</h4>
+                          <p className="text-sm text-sage-600">{appointment.reason || appointment.symptoms || ''}</p>
+                        </div>
                       </div>
-                      <div className="text-xs text-sage-600">
-                        {formatTime(appointment.time).split(':')[1]}
+                      <div className="flex items-center gap-3">
+                        <Badge className={`${
+                          appointment.status === 'CONFIRMED'
+                            ? 'bg-sage-100 text-sage-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {translateStatus(appointment.status)}
+                        </Badge>
+                        <Button size="sm" variant="outline">
+                          {vi.appointments.actions.startConsultation}
+                        </Button>
                       </div>
                     </div>
-                    <Avatar
-                      src={`https://i.pravatar.cc/150?u=${appointment.patientId}`}
-                      alt={appointment.patientName}
-                    />
-                    <div>
-                      <h4 className="font-semibold text-sage-900">{appointment.patientName}</h4>
-                      <p className="text-sm text-sage-600">{appointment.reason}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className={`${
-                      appointment.status === 'CONFIRMED'
-                        ? 'bg-sage-100 text-sage-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {translateStatus(appointment.status)}
-                    </Badge>
-                    <Button size="sm" variant="outline">
-                      {vi.appointments.actions.startConsultation}
-                    </Button>
-                  </div>
-                </div>
+                  )
+                })()
               ))}
             </div>
           )}
@@ -207,13 +235,13 @@ const DoctorDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-4">
-            <Link to="/doctor/schedule">
+            <Link to="/schedule">
               <Button variant="outline" className="w-full justify-start">
                 <Calendar className="w-5 h-5 mr-2" />
                 {vi.doctor.dashboard.viewSchedule}
               </Button>
             </Link>
-            <Link to="/doctor/patients">
+            <Link to="/patients">
               <Button variant="outline" className="w-full justify-start">
                 <Users className="w-5 h-5 mr-2" />
                 {vi.doctor.dashboard.managePatients}

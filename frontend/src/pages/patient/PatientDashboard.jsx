@@ -36,6 +36,9 @@ export function PatientDashboard() {
     loadDashboardData()
   }, [])
 
+  const patientDisplayName = (user?.name || user?.fullName || '').trim()
+  const patientFirstName = patientDisplayName ? patientDisplayName.split(' ')[0] : 'Bạn'
+
   const loadDashboardData = async () => {
     try {
       setLoading(true)
@@ -89,7 +92,7 @@ export function PatientDashboard() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-display font-bold text-sage-900 dark:text-cream-100 mb-2">
-              Chào mừng trở lại, {user.name.split(' ')[0]}! 👋
+              Chào mừng trở lại, {patientFirstName}! 👋
             </h1>
             <p className="text-sage-600 dark:text-sage-400">
               Tổng quan sức khỏe của bạn hôm nay
@@ -342,11 +345,11 @@ export function PatientDashboard() {
                     <div className="flex items-start justify-between mb-2">
                       <Activity className="w-5 h-5 text-sage-600 dark:text-sage-400" />
                       <span className="text-xs text-sage-500 dark:text-sage-400">
-                        {formatDate(metric.date)}
+                        {formatDate(metric.date || metric.measuredAt || metric.recordedAt)}
                       </span>
                     </div>
                     <p className="text-sm text-sage-600 dark:text-sage-400 mb-1">
-                      {metric.type.replace('_', ' ')}
+                      {String(metric.type || metric.metricType || 'N/A').replaceAll('_', ' ')}
                     </p>
                     <p className="text-2xl font-display font-bold text-sage-900 dark:text-cream-100">
                       {metric.value}

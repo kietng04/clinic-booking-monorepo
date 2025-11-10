@@ -79,6 +79,11 @@ public class MessageService {
         messageRepository.saveAll(unread);
     }
 
+    public void delete(Long id) {
+        Message message = findByIdOrThrow(id);
+        messageRepository.delete(message);
+    }
+
     private Message findByIdOrThrow(Long id) {
         return messageRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Message", "id", id));

@@ -95,6 +95,17 @@ public class NotificationService {
         return buildPageResponse(notificationPage);
     }
 
+    public void delete(Long id) {
+        Notification notification = findByIdOrThrow(id);
+        notificationRepository.delete(notification);
+    }
+
+    public void deleteAllByUser(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        notificationRepository.deleteByUserId(userId);
+    }
+
     private Notification findByIdOrThrow(Long id) {
         return notificationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification", "id", id));

@@ -23,4 +23,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("type") Notification.NotificationType type,
             @Param("isRead") Boolean isRead,
             Pageable pageable);
+
+    void deleteByUserId(Long userId);
 }

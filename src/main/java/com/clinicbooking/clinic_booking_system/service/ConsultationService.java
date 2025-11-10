@@ -117,6 +117,14 @@ public class ConsultationService {
         return mapper.toResponseDto(updated);
     }
 
+    public void delete(Long id) {
+        Consultation consultation = findByIdOrThrow(id);
+        if (consultation.getStatus() == Consultation.ConsultationStatus.ACTIVE) {
+            throw new BadRequestException("Không thể xóa tư vấn đang diễn ra");
+        }
+        consultationRepository.delete(consultation);
+    }
+
     private Consultation findByIdOrThrow(Long id) {
         return consultationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Consultation", "id", id));

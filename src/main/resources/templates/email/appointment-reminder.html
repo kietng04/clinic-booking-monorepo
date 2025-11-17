@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nhắc nhở lịch hẹn</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">Nhắc nhở lịch hẹn</h1>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #ff9800;">Xin chào, <span th:text="${patientName}">Bệnh nhân</span>!</h2>
+
+        <p>Đây là thông báo nhắc nhở về lịch hẹn khám sắp tới của bạn:</p>
+
+        <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <p><strong>Bác sĩ:</strong> <span th:text="${doctorName}">Bác sĩ</span></p>
+            <p><strong>Ngày khám:</strong> <span th:text="${appointmentDate}">01/01/2024</span></p>
+            <p><strong>Giờ khám:</strong> <span th:text="${appointmentTime}">09:00</span></p>
+            <p th:if="${workplace}"><strong>Địa điểm:</strong> <span th:text="${workplace}">Phòng khám</span></p>
+        </div>
+
+        <p style="color: #666;">
+            <strong>Lưu ý quan trọng:</strong>
+        </p>
+        <ul style="color: #666;">
+            <li>Vui lòng đến trước giờ hẹn 15 phút để làm thủ tục</li>
+            <li>Mang theo giấy tờ tùy thân</li>
+            <li>Chuẩn bị sẵn các câu hỏi muốn hỏi bác sĩ</li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+
+        <p style="color: #999; font-size: 12px; text-align: center;">
+            © 2024 Clinic Booking. All rights reserved.
+        </p>
+    </div>
+</body>
+</html>

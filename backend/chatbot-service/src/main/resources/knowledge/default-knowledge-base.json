@@ -1,0 +1,72 @@
+[
+  {
+    "id": "CLINIC_BRANCH_MAIN",
+    "intentId": "CLINIC_ADDRESS",
+    "title": "Chi nhanh trung tam",
+    "content": "Chi nhanh trung tam o 120 Nguyen Trai, Quan 1, TP HCM. Tong dai ho tro: 1900 6868.",
+    "keywords": ["dia chi", "o dau", "quan 1", "chi nhanh", "ban do"]
+  },
+  {
+    "id": "CLINIC_WORKING_HOURS",
+    "intentId": "CLINIC_ADDRESS",
+    "title": "Gio lam viec phong kham",
+    "content": "Phong kham lam viec tu 07:30 den 20:00 tu thu hai den thu bay, chu nhat tu 08:00 den 17:00.",
+    "keywords": ["gio mo cua", "gio lam viec", "mo cua may gio", "dong cua", "thu bay", "chu nhat"]
+  },
+  {
+    "id": "BOOKING_GUIDE",
+    "intentId": "BOOK_APPOINTMENT",
+    "title": "Huong dan dat lich",
+    "content": "De dat lich, ban dang nhap, vao muc Dat lich kham, chon bac si, chon khung gio va xac nhan thanh toan neu duoc yeu cau.",
+    "keywords": ["dat lich", "book", "hen kham", "chon bac si", "chon gio"]
+  },
+  {
+    "id": "RESCHEDULE_GUIDE",
+    "intentId": "RESCHEDULE_APPOINTMENT",
+    "title": "Huong dan doi lich",
+    "content": "Ban mo chi tiet lich hen, bam Doi lich, chon khung gio moi con trong va xac nhan cap nhat.",
+    "keywords": ["doi lich", "reschedule", "doi gio", "doi ngay"]
+  },
+  {
+    "id": "CANCEL_GUIDE",
+    "intentId": "CANCEL_APPOINTMENT",
+    "title": "Huong dan huy lich",
+    "content": "Ban co the huy lich trong trang chi tiet lich hen. Neu da thanh toan truoc, he thong se hien huong dan hoan tien theo chinh sach.",
+    "keywords": ["huy lich", "cancel", "khong di kham", "hoan tien"]
+  },
+  {
+    "id": "SERVICE_PRICE_BASIC",
+    "intentId": "SERVICE_PRICE",
+    "title": "Bang gia co ban",
+    "content": "Kham tong quat tu 200000 VND, kham chuyen khoa tu 300000 VND, tai kham tu 150000 VND.",
+    "keywords": ["gia", "chi phi", "bao nhieu tien", "phi kham", "bang gia"]
+  },
+  {
+    "id": "INSURANCE_SUPPORT",
+    "intentId": "INSURANCE_SUPPORT",
+    "title": "Ho tro bao hiem",
+    "content": "Phong kham chap nhan BHYT va mot so bao hiem tu nhan. Ban can mang CCCD, the bao hiem, va giay to lien quan khi check-in.",
+    "keywords": ["bao hiem", "bhyt", "claim", "ho tro bao hiem"]
+  },
+  {
+    "id": "ACCOUNT_SUPPORT_FLOW",
+    "intentId": "ACCOUNT_SUPPORT",
+    "title": "Ho tro tai khoan",
+    "content": "Neu quen mat khau, vao man hinh Dang nhap va chon Quen mat khau. Ma xac minh se duoc gui qua email hoac so dien thoai.",
+    "keywords": ["quen mat khau", "dang nhap", "otp", "tai khoan", "reset password"]
+  },
+  {
+    "id": "SPECIALTY_HINT",
+    "intentId": "SPECIALTY_CONSULTATION",
+    "title": "Goi y chuyen khoa",
+    "content": "Trieu chung ho keo dai, kho tho: uu tien Ho hap. Dau nguc: uu tien Tim mach. Dau da day: uu tien Tieu hoa.",
+    "keywords": ["chuyen khoa", "khoa nao", "nen kham khoa", "trieu chung"]
+  },
+  {
+    "id": "RAG_CAPABILITY_NOTE",
+    "intentId": "UNKNOWN",
+    "title": "Co che RAG cua tro ly",
+    "content": "Tro ly su dung co che retrieve tu kho tri thuc noi bo truoc khi tao cau tra loi. Neu khong tim thay ngu canh phu hop, tro ly se thong bao thieu du lieu thay vi doan.",
+    "keywords": ["rag", "retrieve", "knowledge base", "lay thong tin tu dau", "ngu canh"]
+  }
+]

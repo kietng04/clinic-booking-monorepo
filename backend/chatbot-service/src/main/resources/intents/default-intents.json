@@ -1,0 +1,74 @@
+[
+  {
+    "id": "BOOK_APPOINTMENT",
+    "name": "Dat lich kham",
+    "description": "Nguoi dung muon dat lich kham moi",
+    "keywords": ["dat lich", "book appointment", "hen kham", "book", "schedule appointment"]
+  },
+  {
+    "id": "RESCHEDULE_APPOINTMENT",
+    "name": "Doi lich kham",
+    "description": "Nguoi dung muon doi thoi gian lich kham",
+    "keywords": ["doi lich", "reschedule", "doi ngay", "chuyen lich", "doi gio"]
+  },
+  {
+    "id": "CANCEL_APPOINTMENT",
+    "name": "Huy lich kham",
+    "description": "Nguoi dung muon huy lich kham da dat",
+    "keywords": ["huy lich", "cancel appointment", "khong di kham", "huy hen"]
+  },
+  {
+    "id": "CHECK_DOCTOR_SCHEDULE",
+    "name": "Xem lich bac si",
+    "description": "Nguoi dung hoi lich lam viec cua bac si",
+    "keywords": ["lich bac si", "doctor schedule", "bac si nao ranh", "gio kham", "ca kham"]
+  },
+  {
+    "id": "CLINIC_ADDRESS",
+    "name": "Dia chi phong kham",
+    "description": "Nguoi dung hoi dia chi va thong tin di chuyen",
+    "keywords": ["dia chi", "address", "o dau", "chi nhanh", "ban do"]
+  },
+  {
+    "id": "SERVICE_PRICE",
+    "name": "Gia dich vu",
+    "description": "Nguoi dung hoi bang gia dich vu",
+    "keywords": ["gia", "chi phi", "bao nhieu tien", "price", "phi kham"]
+  },
+  {
+    "id": "SPECIALTY_CONSULTATION",
+    "name": "Tu van chuyen khoa",
+    "description": "Nguoi dung can goi y chuyen khoa phu hop",
+    "keywords": ["chuyen khoa", "khoa nao", "tu van khoa", "specialty", "nen kham khoa"]
+  },
+  {
+    "id": "MEDICATION_USAGE",
+    "name": "Huong dan dung thuoc",
+    "description": "Nguoi dung hoi cach dung thuoc",
+    "keywords": ["thuoc", "uong thuoc", "lieu dung", "medication", "don thuoc"]
+  },
+  {
+    "id": "TEST_RESULTS",
+    "name": "Ket qua xet nghiem",
+    "description": "Nguoi dung hoi ve ket qua can lam sang",
+    "keywords": ["xet nghiem", "ket qua", "lab result", "chi so", "bao cao"]
+  },
+  {
+    "id": "INSURANCE_SUPPORT",
+    "name": "Bao hiem",
+    "description": "Nguoi dung hoi thanh toan bao hiem",
+    "keywords": ["bao hiem", "bhyt", "insurance", "ho tro bao hiem", "claim"]
+  },
+  {
+    "id": "ACCOUNT_SUPPORT",
+    "name": "Ho tro tai khoan",
+    "description": "Nguoi dung gap loi dang nhap hoac profile",
+    "keywords": ["dang nhap", "quen mat khau", "tai khoan", "account", "otp"]
+  },
+  {
+    "id": "UNKNOWN",
+    "name": "Khong xac dinh",
+    "description": "Khong xac dinh duoc intent phu hop",
+    "keywords": []
+  }
+]

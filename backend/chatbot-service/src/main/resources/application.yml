@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: chatbot-service
+
+server:
+  port: 8086
+  error:
+    include-message: always
+    include-binding-errors: always
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+jwt:
+  secret: ${JWT_SECRET:dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=}
+  expiration: 86400000
+
+ai:
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+    max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:256}
+    temperature: ${GEMINI_TEMPERATURE:0.1}
+    answer-max-output-tokens: ${GEMINI_ANSWER_MAX_OUTPUT_TOKENS:512}
+    answer-temperature: ${GEMINI_ANSWER_TEMPERATURE:0.2}
+    timeout:
+      connect-ms: ${GEMINI_CONNECT_TIMEOUT_MS:10000}
+      read-ms: ${GEMINI_READ_TIMEOUT_MS:30000}
+
+  classifier:
+    confidence-threshold: ${CLASSIFIER_CONFIDENCE_THRESHOLD:0.34}
+    fallback-intent-id: ${CLASSIFIER_FALLBACK_INTENT_ID:UNKNOWN}
+
+  rag:
+    top-k: ${RAG_TOP_K:3}
+    min-score: ${RAG_MIN_SCORE:0.08}
+    knowledge-path: ${RAG_KNOWLEDGE_PATH:knowledge/default-knowledge-base.json}
+
+logging:
+  level:
+    root: INFO
+    com.clinicbooking.chatbotservice: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  show-actuator: true

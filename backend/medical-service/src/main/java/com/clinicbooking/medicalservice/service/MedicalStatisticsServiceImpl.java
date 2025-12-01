@@ -1,6 +1,7 @@
 package com.clinicbooking.medicalservice.service;
 
 import com.clinicbooking.medicalservice.dto.MedicalStatisticsDto;
+import com.clinicbooking.medicalservice.dto.PatientMedicalSummaryDto;
 import com.clinicbooking.medicalservice.repository.HealthMetricRepository;
 import com.clinicbooking.medicalservice.repository.MedicalRecordRepository;
 import com.clinicbooking.medicalservice.repository.MedicationRepository;
@@ -74,7 +75,31 @@ public class MedicalStatisticsServiceImpl implements MedicalStatisticsService {
     }
 
     @Override
-    @CacheEvict(value = "medicalStatistics", allEntries = true)
+    @Cacheable(value = "patientMedicalSummary", key = "#patientId", unless = "#result == null")
+    public PatientMedicalSummaryDto getPatientMedicalSummary(Long patientId) {
+        log.info("Fetching patient medical summary for patient: {}", patientId);
+
+        try {
+            long totalMedicalRecords = medicalRecordRepository.countByPatientId(patientId);
+            long totalPrescriptions = prescriptionRepository.countByPatientId(patientId);
+            long totalHealthMetrics = healthMetricRepository.countByPatientId(patientId);
+
+            return PatientMedicalSummaryDto.builder()
+                    .patientId(patientId)
+                    .totalMedicalRecords(totalMedicalRecords)
+                    .totalPrescriptions(totalPrescriptions)
+                    .totalHealthMetrics(totalHealthMetrics)
+                    .generatedAt(LocalDateTime.now())
+                    .cacheDurationMinutes(CACHE_DURATION_MINUTES)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error fetching patient medical summary for patientId={}", patientId, e);
+            throw new RuntimeException("Failed to fetch patient medical summary", e);
+        }
+    }
+
+    @Override
+    @CacheEvict(value = { "medicalStatistics", "patientMedicalSummary" }, allEntries = true)
     public void clearStatisticsCache() {
         log.info("Cleared medical statistics cache");
     }

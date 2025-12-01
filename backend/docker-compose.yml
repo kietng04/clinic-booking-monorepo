@@ -441,8 +441,14 @@ services:
       JWT_SECRET: dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      SERVICES_USER_SERVICE_URL: http://user-service:8081
+      SERVICES_APPOINTMENT_SERVICE_URL: http://appointment-service:8082
     depends_on:
       eureka-server:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      appointment-service:
         condition: service_healthy
     networks:
       - clinic-network

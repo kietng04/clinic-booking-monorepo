@@ -28,6 +28,15 @@ class ChatOrchestratorServiceTest {
     @Mock
     private GeminiAnswerService geminiAnswerService;
 
+    @Mock
+    private DoctorDirectoryService doctorDirectoryService;
+
+    @Mock
+    private ClinicDirectoryService clinicDirectoryService;
+
+    @Mock
+    private ServiceCatalogService serviceCatalogService;
+
     private ChatOrchestratorService service;
 
     @BeforeEach
@@ -35,7 +44,10 @@ class ChatOrchestratorServiceTest {
         service = new ChatOrchestratorService(
                 questionClassifierService,
                 knowledgeRetrievalService,
-                geminiAnswerService
+                geminiAnswerService,
+                doctorDirectoryService,
+                clinicDirectoryService,
+                serviceCatalogService
         );
     }
 
@@ -110,5 +122,128 @@ class ChatOrchestratorServiceTest {
 
         assertThat(response.answerProvider()).isEqualTo("RULE_RAG");
         assertThat(response.answer()).contains("du lieu noi bo");
+    }
+
+    @Test
+    void shouldReturnGreetingWithoutRag() {
+        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
+                "hi",
+                "hi",
+                "GREETING",
+                "Chao hoi",
+                0.4,
+                "RULE_BASED",
+                false,
+                "rule"
+        );
+
+        when(questionClassifierService.classify("hi", "PATIENT")).thenReturn(classification);
+
+        var response = service.chat("hi", "PATIENT");
+
+        assertThat(response.answerProvider()).isEqualTo("RULE_GREETING");
+        assertThat(response.ragUsed()).isFalse();
+        assertThat(response.answer()).contains("HealthFlow");
+    }
+
+    @Test
+    void shouldReturnLiveDoctorLookupAnswer() {
+        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
+                "co bac si nao ten Binh khong",
+                "co bac si nao ten binh khong",
+                "DOCTOR_LOOKUP",
+                "Tra cuu bac si",
+                0.4,
+                "RULE_BASED",
+                false,
+                "rule"
+        );
+
+        when(questionClassifierService.classify("co bac si nao ten Binh khong", "PATIENT")).thenReturn(classification);
+        when(doctorDirectoryService.answerDoctorLookup(
+                "co bac si nao ten Binh khong",
+                "co bac si nao ten binh khong",
+                "Bearer token"
+        )).thenReturn(Optional.of("Toi tim thay 1 bac si phu hop: BS. Tran Thu Binh."));
+
+        var response = service.chat("co bac si nao ten Binh khong", "PATIENT", "Bearer token");
+
+        assertThat(response.answerProvider()).isEqualTo("LIVE_DOCTOR_LOOKUP");
+        assertThat(response.ragUsed()).isFalse();
+        assertThat(response.answer()).contains("Tran Thu Binh");
+    }
+
+    @Test
+    void shouldRescueUnknownDoctorNameWithImplicitLookup() {
+        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
+                "BS. Tran Thu Binh",
+                "bs tran thu binh",
+                "UNKNOWN",
+                "Khong xac dinh",
+                0.0,
+                "FALLBACK",
+                true,
+                "fallback"
+        );
+
+        when(questionClassifierService.classify("BS. Tran Thu Binh", "PATIENT")).thenReturn(classification);
+        when(doctorDirectoryService.answerImplicitDoctorLookup(
+                "BS. Tran Thu Binh",
+                "bs tran thu binh",
+                "Bearer token"
+        )).thenReturn(Optional.of("Toi tim thay 1 bac si phu hop: BS. Tran Thu Binh."));
+
+        var response = service.chat("BS. Tran Thu Binh", "PATIENT", "Bearer token");
+
+        assertThat(response.intentId()).isEqualTo("DOCTOR_LOOKUP");
+        assertThat(response.classifierProvider()).isEqualTo("HEURISTIC");
+        assertThat(response.answerProvider()).isEqualTo("LIVE_DOCTOR_LOOKUP");
+        assertThat(response.answer()).contains("Tran Thu Binh");
+    }
+
+    @Test
+    void shouldReturnLiveClinicDirectoryAnswer() {
+        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
+                "hien gio co cac tru so nao",
+                "hien gio co cac tru so nao",
+                "CLINIC_DIRECTORY",
+                "Danh sach co so",
+                0.4,
+                "RULE_BASED",
+                false,
+                "rule"
+        );
+
+        when(questionClassifierService.classify("hien gio co cac tru so nao", "PATIENT")).thenReturn(classification);
+        when(clinicDirectoryService.answerClinicDirectory("Bearer token"))
+                .thenReturn(Optional.of("Hien tai HealthFlow co 3 co so dang hoat dong."));
+
+        var response = service.chat("hien gio co cac tru so nao", "PATIENT", "Bearer token");
+
+        assertThat(response.answerProvider()).isEqualTo("LIVE_CLINIC_DIRECTORY");
+        assertThat(response.answer()).contains("3 co so");
+    }
+
+    @Test
+    void shouldReturnLiveServiceCatalogAnswer() {
+        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
+                "ban co dich vu gi",
+                "ban co dich vu gi",
+                "SERVICE_CATALOG",
+                "Danh muc dich vu",
+                0.4,
+                "RULE_BASED",
+                false,
+                "rule"
+        );
+
+        when(questionClassifierService.classify("ban co dich vu gi", "PATIENT")).thenReturn(classification);
+        when(serviceCatalogService.answerServiceCatalog("Bearer token"))
+                .thenReturn(Optional.of("Hien tai he thong co 224 dich vu dang mo."));
+
+        var response = service.chat("ban co dich vu gi", "PATIENT", "Bearer token");
+
+        assertThat(response.answerProvider()).isEqualTo("LIVE_SERVICE_CATALOG");
+        assertThat(response.answer()).contains("224 dich vu");
     }
 }

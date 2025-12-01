@@ -1,6 +1,7 @@
 package com.clinicbooking.medicalservice.controller;
 
 import com.clinicbooking.medicalservice.dto.MedicalStatisticsDto;
+import com.clinicbooking.medicalservice.dto.PatientMedicalSummaryDto;
 import com.clinicbooking.medicalservice.service.MedicalStatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -47,6 +48,31 @@ public class MedicalStatisticsController {
         log.debug("Received request for medical statistics summary");
         MedicalStatisticsDto statistics = medicalStatisticsService.getMedicalStatistics();
         return ResponseEntity.ok(statistics);
+    }
+
+    @GetMapping("/medical/patient/{patientId}/summary")
+    @Operation(
+            summary = "Get patient medical summary",
+            description = "Retrieve patient-specific counts for medical records, prescriptions, and health metrics."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Patient medical summary retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PatientMedicalSummaryDto.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error while fetching patient medical summary"
+            )
+    })
+    public ResponseEntity<PatientMedicalSummaryDto> getPatientMedicalSummary(@PathVariable Long patientId) {
+        log.debug("Received request for patient medical summary: {}", patientId);
+        PatientMedicalSummaryDto summary = medicalStatisticsService.getPatientMedicalSummary(patientId);
+        return ResponseEntity.ok(summary);
     }
 
     @PostMapping("/cache/clear")

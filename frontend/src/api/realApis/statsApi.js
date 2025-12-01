@@ -7,6 +7,12 @@ import { createApiClient } from '../core/createApiClient'
 
 const statsServiceClient = createApiClient()
 
+const normalizePatientStats = (data = {}) => ({
+  ...data,
+  activePrescriptions: data.activePrescriptions ?? data.totalPrescriptions ?? 0,
+  healthMetricsLogged: data.healthMetricsLogged ?? 0,
+})
+
 export const statsApi = {
   /**
    * Get patient statistics
@@ -15,7 +21,7 @@ export const statsApi = {
    */
   getPatientStats: async (patientId) => {
     const response = await statsServiceClient.get(`/api/statistics/aggregate/patient/${patientId}`)
-    return response.data
+    return normalizePatientStats(response.data)
   },
 
   /**

@@ -72,3 +72,18 @@ springdoc:
     path: /swagger-ui.html
     enabled: true
   show-actuator: true
+
+services:
+  user-service:
+    url: ${SERVICES_USER_SERVICE_URL:http://localhost:8081}
+  appointment-service:
+    url: ${SERVICES_APPOINTMENT_SERVICE_URL:http://localhost:8082}
+
+chatbot:
+  doctor-lookup:
+    max-results: ${CHATBOT_DOCTOR_LOOKUP_MAX_RESULTS:3}
+  clinic-directory:
+    max-results: ${CHATBOT_CLINIC_DIRECTORY_MAX_RESULTS:3}
+  service-catalog:
+    fetch-size: ${CHATBOT_SERVICE_CATALOG_FETCH_SIZE:200}
+    max-results: ${CHATBOT_SERVICE_CATALOG_MAX_RESULTS:5}

@@ -23,6 +23,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Badge } from '@/components/ui/Badge'
 import { Loading, SkeletonCard } from '@/components/ui/Loading'
 import { formatDate, formatTime, getStatusColor, translateStatus, translateAppointmentType } from '@/lib/utils'
+import { buildPatientDashboardStats, deriveUpcomingAppointments } from './patientDashboardStats'
 
 export function PatientDashboard() {
   const { user } = useAuthStore()
@@ -33,8 +34,10 @@ export function PatientDashboard() {
   const [healthMetrics, setHealthMetrics] = useState([])
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    if (user?.id) {
+      loadDashboardData()
+    }
+  }, [user?.id])
 
   const patientDisplayName = (user?.name || user?.fullName || '').trim()
   const patientFirstName = patientDisplayName ? patientDisplayName.split(' ')[0] : 'Bạn'
@@ -42,23 +45,27 @@ export function PatientDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true)
-      const [statsData, appointmentsData, recordsData, metricsData] = await Promise.all([
+      const [statsResult, appointmentsResult, recordsResult, metricsResult] = await Promise.allSettled([
         statsApi.getPatientStats(user.id),
         appointmentApi.getAppointments({ patientId: user.id }),
         medicalRecordApi.getRecords(user.id),
         healthMetricsApi.getMetrics(user.id),
       ])
 
-      setStats(statsData)
-      // Filter upcoming appointments
-      const upcoming = appointmentsData.filter(
-        (apt) => new Date(apt.date) >= new Date() && apt.status !== 'CANCELLED'
-      ).slice(0, 3)
-      setUpcomingAppointments(upcoming)
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value : null
+      const appointmentsData = appointmentsResult.status === 'fulfilled' ? appointmentsResult.value : []
+      const recordsData = recordsResult.status === 'fulfilled' ? recordsResult.value : []
+      const metricsData = metricsResult.status === 'fulfilled' ? metricsResult.value : []
+
+      setStats(buildPatientDashboardStats({
+        statsData,
+        appointmentsData,
+        recordsData,
+        metricsData,
+      }))
+      setUpcomingAppointments(deriveUpcomingAppointments(appointmentsData).slice(0, 3))
       setRecentRecords(recordsData.slice(0, 3))
       setHealthMetrics(metricsData.slice(0, 4))
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error)
     } finally {
       setLoading(false)
     }
@@ -198,7 +205,7 @@ export function PatientDashboard() {
                     >
                       <div className="flex items-start gap-4">
                         <Avatar
-                          src={`https://i.pravatar.cc/150?img=${apt.doctorId}`}
+                          src={`https://i.pravatar.cc/150?u=${apt.doctorId}`}
                           name={apt.doctorName}
                           size="md"
                         />

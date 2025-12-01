@@ -38,6 +38,9 @@ public class PatientStatisticsDto implements Serializable {
     @Schema(description = "Total prescriptions", example = "35")
     private Long totalPrescriptions;
 
+    @Schema(description = "Total health metrics logged", example = "45")
+    private Long healthMetricsLogged;
+
     @Schema(description = "Last appointment date", example = "2025-01-05")
     private String lastAppointmentDate;
 

@@ -61,4 +61,69 @@ class KnowledgeRetrievalServiceTest {
         var results = service.retrieve("   ", "UNKNOWN");
         assertThat(results).isEmpty();
     }
+
+    @Test
+    void shouldNotRetrieveUnknownFallbackForNoiseQuestion() {
+        List<KnowledgeDocument> documents = List.of(
+                new KnowledgeDocument(
+                        "RAG_CAPABILITY_NOTE",
+                        "UNKNOWN",
+                        "Co che RAG cua tro ly",
+                        "Tro ly su dung co che retrieve tu kho tri thuc noi bo.",
+                        List.of("rag", "retrieve", "ngu canh")
+                ),
+                new KnowledgeDocument(
+                        "BOOKING_GUIDE",
+                        "BOOK_APPOINTMENT",
+                        "Dat lich",
+                        "Dat lich bang cach chon bac si va khung gio.",
+                        List.of("dat lich")
+                )
+        );
+
+        when(knowledgeBaseService.getDocuments()).thenReturn(documents);
+
+        var results = service.retrieve("hi", "UNKNOWN");
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void shouldRetrieveUnknownDocumentWhenQuestionActuallyMentionsRag() {
+        List<KnowledgeDocument> documents = List.of(
+                new KnowledgeDocument(
+                        "RAG_CAPABILITY_NOTE",
+                        "UNKNOWN",
+                        "Co che RAG cua tro ly",
+                        "Tro ly su dung co che retrieve tu kho tri thuc noi bo.",
+                        List.of("rag", "retrieve", "ngu canh")
+                )
+        );
+
+        when(knowledgeBaseService.getDocuments()).thenReturn(documents);
+
+        var results = service.retrieve("co che rag la gi", "UNKNOWN");
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().id()).isEqualTo("RAG_CAPABILITY_NOTE");
+    }
+
+    @Test
+    void shouldIgnoreStopWordsForUnknownServiceQuestion() {
+        List<KnowledgeDocument> documents = List.of(
+                new KnowledgeDocument(
+                        "RAG_CAPABILITY_NOTE",
+                        "UNKNOWN",
+                        "Co che RAG cua tro ly",
+                        "Tro ly su dung co che retrieve tu kho tri thuc noi bo.",
+                        List.of("rag", "retrieve", "ngu canh")
+                )
+        );
+
+        when(knowledgeBaseService.getDocuments()).thenReturn(documents);
+
+        var results = service.retrieve("ban co dich vu gi", "UNKNOWN");
+
+        assertThat(results).isEmpty();
+    }
 }

@@ -14,12 +14,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -52,10 +54,11 @@ public class IntentClassifierController {
     @Operation(summary = "Generate chatbot answer with hybrid classify + retrieval + Gemini fallback")
     public ResponseEntity<ChatResponse> chat(
             @Valid @RequestBody ChatRequest request,
-            @RequestAttribute(value = "userRole", required = false) String userRole
+            @RequestAttribute(value = "userRole", required = false) String userRole,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorizationHeader
     ) {
         log.info("Chat request received for role={}", userRole);
-        return ResponseEntity.ok(chatOrchestratorService.chat(request.message(), userRole));
+        return ResponseEntity.ok(chatOrchestratorService.chat(request.message(), userRole, authorizationHeader));
     }
 
     @GetMapping("/intents")

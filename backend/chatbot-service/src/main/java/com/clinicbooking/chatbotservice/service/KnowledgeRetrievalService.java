@@ -14,10 +14,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class KnowledgeRetrievalService {
+
+    private static final Set<String> STOP_WORDS = Set.of(
+            "ban", "toi", "la", "co", "gi", "nao", "nhung", "cac", "hien", "gio",
+            "nay", "kia", "thi", "va", "de", "duoc", "khong", "ko", "hay", "voi",
+            "ve", "cho", "cua", "tu", "tai", "o", "dau", "can", "muon"
+    );
 
     private final KnowledgeBaseService knowledgeBaseService;
 
@@ -51,7 +58,7 @@ public class KnowledgeRetrievalService {
         String docIntent = document.intentId() == null ? "UNKNOWN" : document.intentId().trim().toUpperCase(Locale.ROOT);
 
         if ("UNKNOWN".equals(safeIntent)) {
-            return true;
+            return "UNKNOWN".equals(docIntent);
         }
 
         return docIntent.equals(safeIntent) || "UNKNOWN".equals(docIntent);
@@ -65,7 +72,7 @@ public class KnowledgeRetrievalService {
     ) {
         List<String> matchedTerms = document.keywords() == null ? List.of() : document.keywords().stream()
                 .map(TextNormalizer::normalize)
-                .filter(k -> !k.isBlank() && normalizedQuestion.contains(k))
+                .filter(k -> !k.isBlank() && containsPhrase(normalizedQuestion, k))
                 .distinct()
                 .toList();
 
@@ -86,7 +93,14 @@ public class KnowledgeRetrievalService {
         if (documentIntent == null || askedIntent == null) {
             return false;
         }
-        return documentIntent.trim().equalsIgnoreCase(askedIntent.trim());
+
+        String normalizedDocumentIntent = documentIntent.trim().toUpperCase(Locale.ROOT);
+        String normalizedAskedIntent = askedIntent.trim().toUpperCase(Locale.ROOT);
+        if ("UNKNOWN".equals(normalizedDocumentIntent) || "UNKNOWN".equals(normalizedAskedIntent)) {
+            return false;
+        }
+
+        return normalizedDocumentIntent.equals(normalizedAskedIntent);
     }
 
     private double calculateOverlap(Set<String> queryTokens, Set<String> docTokens) {
@@ -106,6 +120,12 @@ public class KnowledgeRetrievalService {
         return Arrays.stream(text.split("\\s+"))
                 .map(String::trim)
                 .filter(token -> token.length() >= 2)
+                .filter(token -> !STOP_WORDS.contains(token))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private boolean containsPhrase(String normalizedQuestion, String normalizedKeyword) {
+        String pattern = "(^|\\s)" + Pattern.quote(normalizedKeyword) + "(\\s|$)";
+        return Pattern.compile(pattern).matcher(normalizedQuestion).find();
     }
 }

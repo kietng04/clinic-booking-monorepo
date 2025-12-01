@@ -89,4 +89,27 @@ describe('LoginPage quick demo', () => {
       expect(mockLogin).toHaveBeenCalledWith(realDemoAccounts.DOCTOR.email, realDemoAccounts.DOCTOR.password)
     })
   })
+
+  it('falls back to alternate real demo credentials when primary login fails', async () => {
+    const realDemoAccounts = getDemoAccounts(false)
+
+    mockLogin
+      .mockRejectedValueOnce(new Error('Primary demo account unavailable'))
+      .mockResolvedValueOnce({})
+
+    vi.stubEnv('VITE_USE_MOCK_BACKEND', 'false')
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bệnh nhân' }))
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenNthCalledWith(1, realDemoAccounts.PATIENT.email, realDemoAccounts.PATIENT.password)
+      expect(mockLogin).toHaveBeenNthCalledWith(2, realDemoAccounts.PATIENT.fallbacks[0].email, realDemoAccounts.PATIENT.fallbacks[0].password)
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+    })
+  })
 })

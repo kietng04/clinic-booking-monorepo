@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lịch hẹn đã hủy</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0;">Lịch hẹn đã bị hủy</h1>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <h2 style="color: #dc3545;">Xin chào, <span th:text="${patientName}">Bệnh nhân</span>!</h2>
+
+        <p>Chúng tôi thông báo lịch hẹn sau đây đã bị hủy:</p>
+
+        <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <p><strong>Bác sĩ:</strong> <span th:text="${doctorName}">Bác sĩ</span></p>
+            <p><strong>Ngày khám:</strong> <span th:text="${appointmentDate}">01/01/2024</span></p>
+            <p><strong>Giờ khám:</strong> <span th:text="${appointmentTime}">09:00</span></p>
+            <p th:if="${cancelReason}"><strong>Lý do hủy:</strong> <span th:text="${cancelReason}">Không có</span></p>
+        </div>
+
+        <p>Bạn có thể đặt lịch hẹn mới bất cứ lúc nào.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a th:href="${bookingUrl}" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Đặt lịch hẹn mới
+            </a>
+        </div>
+
+        <p style="color: #666; font-size: 14px;">
+            Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+
+        <p style="color: #999; font-size: 12px; text-align: center;">
+            © 2024 Clinic Booking. All rights reserved.
+        </p>
+    </div>
+</body>
+</html>

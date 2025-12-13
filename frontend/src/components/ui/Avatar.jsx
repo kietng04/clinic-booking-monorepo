@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
 
@@ -9,13 +10,22 @@ const sizes = {
 }
 
 export function Avatar({ src, name, size = 'md', className }) {
+  const [imgError, setImgError] = useState(false)
+
+  useEffect(() => {
+    setImgError(false)
+  }, [src])
+
+  const shouldShowImage = Boolean(src) && !imgError
+
   return (
     <div className={cn('relative inline-block', className)}>
-      {src ? (
+      {shouldShowImage ? (
         <img
           src={src}
           alt={name}
           className={cn('rounded-full object-cover', sizes[size])}
+          onError={() => setImgError(true)}
         />
       ) : (
         <div

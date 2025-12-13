@@ -68,19 +68,16 @@ npm run dev
 
 ### Quick Demo Login
 
-The app comes with pre-configured demo accounts:
+Demo accounts depend on `VITE_USE_MOCK_BACKEND`:
 
-**Patient Account:**
-- Email: `john.anderson@email.com`
-- Password: `password`
-
-**Doctor Account:**
-- Email: `sarah.mitchell@healthflow.com`
-- Password: `password`
-
-**Admin Account:**
-- Email: `admin@healthflow.com`
-- Password: `password`
+- `VITE_USE_MOCK_BACKEND=true` (mock mode)
+  - Patient: `john.anderson@email.com` / `password`
+  - Doctor: `sarah.mitchell@healthflow.com` / `password`
+  - Admin: `admin@healthflow.com` / `password`
+- `VITE_USE_MOCK_BACKEND=false` (real backend mode, default in `.env`)
+  - Patient: `patient.1@healthflow.vn` / `password`
+  - Doctor: `doctor.1@healthflow.vn` / `password`
+  - Admin: `admin.1@healthflow.vn` / `password`
 
 ## Project Structure
 

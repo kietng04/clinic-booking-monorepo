@@ -19,6 +19,7 @@ export function RegisterPage() {
     password: '',
     confirmPassword: '',
     role: 'PATIENT',
+    specialization: '',
   })
 
   const handleSubmit = async (e) => {
@@ -30,7 +31,12 @@ export function RegisterPage() {
     }
 
     if (formData.password.length < 8) {
-      showToast('Mật khẩu phải có ít nhất 8 ký tự', 'error')
+      showToast('Mat khau phai co it nhat 8 ky tu', 'error')
+      return
+    }
+
+    if (formData.role === 'DOCTOR' && !formData.specialization?.trim()) {
+      showToast('Vui long nhap chuyen khoa cho bac si', 'error')
       return
     }
 
@@ -185,6 +191,18 @@ export function RegisterPage() {
               options={roleOptions}
             />
 
+            {formData.role === 'DOCTOR' && (
+              <Input
+                label="Chuyen khoa"
+                type="text"
+                value={formData.specialization}
+                onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                placeholder="Vi du: Noi tong quat"
+                leftIcon={<User className="w-5 h-5" />}
+                required
+              />
+            )}
+
             <Input
               label="Password"
               type="password"
@@ -243,3 +261,4 @@ export function RegisterPage() {
     </div>
   )
 }
+

@@ -306,6 +306,13 @@ class WebSocketManager {
       return null
     }
 
+    // Prevent duplicate subscriptions for the same consultation topic.
+    const existing = this.subscriptions.get(consultationId)
+    if (existing) {
+      existing.unsubscribe()
+      this.subscriptions.delete(consultationId)
+    }
+
     const topic = `/topic/consultation/${consultationId}`
     const subscription = this.stompClient.subscribe(topic, (message) => {
       const messageData = JSON.parse(message.body)

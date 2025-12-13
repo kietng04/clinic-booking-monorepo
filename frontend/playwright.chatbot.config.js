@@ -29,7 +29,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       VITE_USE_MOCK_BACKEND: 'false',
-      VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || 'http://127.0.0.1:8086',
+      VITE_API_BASE_URL: process.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080',
     },
   },
   outputDir: 'test-results/playwright-chatbot-artifacts',

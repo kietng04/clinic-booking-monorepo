@@ -37,7 +37,7 @@ momo:
   partner-code: MOMOBKUN20180529
   access-key: klm05TvNBzhg7h7j
   secret-key: at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa
-  endpoint: https://test-payment.momo.vn
+  endpoint: ${MOMO_ENDPOINT:https://payment.momo.vn}
   redirect-url: http://localhost:3000/payment/result
   ipn-url: http://localhost:8084/api/payments/momo/callback
   request-type: captureWallet

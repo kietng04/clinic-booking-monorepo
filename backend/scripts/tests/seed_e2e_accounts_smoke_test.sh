@@ -15,7 +15,13 @@ if ! bash "$SCRIPT" --help >/tmp/seed_e2e_help.txt 2>&1; then
   exit 1
 fi
 
-if ! rg -q "Usage:" /tmp/seed_e2e_help.txt; then
+if command -v rg >/dev/null 2>&1; then
+  has_usage="$(rg -q "Usage:" /tmp/seed_e2e_help.txt && echo yes || echo no)"
+else
+  has_usage="$(grep -q "Usage:" /tmp/seed_e2e_help.txt && echo yes || echo no)"
+fi
+
+if [[ "$has_usage" != "yes" ]]; then
   echo "FAIL: help output must contain Usage"
   cat /tmp/seed_e2e_help.txt
   exit 1

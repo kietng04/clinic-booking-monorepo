@@ -48,7 +48,7 @@ const normalizeDoctor = (doctor) => ({
 export function BookAppointment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user } = useAuthStore()
+  const { user, updateUser } = useAuthStore()
   const { showToast } = useUIStore()
 
   const [currentStep, setCurrentStep] = useState(1)
@@ -265,6 +265,41 @@ export function BookAppointment() {
       )
       const paymentAmount = Number.isFinite(rawFee) && rawFee >= 1000 ? Math.round(rawFee) : 1000
 
+      const normalizePhone = (value) => {
+        const phone = (value || '').toString().trim()
+        return phone.length > 0 ? phone : ''
+      }
+      let patientPhone = normalizePhone(
+        user?.phone ||
+          user?.phoneNumber ||
+          user?.phone_number ||
+          user?.contactPhone ||
+          user?.contactNumber ||
+          user?.profile?.phone
+      )
+      if (!patientPhone && user?.id) {
+        const latestProfile = await userApi.getUser(user.id)
+        patientPhone = normalizePhone(
+          latestProfile?.phone ||
+            latestProfile?.phoneNumber ||
+            latestProfile?.phone_number ||
+            latestProfile?.contactPhone ||
+            latestProfile?.contactNumber
+        )
+        if (patientPhone) {
+          updateUser({
+            phone: patientPhone,
+            phoneNumber: latestProfile?.phoneNumber || patientPhone,
+          })
+        }
+      }
+      if (!patientPhone) {
+        const message = 'Tai khoan chua co so dien thoai. Vui long cap nhat ho so truoc khi thanh toan.'
+        setSubmitError(message)
+        showToast({ type: 'error', message })
+        return
+      }
+
       let paymentResult = null
       try {
         paymentResult = await paymentApi.createPayment({
@@ -274,7 +309,7 @@ export function BookAppointment() {
           paymentMethod: 'MOMO_WALLET',
           patientName: user.name || user.fullName || 'Bệnh nhân',
           patientEmail: user.email || 'unknown@example.com',
-          patientPhone: user.phone || user.phoneNumber || '',
+          patientPhone,
           doctorId: bookingData.doctorId,
           doctorName: bookingData.doctor?.name || '',
         })

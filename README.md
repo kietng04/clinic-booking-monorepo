@@ -5,27 +5,27 @@ A beautiful, modern healthcare booking platform built with React, featuring a so
 ## Features
 
 ### For Patients
-- 📅 Easy appointment booking with doctor search and filtering
-- 📋 Medical records management and history
-- ❤️ Health metrics tracking with AI-powered insights
-- 👨‍👩‍👧 Family member management
-- 💬 Real-time messaging with healthcare providers
-- 🔔 Smart notifications for appointments and updates
+- Easy appointment booking with doctor search and filtering
+- Medical records management and history
+- Health metrics tracking with AI-powered insights
+- Family member management
+- Real-time messaging with healthcare providers
+- Smart notifications for appointments and updates
 
 ### For Doctors
-- 📊 Comprehensive dashboard with appointment overview
-- ⏰ Schedule management and availability settings
-- 👥 Patient management and medical record access
-- 💊 Prescription creation and management
-- 📈 Analytics and performance insights
-- 🎥 Video consultation capabilities
+- Comprehensive dashboard with appointment overview
+- Schedule management and availability settings
+- Patient management and medical record access
+- Prescription creation and management
+- Analytics and performance insights
+- Video consultation capabilities
 
 ### For Administrators
-- 🏥 System-wide analytics and reporting
-- 👤 User and doctor management
-- ✅ Doctor approval workflow
-- 📊 Revenue and usage tracking
-- ⚙️ System configuration
+- System-wide analytics and reporting
+- User and doctor management
+- Doctor approval workflow
+- Revenue and usage tracking
+- System configuration
 
 ## Tech Stack
 
@@ -145,13 +145,13 @@ The built files will be in the `dist/` directory.
 
 ## Coming Soon
 
-- 📅 Complete appointment booking flow
-- 📋 Full medical records interface
-- ❤️ Health metrics dashboard with charts
-- 👨‍👩‍👧 Family member management
-- 💬 Real-time messaging interface
-- 👨‍⚕️ Doctor dashboard and tools
-- 👑 Admin panel and analytics
+- Complete appointment booking flow
+- Full medical records interface
+- Health metrics dashboard with charts
+- Family member management
+- Real-time messaging interface
+- Doctor dashboard and tools
+- Admin panel and analytics
 
 ## License
 
@@ -159,5 +159,5 @@ MIT License
 
 ## Credits
 
-Built with ❤️ by HealthFlow Team
+Built by HealthFlow Team
 # clinic-booking-systemc-frontend

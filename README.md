@@ -71,46 +71,6 @@ docker-compose ps
 - **API Gateway Health**: http://localhost:8080/actuator/health
 - **MailHog UI**: http://localhost:8025
 
-## Phase 0: Infrastructure Setup ✅
-
-Phase 0 is complete! The following services are now running:
-
-- ✅ Eureka Server (Service Discovery)
-- ✅ API Gateway (with JWT validation, circuit breakers, CORS)
-- ✅ Kafka + Zookeeper (Message Broker)
-- ✅ 4 PostgreSQL databases (ready for microservices)
-- ✅ Redis (Shared cache)
-- ✅ MailHog (Email testing)
-
-## Next Steps
-
-### Phase 1: User Service (Weeks 2-3)
-
-Create the User & Authentication microservice:
-
-1. Create user-service Spring Boot project
-2. Migrate User and FamilyMember entities
-3. Implement AuthService, UserService
-4. Set up Kafka producers for user events
-5. Register with Eureka
-6. Test via API Gateway
-
-### Phase 2: Appointment Service (Weeks 4-5)
-
-Create the Appointment & Scheduling microservice with Kafka consumers.
-
-### Phase 3: Medical Service (Weeks 6-7)
-
-Create the Medical Records microservice.
-
-### Phase 4: Consultation Service (Week 8)
-
-Create the Consultation & Messaging microservice with WebSocket support.
-
-### Phase 5: Integration & Testing (Week 9)
-
-End-to-end testing and production cutover.
-
 ## Useful Commands
 
 ### Stop all services
@@ -186,7 +146,7 @@ docker exec -it clinic_kafka kafka-topics --list --bootstrap-server localhost:90
 ## Project Structure
 
 ```
-microservices/
+clinic-booking-system/
 ├── pom.xml                 # Parent POM
 ├── docker-compose.yml      # Infrastructure orchestration
 ├── eureka-server/          # Service Discovery
@@ -197,10 +157,10 @@ microservices/
 │   ├── Dockerfile
 │   ├── pom.xml
 │   └── src/
-├── user-service/           # (Phase 1 - To be created)
-├── appointment-service/    # (Phase 2 - To be created)
-├── medical-service/        # (Phase 3 - To be created)
-└── consultation-service/   # (Phase 4 - To be created)
+├── user-service/           # User & Authentication Service
+├── appointment-service/    # Appointment & Scheduling Service
+├── medical-service/        # Medical Records Service
+└── consultation-service/   # Consultation & Messaging Service (planned)
 ```
 
 ## Environment Variables

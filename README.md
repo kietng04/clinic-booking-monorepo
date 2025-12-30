@@ -134,14 +134,14 @@ The built files will be in the `dist/` directory.
 
 ## Features Implemented
 
-✅ Landing page with marketing content
-✅ Authentication (Login/Register)
-✅ Patient Dashboard
-✅ Responsive design with dark mode
-✅ Mock API layer with all entities
-✅ State management (Auth + UI)
-✅ Comprehensive UI component library
-✅ Protected routes with role-based access
+Landing page with marketing content
+Authentication (Login/Register)
+Patient Dashboard
+Responsive design with dark mode
+Mock API layer with all entities
+State management (Auth + UI)
+Comprehensive UI component library
+Protected routes with role-based access
 
 ## Coming Soon
 

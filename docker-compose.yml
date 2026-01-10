@@ -158,6 +158,27 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Payment Service Database
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: clinic_postgres_payment
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: payment_db
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    networks:
+      - clinic-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # ============================================
   # Cache - Redis
   # ============================================
@@ -315,6 +336,55 @@ services:
       start_period: 90s
     restart: unless-stopped
 
+  # Payment Service
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: clinic_payment_service
+    ports:
+      - "8084:8084"
+    environment:
+      POSTGRES_HOST: postgres-payment
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # Momo Payment Gateway Credentials (use environment variables for security)
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-MOMOBKUN20180529}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-klm05TvNBzhg7h7j}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa}
+      MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn}
+      # Payment Service URLs (updated by deployment environment)
+      PAYMENT_REDIRECT_URL: ${PAYMENT_REDIRECT_URL:-http://localhost:3000/payment/result}
+      PAYMENT_IPN_URL: ${PAYMENT_IPN_URL:-http://api-gateway:8080/api/payments/momo/callback}
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+    networks:
+      - clinic-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
   # ============================================
   # API Gateway
   # ============================================
@@ -373,6 +443,8 @@ volumes:
     name: clinic_postgres_medical_data
   postgres_consultation_data:
     name: clinic_postgres_consultation_data
+  postgres_payment_data:
+    name: clinic_postgres_payment_data
 
   # Redis
   redis_data:

@@ -1,5 +1,6 @@
 package com.clinicbooking.userservice.controller;
 
+import com.clinicbooking.userservice.dto.user.UserCreateDto;
 import com.clinicbooking.userservice.dto.user.UserResponseDto;
 import com.clinicbooking.userservice.dto.user.UserUpdateDto;
 import com.clinicbooking.userservice.service.UserService;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,13 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+
+    @PostMapping
+    @Operation(summary = "Tạo người dùng mới")
+    public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserCreateDto dto) {
+        UserResponseDto user = userService.createUser(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Lấy thông tin người dùng theo ID")

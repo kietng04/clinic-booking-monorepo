@@ -1,5 +1,7 @@
 package com.clinicbooking.userservice.service;
 
+import com.clinicbooking.userservice.config.CacheConfig;
+import com.clinicbooking.userservice.dto.user.UserCreateDto;
 import com.clinicbooking.userservice.dto.user.UserResponseDto;
 import com.clinicbooking.userservice.dto.user.UserUpdateDto;
 import com.clinicbooking.userservice.entity.User;
@@ -8,8 +10,11 @@ import com.clinicbooking.userservice.mapper.UserMapper;
 import com.clinicbooking.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,13 +29,70 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final UserEventPublisher eventPublisher;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public UserResponseDto createUser(UserCreateDto dto) {
+        log.info("Creating new user with email: {}", dto.getEmail());
+
+        // Validate email uniqueness
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại");
+        }
+
+        // Validate phone uniqueness
+        if (dto.getPhone() != null && userRepository.existsByPhone(dto.getPhone())) {
+            throw new RuntimeException("Số điện thoại đã tồn tại");
+        }
+
+        // Validate doctor-specific fields
+        if (dto.getRole() == User.UserRole.DOCTOR) {
+            if (dto.getSpecialization() == null || dto.getSpecialization().isBlank()) {
+                throw new RuntimeException("Chuyên khoa không được để trống cho bác sĩ");
+            }
+            if (dto.getLicenseNumber() == null || dto.getLicenseNumber().isBlank()) {
+                throw new RuntimeException("Số giấy phép hành nghề không được để trống cho bác sĩ");
+            }
+        }
+
+        // Create user
+        User user = User.builder()
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .fullName(dto.getFullName())
+                .phone(dto.getPhone())
+                .dateOfBirth(dto.getDateOfBirth())
+                .gender(dto.getGender())
+                .role(dto.getRole())
+                .avatarUrl(dto.getAvatarUrl())
+                .specialization(dto.getSpecialization())
+                .licenseNumber(dto.getLicenseNumber())
+                .workplace(dto.getWorkplace())
+                .experienceYears(dto.getExperienceYears())
+                .consultationFee(dto.getConsultationFee())
+                .isActive(true)
+                .emailVerified(false)
+                .phoneVerified(false)
+                .build();
+
+        user = userRepository.save(user);
+        log.info("User created successfully: {}", user.getEmail());
+
+        // Publish user created event
+        eventPublisher.publishUserCreated(user);
+
+        return userMapper.toDto(user);
+    }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.USERS_CACHE, key = "#id", unless = "#result == null")
     public UserResponseDto getUserById(Long id) {
         log.info("Fetching user with ID: {}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        log.debug("User found in database, caching result for ID: {}", id);
         return userMapper.toDto(user);
     }
 
@@ -55,6 +117,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.USERS_CACHE, key = "#id")
     public UserResponseDto updateUser(Long id, UserUpdateDto dto) {
         log.info("Updating user with ID: {}", id);
 
@@ -117,12 +180,13 @@ public class UserServiceImpl implements UserService {
         // Publish update event
         eventPublisher.publishUserUpdated(user);
 
-        log.info("User updated successfully: {}", id);
+        log.info("User cache invalidated for ID: {}, user updated successfully", id);
         return userMapper.toDto(user);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = CacheConfig.USERS_CACHE, key = "#id")
     public void deleteUser(Long id) {
         log.info("Soft deleting user with ID: {}", id);
 
@@ -137,6 +201,6 @@ public class UserServiceImpl implements UserService {
         // Publish delete event for other services to handle
         eventPublisher.publishUserDeleted(user.getId());
 
-        log.info("User soft deleted successfully: {}", id);
+        log.info("User cache invalidated for ID: {}, user soft deleted successfully", id);
     }
 }

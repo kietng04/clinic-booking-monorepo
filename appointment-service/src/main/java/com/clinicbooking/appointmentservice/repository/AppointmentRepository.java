@@ -65,7 +65,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             "AND a.appointment_date = :date " +
             "AND a.status IN ('PENDING', 'CONFIRMED') " +
             "AND a.appointment_time < :endTime " +
-            "AND (a.appointment_time + (a.duration_minutes || ' minutes')::interval) > :startTime",
+            "AND (a.appointment_time + CAST(a.duration_minutes || ' minutes' AS interval)) > :startTime",
             nativeQuery = true)
     boolean hasOverlappingAppointmentNative(
             @Param("doctorId") Long doctorId,
@@ -87,4 +87,26 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             Pageable pageable);
+
+    // Statistics queries
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.status = :status")
+    long countByStatus(@Param("status") Appointment.AppointmentStatus status);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.type = :type")
+    long countByType(@Param("type") Appointment.AppointmentType type);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.priority = :priority")
+    long countByPriority(@Param("priority") Appointment.Priority priority);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.appointmentDate >= CURRENT_DATE AND a.status IN ('PENDING', 'CONFIRMED')")
+    long countUpcomingAppointments();
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE YEAR(a.appointmentDate) = YEAR(CURRENT_DATE()) AND MONTH(a.appointmentDate) = MONTH(CURRENT_DATE())")
+    long countAppointmentsThisMonth();
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE YEAR(a.appointmentDate) = YEAR(CURRENT_DATE()) AND MONTH(a.appointmentDate) = MONTH(CURRENT_DATE()) AND WEEK(a.appointmentDate) = WEEK(CURRENT_DATE())")
+    long countAppointmentsThisWeek();
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE DATE(a.appointmentDate) = CURRENT_DATE")
+    long countAppointmentsToday();
 }

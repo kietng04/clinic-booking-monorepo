@@ -1,6 +1,7 @@
 package com.clinicbooking.appointmentservice.client;
 
 import com.clinicbooking.appointmentservice.dto.UserDto;
+import com.clinicbooking.appointmentservice.dto.UserStatisticsDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,23 @@ public class UserServiceClientFallback implements UserServiceClient {
                 .phone("N/A")
                 .role("UNKNOWN")
                 .isActive(true)
+                .build();
+    }
+
+    @Override
+    public UserStatisticsDto getUserStatistics() {
+        log.warn("Fallback: User service is unavailable. Returning empty user statistics");
+        return UserStatisticsDto.builder()
+                .totalUsers(0L)
+                .totalPatients(0L)
+                .totalDoctors(0L)
+                .activeUsers(0L)
+                .inactiveUsers(0L)
+                .newUsersThisMonth(0L)
+                .newPatientsThisMonth(0L)
+                .newDoctorsThisMonth(0L)
+                .emailVerifiedUsers(0L)
+                .phoneVerifiedUsers(0L)
                 .build();
     }
 }

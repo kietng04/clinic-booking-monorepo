@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.controller;
 
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.service.AppointmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,20 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponseDto> getAppointmentById(@PathVariable Long id) {
         AppointmentResponseDto response = appointmentService.getAppointmentById(id);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AppointmentResponseDto> updateAppointment(
+            @PathVariable Long id,
+            @Valid @RequestBody AppointmentUpdateDto dto) {
+        AppointmentResponseDto response = appointmentService.updateAppointment(id, dto);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAppointment(@PathVariable Long id) {
+        appointmentService.deleteAppointment(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/patient/{patientId}")

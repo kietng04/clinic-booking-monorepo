@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.service;
 import com.clinicbooking.appointmentservice.client.UserServiceClient;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.dto.UserDto;
 import com.clinicbooking.appointmentservice.entity.Appointment;
 import com.clinicbooking.appointmentservice.entity.DoctorSchedule;
@@ -108,6 +109,137 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
         return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponseDto updateAppointment(Long id, AppointmentUpdateDto dto) {
+        log.info("Updating appointment: id={}", id);
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        // Cannot update completed or cancelled appointments
+        if (appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED ||
+                appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
+            throw new ValidationException("Không thể cập nhật lịch hẹn đã hoàn thành hoặc đã hủy");
+        }
+
+        boolean dateTimeChanged = false;
+
+        // Update appointment date and time if provided
+        if (dto.getAppointmentDate() != null && dto.getAppointmentTime() != null) {
+            LocalDateTime newAppointmentDateTime = LocalDateTime.of(dto.getAppointmentDate(), dto.getAppointmentTime());
+
+            // Validate appointment is in the future
+            if (newAppointmentDateTime.isBefore(LocalDateTime.now())) {
+                throw new ValidationException("Không thể đặt lịch trong quá khứ");
+            }
+
+            // Validate appointment is not too far in the future
+            if (dto.getAppointmentDate().isAfter(LocalDate.now().plusMonths(3))) {
+                throw new ValidationException("Không thể đặt lịch quá 3 tháng trước");
+            }
+
+            dateTimeChanged = !appointment.getAppointmentDate().equals(dto.getAppointmentDate()) ||
+                    !appointment.getAppointmentTime().equals(dto.getAppointmentTime());
+        }
+
+        // Update duration if provided
+        int durationMinutes = dto.getDurationMinutes() != null ? dto.getDurationMinutes() : appointment.getDurationMinutes();
+        if (dto.getDurationMinutes() != null) {
+            if (durationMinutes < MIN_DURATION_MINUTES || durationMinutes > MAX_DURATION_MINUTES) {
+                throw new ValidationException("Thời gian khám phải từ " + MIN_DURATION_MINUTES + " đến " + MAX_DURATION_MINUTES + " phút");
+            }
+            appointment.setDurationMinutes(durationMinutes);
+            dateTimeChanged = true;
+        }
+
+        // If date or time changed, validate doctor's schedule and check for overlaps
+        if (dateTimeChanged) {
+            LocalDate appointmentDate = dto.getAppointmentDate() != null ? dto.getAppointmentDate() : appointment.getAppointmentDate();
+            LocalTime appointmentTime = dto.getAppointmentTime() != null ? dto.getAppointmentTime() : appointment.getAppointmentTime();
+
+            // Skip validation if same date and time
+            boolean isSameDateTime = appointment.getAppointmentDate().equals(appointmentDate) &&
+                    appointment.getAppointmentTime().equals(appointmentTime) &&
+                    appointment.getDurationMinutes().equals(durationMinutes);
+
+            if (!isSameDateTime) {
+                validateDoctorSchedule(appointment.getDoctorId(), appointmentDate, appointmentTime, durationMinutes);
+
+                // Check for overlapping appointments
+                LocalTime endTime = appointmentTime.plusMinutes(durationMinutes);
+                boolean hasOverlap = appointmentRepository.hasOverlappingAppointmentNative(
+                        appointment.getDoctorId(), appointmentDate, appointmentTime, endTime);
+
+                if (hasOverlap) {
+                    // Additional check: if overlap exists, ensure it's not the current appointment
+                    List<Appointment> sameTimeSlot = appointmentRepository.findByDoctorIdAndAppointmentDate(
+                            appointment.getDoctorId(), appointmentDate);
+
+                    boolean hasConflictWithOther = sameTimeSlot.stream()
+                            .anyMatch(a -> !a.getId().equals(id) &&
+                                    (a.getStatus() == Appointment.AppointmentStatus.PENDING ||
+                                     a.getStatus() == Appointment.AppointmentStatus.CONFIRMED) &&
+                                    a.getAppointmentTime().isBefore(endTime) &&
+                                    a.getAppointmentTime().plusMinutes(a.getDurationMinutes()).isAfter(appointmentTime));
+
+                    if (hasConflictWithOther) {
+                        throw new ValidationException("Khung giờ này đã bị trùng với lịch hẹn khác");
+                    }
+                }
+            }
+
+            appointment.setAppointmentDate(appointmentDate);
+            appointment.setAppointmentTime(appointmentTime);
+        }
+
+        // Update other fields
+        if (dto.getType() != null) {
+            appointment.setType(Appointment.AppointmentType.valueOf(dto.getType()));
+        }
+        if (dto.getSymptoms() != null) {
+            appointment.setSymptoms(dto.getSymptoms());
+        }
+        if (dto.getNotes() != null) {
+            appointment.setNotes(dto.getNotes());
+        }
+        if (dto.getPriority() != null) {
+            appointment.setPriority(Appointment.Priority.valueOf(dto.getPriority()));
+        }
+
+        appointment = appointmentRepository.save(appointment);
+
+        // Publish event
+        eventPublisher.publishAppointmentUpdated(appointment);
+
+        log.info("Appointment updated successfully: id={}", id);
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAppointment(Long id) {
+        log.info("Deleting appointment: id={}", id);
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        // Soft delete by cancelling instead of hard delete
+        if (appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
+            throw new ValidationException("Lịch hẹn đã bị hủy");
+        }
+
+        // For completed appointments, we can still "delete" them by cancelling
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+        appointment.setCancelReason("Đã xóa bởi hệ thống");
+        appointmentRepository.save(appointment);
+
+        // Publish event
+        eventPublisher.publishAppointmentCancelled(appointment);
+
+        log.info("Appointment deleted successfully: id={}", id);
     }
 
     @Override

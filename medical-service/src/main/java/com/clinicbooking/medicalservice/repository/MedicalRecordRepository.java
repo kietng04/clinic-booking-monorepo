@@ -13,4 +13,14 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
     Page<MedicalRecord> findByPatientId(Long patientId, Pageable pageable);
     Page<MedicalRecord> findByDoctorId(Long doctorId, Pageable pageable);
     Optional<MedicalRecord> findByAppointmentId(Long appointmentId);
+
+    // Statistics queries
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT m.doctorId) FROM MedicalRecord m")
+    long countUniqueDoctors();
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT m.patientId) FROM MedicalRecord m")
+    long countUniquePatients();
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(m) FROM MedicalRecord m WHERE YEAR(m.createdAt) = YEAR(CURRENT_DATE()) AND MONTH(m.createdAt) = MONTH(CURRENT_DATE())")
+    long countRecordsThisMonth();
 }

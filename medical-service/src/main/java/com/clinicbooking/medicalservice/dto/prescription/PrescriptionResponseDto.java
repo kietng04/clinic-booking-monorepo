@@ -17,6 +17,7 @@ public class PrescriptionResponseDto {
     private Long medicalRecordId;
     private Long doctorId;
     private String doctorName;
+    private Long medicationId;
     private String medicationName;
     private String dosage;
     private String frequency;

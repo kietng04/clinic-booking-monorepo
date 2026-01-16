@@ -2,6 +2,7 @@ package com.clinicbooking.paymentservice.controller;
 
 import com.clinicbooking.paymentservice.dto.request.CreatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.RefundPaymentRequest;
+import com.clinicbooking.paymentservice.dto.request.UpdatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.response.PaymentResponse;
 import com.clinicbooking.paymentservice.dto.response.PaymentStatusResponse;
 import com.clinicbooking.paymentservice.security.CustomUserDetails;
@@ -115,7 +116,80 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    
+
+    @PutMapping("/{orderId}")
+    @Operation(
+            summary = "Update payment details",
+            description = "Update non-financial payment information. Only pending payments can be updated."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Payment updated successfully",
+                    content = @Content(schema = @Schema(implementation = PaymentResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid payment status for update"),
+            @ApiResponse(responseCode = "404", description = "Payment not found"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User does not own this payment")
+    })
+    public ResponseEntity<PaymentResponse> updatePayment(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "Unique order ID") @PathVariable String orderId,
+            @Valid @RequestBody UpdatePaymentRequest request) {
+
+        Long patientId = userDetails.getUserId();
+
+        log.info("Updating payment - PatientId: {}, OrderId: {}", patientId, orderId);
+
+        // Check ownership
+        PaymentResponse existingPayment = paymentService.getPaymentByOrderId(orderId);
+        if (!patientId.equals(existingPayment.getPatientId())) {
+            log.warn("Unauthorized update attempt - PatientId: {}, OrderId: {}, Owner: {}",
+                    patientId, orderId, existingPayment.getPatientId());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        PaymentResponse response = paymentService.updatePayment(orderId, request);
+        log.info("Payment updated successfully - OrderId: {}", orderId);
+
+        return ResponseEntity.ok(response);
+    }
+
+
+    @DeleteMapping("/{orderId}")
+    @Operation(
+            summary = "Cancel payment",
+            description = "Cancel a pending payment. Only pending payments can be cancelled."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Payment cancelled successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid payment status for cancellation"),
+            @ApiResponse(responseCode = "404", description = "Payment not found"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User does not own this payment")
+    })
+    public ResponseEntity<Void> cancelPayment(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "Unique order ID") @PathVariable String orderId) {
+
+        Long patientId = userDetails.getUserId();
+
+        log.info("Cancelling payment - PatientId: {}, OrderId: {}", patientId, orderId);
+
+        // Check ownership
+        PaymentResponse existingPayment = paymentService.getPaymentByOrderId(orderId);
+        if (!patientId.equals(existingPayment.getPatientId())) {
+            log.warn("Unauthorized cancellation attempt - PatientId: {}, OrderId: {}, Owner: {}",
+                    patientId, orderId, existingPayment.getPatientId());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        paymentService.cancelPayment(orderId);
+        log.info("Payment cancelled successfully - OrderId: {}", orderId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+
     @GetMapping("/appointment/{appointmentId}")
     @Operation(
             summary = "Get payment by appointment ID",

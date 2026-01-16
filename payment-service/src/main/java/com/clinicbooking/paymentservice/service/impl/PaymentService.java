@@ -2,6 +2,7 @@ package com.clinicbooking.paymentservice.service.impl;
 
 import com.clinicbooking.paymentservice.dto.request.CreatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.RefundPaymentRequest;
+import com.clinicbooking.paymentservice.dto.request.UpdatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.response.MomoCallbackResponse;
 import com.clinicbooking.paymentservice.dto.response.MomoQueryResponse;
 import com.clinicbooking.paymentservice.dto.response.MomoRefundResponse;
@@ -271,7 +272,82 @@ public class PaymentService implements IPaymentService {
         return mapToPaymentResponse(paymentOrder);
     }
 
-    
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CACHE_NAME, key = "#orderId")
+    public PaymentResponse updatePayment(String orderId, UpdatePaymentRequest request) {
+        log.info("Updating payment for order ID: {}", orderId);
+
+        PaymentOrder paymentOrder = paymentOrderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new PaymentNotFoundException(orderId));
+
+        // Only allow updating non-financial fields
+        // Cannot update completed, refunded, or failed payments
+        if (paymentOrder.isCompleted() || paymentOrder.isRefunded() || paymentOrder.isFailed()) {
+            log.warn("Cannot update payment {} with status {}", orderId, paymentOrder.getStatus());
+            throw new PaymentException(
+                "Cannot update payment with status " + paymentOrder.getStatus(),
+                HttpStatus.BAD_REQUEST,
+                "INVALID_PAYMENT_STATUS_FOR_UPDATE"
+            );
+        }
+
+        // Update description only
+        if (request.getDescription() != null) {
+            paymentOrder.setDescription(request.getDescription());
+        }
+
+        paymentOrder = paymentOrderRepository.save(paymentOrder);
+        log.info("Payment updated successfully: {}", orderId);
+
+        return mapToPaymentResponse(paymentOrder);
+    }
+
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CACHE_NAME, key = "#orderId")
+    public void cancelPayment(String orderId) {
+        log.info("Cancelling payment for order ID: {}", orderId);
+
+        PaymentOrder paymentOrder = paymentOrderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new PaymentNotFoundException(orderId));
+
+        // Can only cancel pending payments
+        if (!paymentOrder.isPending()) {
+            log.warn("Cannot cancel payment {} with status {}", orderId, paymentOrder.getStatus());
+            throw new PaymentException(
+                "Can only cancel pending payments. Current status: " + paymentOrder.getStatus(),
+                HttpStatus.BAD_REQUEST,
+                "INVALID_PAYMENT_STATUS_FOR_CANCEL"
+            );
+        }
+
+        // Set status to expired (soft delete)
+        paymentOrder.setStatus(PaymentStatus.EXPIRED);
+        paymentOrder.setExpiredAt(LocalDateTime.now());
+        paymentOrderRepository.save(paymentOrder);
+
+        // Publish cancellation event (using paymentFailed publisher)
+        PaymentEvent cancelledEvent = PaymentEvent.builder()
+                .eventType("payment.cancelled")
+                .data(PaymentEvent.PaymentEventData.builder()
+                    .orderId(paymentOrder.getOrderId())
+                    .appointmentId(paymentOrder.getAppointmentId())
+                    .patientId(paymentOrder.getPatientId())
+                    .doctorId(paymentOrder.getDoctorId())
+                    .amount(paymentOrder.getAmount())
+                    .status(PaymentStatus.EXPIRED.name())
+                    .errorMessage("Payment cancelled by user")
+                    .build())
+                .build();
+        eventPublisher.publishPaymentFailed(cancelledEvent);
+
+        log.info("Payment cancelled successfully: {}", orderId);
+    }
+
+
     @Override
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentByAppointmentId(Long appointmentId) {

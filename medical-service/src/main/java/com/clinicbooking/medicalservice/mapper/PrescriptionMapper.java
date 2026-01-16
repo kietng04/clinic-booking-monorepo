@@ -13,11 +13,13 @@ public interface PrescriptionMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "medicalRecord", ignore = true)
+    @Mapping(target = "medication", ignore = true)
     @Mapping(target = "doctorName", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     Prescription toEntity(PrescriptionCreateDto dto);
 
     @Mapping(target = "medicalRecordId", source = "medicalRecord.id")
+    @Mapping(target = "medicationId", source = "medication.id")
     PrescriptionResponseDto toDto(Prescription entity);
 
     List<PrescriptionResponseDto> toDtoList(List<Prescription> entities);
@@ -25,6 +27,7 @@ public interface PrescriptionMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "medicalRecord", ignore = true)
+    @Mapping(target = "medication", ignore = true)
     @Mapping(target = "doctorId", ignore = true)
     @Mapping(target = "doctorName", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

@@ -6,9 +6,11 @@ import com.clinicbooking.medicalservice.dto.prescription.PrescriptionCreateDto;
 import com.clinicbooking.medicalservice.dto.prescription.PrescriptionResponseDto;
 import com.clinicbooking.medicalservice.dto.prescription.PrescriptionUpdateDto;
 import com.clinicbooking.medicalservice.entity.MedicalRecord;
+import com.clinicbooking.medicalservice.entity.Medication;
 import com.clinicbooking.medicalservice.entity.Prescription;
 import com.clinicbooking.medicalservice.mapper.PrescriptionMapper;
 import com.clinicbooking.medicalservice.repository.MedicalRecordRepository;
+import com.clinicbooking.medicalservice.repository.MedicationRepository;
 import com.clinicbooking.medicalservice.repository.PrescriptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     private final PrescriptionRepository prescriptionRepository;
     private final MedicalRecordRepository medicalRecordRepository;
+    private final MedicationRepository medicationRepository;
     private final PrescriptionMapper prescriptionMapper;
     private final UserServiceClient userServiceClient;
 
@@ -46,6 +49,34 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         Prescription prescription = prescriptionMapper.toEntity(dto);
         prescription.setDoctorName(doctor.getFullName());
         prescription.setMedicalRecord(medicalRecord);
+
+        // If medicationId is provided, fetch from catalog and use defaults
+        if (dto.getMedicationId() != null) {
+            Medication medication = medicationRepository.findById(dto.getMedicationId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thuốc trong danh mục"));
+
+            prescription.setMedication(medication);
+            prescription.setMedicationName(medication.getName());
+
+            // Use defaults from medication if not provided in dto
+            if (dto.getDosage() == null || dto.getDosage().isBlank()) {
+                prescription.setDosage(medication.getDefaultDosage());
+            }
+            if (dto.getFrequency() == null || dto.getFrequency().isBlank()) {
+                prescription.setFrequency(medication.getDefaultFrequency());
+            }
+            if (dto.getDuration() == null || dto.getDuration().isBlank()) {
+                prescription.setDuration(medication.getDefaultDuration());
+            }
+            if (dto.getInstructions() == null || dto.getInstructions().isBlank()) {
+                prescription.setInstructions(medication.getInstructions());
+            }
+        } else {
+            // medicationName must be provided if medicationId is not
+            if (dto.getMedicationName() == null || dto.getMedicationName().isBlank()) {
+                throw new RuntimeException("Phải chọn thuốc từ danh mục hoặc nhập tên thuốc");
+            }
+        }
 
         prescription = prescriptionRepository.save(prescription);
         log.info("Prescription created with ID: {}", prescription.getId());

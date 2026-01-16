@@ -39,6 +39,11 @@ public class Prescription {
     @Column(name = "doctor_name")
     private String doctorName;
 
+    // Optional reference to medication catalog
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "medication_id")
+    private Medication medication;
+
     @Column(name = "medication_name", nullable = false)
     @NotNull(message = "Tên thuốc không được để trống")
     private String medicationName;

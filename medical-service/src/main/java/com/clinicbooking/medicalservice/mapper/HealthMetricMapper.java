@@ -14,6 +14,7 @@ public interface HealthMetricMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "patientName", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     HealthMetric toEntity(HealthMetricCreateDto dto);
 
     @Mapping(target = "isAbnormal", expression = "java(entity.isAbnormal())")
@@ -26,5 +27,6 @@ public interface HealthMetricMapper {
     @Mapping(target = "patientId", ignore = true)
     @Mapping(target = "patientName", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(HealthMetricUpdateDto dto, @MappingTarget HealthMetric entity);
 }

@@ -18,6 +18,8 @@ public class HealthMetricCreateDto {
     @NotNull(message = "Bệnh nhân không được để trống")
     private Long patientId;
 
+    private String patientName;
+
     @NotBlank(message = "Loại chỉ số không được để trống")
     private String metricType;
 

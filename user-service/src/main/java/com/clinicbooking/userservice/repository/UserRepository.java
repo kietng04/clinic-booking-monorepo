@@ -63,4 +63,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("role") User.UserRole role,
             @Param("isActive") Boolean isActive,
             Pageable pageable);
+
+    // Statistics queries
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = true")
+    long countActiveUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = false")
+    long countInactiveUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.emailVerified = true")
+    long countEmailVerifiedUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.phoneVerified = true")
+    long countPhoneVerifiedUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND YEAR(u.createdAt) = YEAR(CURRENT_DATE()) AND MONTH(u.createdAt) = MONTH(CURRENT_DATE())")
+    long countNewUsersByRoleThisMonth(@Param("role") User.UserRole role);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE YEAR(u.createdAt) = YEAR(CURRENT_DATE()) AND MONTH(u.createdAt) = MONTH(CURRENT_DATE())")
+    long countNewUsersThisMonth();
 }

@@ -1,6 +1,7 @@
 package com.clinicbooking.appointmentservice.client;
 
 import com.clinicbooking.appointmentservice.dto.UserDto;
+import com.clinicbooking.appointmentservice.dto.UserStatisticsDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,4 +11,7 @@ public interface UserServiceClient {
 
     @GetMapping("/api/users/{id}")
     UserDto getUserById(@PathVariable("id") Long id);
+
+    @GetMapping("/api/statistics/users/summary")
+    UserStatisticsDto getUserStatistics();
 }

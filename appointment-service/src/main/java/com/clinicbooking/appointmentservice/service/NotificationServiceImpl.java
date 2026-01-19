@@ -56,7 +56,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     public Page<NotificationResponseDto> getNotificationsByUserId(Long userId, Pageable pageable) {
         log.info("Fetching notifications for user ID: {}", userId);
-        Page<Notification> notifications = notificationRepository.findByUserId(userId, pageable);
+        Page<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
         return notifications.map(notificationMapper::toDto);
     }
 
@@ -72,7 +72,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     public Page<NotificationResponseDto> getNotificationsByUserIdAndReadStatus(Long userId, Boolean isRead, Pageable pageable) {
         log.info("Fetching notifications for user ID: {} with read status: {}", userId, isRead);
-        Page<Notification> notifications = notificationRepository.findByUserIdAndIsRead(userId, isRead, pageable);
+        Page<Notification> notifications = notificationRepository.findByUserIdAndIsReadOrderByCreatedAtDesc(userId, isRead, pageable);
         return notifications.map(notificationMapper::toDto);
     }
 
@@ -117,16 +117,28 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
+    public Page<NotificationResponseDto> getNotificationsByUserIdAndType(Long userId, Notification.NotificationType type, Pageable pageable) {
+        log.info("Fetching notifications for user ID: {} with type: {}", userId, type);
+        Page<Notification> notifications = notificationRepository.findByUserIdAndTypeOrderByCreatedAtDesc(userId, type, pageable);
+        return notifications.map(notificationMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificationResponseDto> getNotificationsByUserIdAndRelatedId(Long userId, Long relatedId) {
+        log.info("Fetching notifications for user ID: {} with related ID: {}", userId, relatedId);
+        List<Notification> notifications = notificationRepository.findByUserIdAndRelatedIdOrderByCreatedAtDesc(userId, relatedId);
+        return notificationMapper.toDtoList(notifications);
+    }
+
+    @Override
+    @Transactional
     public void markAllAsReadByUserId(Long userId) {
         log.info("Marking all notifications as read for user ID: {}", userId);
 
-        List<Notification> unreadNotifications = notificationRepository
-                .findByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);
+        int updatedCount = notificationRepository.markAllAsReadByUserId(userId);
 
-        unreadNotifications.forEach(Notification::markAsRead);
-        notificationRepository.saveAll(unreadNotifications);
-
-        log.info("Marked {} notifications as read", unreadNotifications.size());
+        log.info("Marked {} notifications as read", updatedCount);
     }
 
     @Override
@@ -140,5 +152,16 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationRepository.deleteById(id);
         log.info("Notification deleted successfully: {}", id);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllNotificationsByUserId(Long userId) {
+        log.info("Deleting all notifications for user ID: {}", userId);
+        long deletedCount = notificationRepository.count();
+        notificationRepository.deleteAll(notificationRepository.findAll().stream()
+                .filter(n -> n.getUserId().equals(userId))
+                .toList());
+        log.info("Deleted notifications for user ID: {}", userId);
     }
 }

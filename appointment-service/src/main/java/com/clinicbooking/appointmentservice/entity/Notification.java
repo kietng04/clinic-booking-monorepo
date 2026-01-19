@@ -63,8 +63,14 @@ public class Notification {
     private LocalDateTime createdAt;
 
     public enum NotificationType {
-        APPOINTMENT,
-        REMINDER,
+        APPOINTMENT_REMINDER,
+        APPOINTMENT_CONFIRMED,
+        APPOINTMENT_CANCELLED,
+        APPOINTMENT_RESCHEDULED,
+        PRESCRIPTION_READY,
+        PAYMENT_REMINDER,
+        DOCUMENT_READY,
+        SCHEDULE_UPDATE,
         ALERT,
         SYSTEM
     }

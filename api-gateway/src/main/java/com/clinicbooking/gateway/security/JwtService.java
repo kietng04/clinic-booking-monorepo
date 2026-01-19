@@ -36,7 +36,8 @@ public class JwtService {
 
     public String extractUserId(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.get("userId", String.class);
+        Object userId = claims.get("userId");
+        return userId != null ? userId.toString() : null;
     }
 
     public String extractRole(String token) {

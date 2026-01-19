@@ -44,7 +44,7 @@ spring:
         - id: medical-service
           uri: lb://medical-service
           predicates:
-            - Path=/api/medical-records/**,/api/prescriptions/**,/api/health-metrics/**,/api/ai-analyses/**,/api/files/**
+            - Path=/api/medical-records/**,/api/prescriptions/**,/api/medications/**,/api/health-metrics/**,/api/ai-analyses/**,/api/files/**
           filters:
             - AuthenticationFilter
             - name: CircuitBreaker
@@ -73,12 +73,15 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
         - AddRequestHeader=X-Gateway-Source, api-gateway
+        # Preserve Authorization header for downstream services
+        - name: PreserveHostHeader
 
       globalcors:
         cors-configurations:
           '[/**]':
             allowed-origins:
               - "http://localhost:3000"
+              - "http://localhost:3001"
               - "http://localhost:4200"
               - "http://localhost:5173"
               - "http://localhost:8080"
@@ -89,8 +92,23 @@ spring:
               - DELETE
               - PATCH
               - OPTIONS
+            # Explicitly allow Authorization and other required headers
             allowed-headers:
+              - "Authorization"
+              - "Content-Type"
+              - "Accept"
+              - "X-Requested-With"
+              - "X-Correlation-Id"
+              - "X-User-Id"
+              - "X-User-Email"
+              - "X-User-Role"
               - "*"
+            expose-headers:
+              - "Authorization"
+              - "X-Correlation-Id"
+              - "X-User-Id"
+              - "X-User-Email"
+              - "X-User-Role"
             allow-credentials: true
             max-age: 3600
 

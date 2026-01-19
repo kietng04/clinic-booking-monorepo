@@ -59,16 +59,18 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                     correlationId = UUID.randomUUID().toString();
                 }
 
-                // Add user context to request headers
+                // Add user context to request headers and forward original Authorization header
                 ServerHttpRequest modifiedRequest = request.mutate()
                         .header("X-User-Id", userId)
                         .header("X-User-Role", role)
                         .header("X-User-Email", email)
                         .header("X-Correlation-Id", correlationId)
+                        // Forward original Authorization header to downstream services
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .build();
 
-                log.debug("Request authenticated - UserId: {}, Role: {}, CorrelationId: {}",
-                         userId, role, correlationId);
+                log.debug("[{}] Request authenticated - UserId: {}, Role: {}, Email: {}",
+                         correlationId, userId, role, email);
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
 

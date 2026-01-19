@@ -1,84 +1,111 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
-import { ProtectedRoute } from './components/layout/ProtectedRoute'
-import { DashboardLayout } from './components/layout/DashboardLayout'
-import { Navbar } from './components/layout/Navbar'
 
-// Pages
-import { LandingPage } from './pages/LandingPage'
-import { LoginPage } from './pages/auth/LoginPage'
-import { RegisterPage } from './pages/auth/RegisterPage'
-import { PatientDashboard } from './pages/patient/PatientDashboard'
-import { BookAppointment } from './pages/patient/BookAppointment'
-import Appointments from './pages/patient/Appointments'
-import MedicalRecords from './pages/patient/MedicalRecords'
-import MedicalRecordDetail from './pages/patient/MedicalRecordDetail'
-import HealthMetrics from './pages/patient/HealthMetrics'
-import FamilyMembers from './pages/patient/FamilyMembers'
-import Messages from './pages/patient/Messages'
-import DoctorDashboard from './pages/doctor/DoctorDashboard'
-import DoctorAppointments from './pages/doctor/DoctorAppointments'
-import CreateMedicalRecord from './pages/doctor/CreateMedicalRecord'
-import DoctorSchedule from './pages/doctor/DoctorSchedule'
-import DoctorPatients from './pages/doctor/DoctorPatients'
-import DoctorConsultations from './pages/doctor/DoctorConsultations'
-import DoctorConsultationChat from './pages/doctor/DoctorConsultationChat'
-import DoctorAnalytics from './pages/doctor/DoctorAnalytics'
-import ConsultationList from './pages/patient/ConsultationList'
-import ConsultationRequest from './pages/patient/ConsultationRequest'
-import ConsultationChat from './pages/patient/ConsultationChat'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import UserManagement from './pages/admin/UserManagement'
-import DoctorManagement from './pages/admin/DoctorManagement'
+const lazyNamed = (load, name) =>
+  lazy(() => load().then((module) => ({ default: module[name] })))
 
-import ClinicManagement from './pages/admin/ClinicManagement'
-import ServiceManagement from './pages/admin/ServiceManagement'
-import RoomManagement from './pages/admin/RoomManagement'
-import Reports from './pages/admin/Reports'
-import NotificationCenter from './pages/patient/NotificationCenter'
-import PrescriptionDetail from './pages/patient/PrescriptionDetail'
-import AppointmentDetail from './pages/patient/AppointmentDetail'
-import PaymentHistory from './pages/patient/PaymentHistory'
-import PaymentResult from './pages/patient/PaymentResult'
-import { ForgotPassword } from './pages/auth/ForgotPassword'
-import { ResetPassword } from './pages/auth/ResetPassword'
-import { VerifyEmail } from './pages/auth/VerifyEmail'
-import { VerifyPhone } from './pages/auth/VerifyPhone'
-import ProfileSettings from './pages/profile/ProfileSettings'
-import SecuritySettings from './pages/profile/SecuritySettings'
-import NotificationSettings from './pages/profile/NotificationSettings'
-import MedicationPickerDemo from './pages/demo/MedicationPickerDemo'
-import MedicationPickerE2EDemo from './pages/demo/MedicationPickerE2EDemo'
-import DoctorSearch from './pages/patient/DoctorSearch'
+const ProtectedRoute = lazyNamed(() => import('./components/layout/ProtectedRoute'), 'ProtectedRoute')
+const DashboardLayout = lazyNamed(() => import('./components/layout/DashboardLayout'), 'DashboardLayout')
+
+const LandingPage = lazyNamed(() => import('./pages/LandingPage'), 'LandingPage')
+const LoginPage = lazyNamed(() => import('./pages/auth/LoginPage'), 'LoginPage')
+const RegisterPage = lazyNamed(() => import('./pages/auth/RegisterPage'), 'RegisterPage')
+const PatientDashboard = lazyNamed(() => import('./pages/patient/PatientDashboard'), 'PatientDashboard')
+const BookAppointment = lazyNamed(() => import('./pages/patient/BookAppointment'), 'BookAppointment')
+const Appointments = lazy(() => import('./pages/patient/Appointments'))
+const MedicalRecords = lazy(() => import('./pages/patient/MedicalRecords'))
+const MedicalRecordDetail = lazy(() => import('./pages/patient/MedicalRecordDetail'))
+const HealthMetrics = lazy(() => import('./pages/patient/HealthMetrics'))
+const FamilyMembers = lazy(() => import('./pages/patient/FamilyMembers'))
+const Messages = lazy(() => import('./pages/patient/Messages'))
+const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'))
+const DoctorAppointments = lazy(() => import('./pages/doctor/DoctorAppointments'))
+const CreateMedicalRecord = lazy(() => import('./pages/doctor/CreateMedicalRecord'))
+const DoctorSchedule = lazy(() => import('./pages/doctor/DoctorSchedule'))
+const DoctorPatients = lazy(() => import('./pages/doctor/DoctorPatients'))
+const DoctorConsultations = lazy(() => import('./pages/doctor/DoctorConsultations'))
+const DoctorConsultationChat = lazy(() => import('./pages/doctor/DoctorConsultationChat'))
+const DoctorAnalytics = lazy(() => import('./pages/doctor/DoctorAnalytics'))
+const ConsultationList = lazy(() => import('./pages/patient/ConsultationList'))
+const ConsultationRequest = lazy(() => import('./pages/patient/ConsultationRequest'))
+const ConsultationChat = lazy(() => import('./pages/patient/ConsultationChat'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
+const DoctorManagement = lazy(() => import('./pages/admin/DoctorManagement'))
+const ClinicManagement = lazy(() => import('./pages/admin/ClinicManagement'))
+const ServiceManagement = lazy(() => import('./pages/admin/ServiceManagement'))
+const RoomManagement = lazy(() => import('./pages/admin/RoomManagement'))
+const Reports = lazy(() => import('./pages/admin/Reports'))
+const NotificationCenter = lazy(() => import('./pages/patient/NotificationCenter'))
+const PrescriptionDetail = lazy(() => import('./pages/patient/PrescriptionDetail'))
+const AppointmentDetail = lazy(() => import('./pages/patient/AppointmentDetail'))
+const PaymentHistory = lazy(() => import('./pages/patient/PaymentHistory'))
+const PaymentResult = lazy(() => import('./pages/patient/PaymentResult'))
+const ForgotPassword = lazyNamed(() => import('./pages/auth/ForgotPassword'), 'ForgotPassword')
+const ResetPassword = lazyNamed(() => import('./pages/auth/ResetPassword'), 'ResetPassword')
+const VerifyEmail = lazyNamed(() => import('./pages/auth/VerifyEmail'), 'VerifyEmail')
+const VerifyPhone = lazyNamed(() => import('./pages/auth/VerifyPhone'), 'VerifyPhone')
+const ProfileSettings = lazy(() => import('./pages/profile/ProfileSettings'))
+const SecuritySettings = lazy(() => import('./pages/profile/SecuritySettings'))
+const NotificationSettings = lazy(() => import('./pages/profile/NotificationSettings'))
+const MedicationPickerDemo = lazy(() => import('./pages/demo/MedicationPickerDemo'))
+const MedicationPickerE2EDemo = lazy(() => import('./pages/demo/MedicationPickerE2EDemo'))
+const DoctorSearch = lazy(() => import('./pages/patient/DoctorSearch'))
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-cream-50 dark:bg-sage-950 flex items-center justify-center px-6">
+      <div className="text-center">
+        <div className="mx-auto h-10 w-10 rounded-full border-4 border-sage-200 border-t-sage-600 animate-spin" />
+        <p className="mt-4 text-sm text-sage-700 dark:text-sage-300">Dang tai trang...</p>
+      </div>
+    </div>
+  )
+}
+
+function PublicPage({ children }) {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+}
+
+function ProtectedDashboardPage({ allowedRoles = [], children }) {
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <ProtectedRoute allowedRoles={allowedRoles}>
+        <DashboardLayout>{children}</DashboardLayout>
+      </ProtectedRoute>
+    </Suspense>
+  )
+}
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
+  const dashboardPage =
+    user?.role === 'PATIENT' ? <PatientDashboard /> :
+      user?.role === 'DOCTOR' ? <DoctorDashboard /> :
+        <AdminDashboard />
 
   return (
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/demo/medication-picker" element={<MedicationPickerDemo />} />
-        <Route path="/demo/medication-picker-e2e" element={<MedicationPickerE2EDemo />} />
-        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/verify-phone" element={<VerifyPhone />} />
+        <Route path="/" element={<PublicPage><LandingPage /></PublicPage>} />
+        <Route path="/demo/medication-picker" element={<PublicPage><MedicationPickerDemo /></PublicPage>} />
+        <Route path="/demo/medication-picker-e2e" element={<PublicPage><MedicationPickerE2EDemo /></PublicPage>} />
+        <Route path="/login" element={!isAuthenticated ? <PublicPage><LoginPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
+        <Route path="/register" element={!isAuthenticated ? <PublicPage><RegisterPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
+        <Route path="/forgot-password" element={<PublicPage><ForgotPassword /></PublicPage>} />
+        <Route path="/reset-password" element={<PublicPage><ResetPassword /></PublicPage>} />
+        <Route path="/verify-email" element={<PublicPage><VerifyEmail /></PublicPage>} />
+        <Route path="/verify-phone" element={<PublicPage><VerifyPhone /></PublicPage>} />
 
         {/* Protected routes */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <DashboardLayout>
-                {user?.role === 'PATIENT' ? <PatientDashboard /> :
-                  user?.role === 'DOCTOR' ? <DoctorDashboard /> :
-                    <AdminDashboard />}
-              </DashboardLayout>
-            </ProtectedRoute>
+            <ProtectedDashboardPage>
+              {dashboardPage}
+            </ProtectedDashboardPage>
           }
         />
 
@@ -86,11 +113,9 @@ function App() {
         <Route
           path="/doctor/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorDashboard />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
@@ -98,143 +123,117 @@ function App() {
         <Route
           path="/find-doctors"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <DoctorSearch />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/appointments/book"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <BookAppointment />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/appointments"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <Appointments />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/appointments/:id"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <AppointmentDetail />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/payments"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <PaymentHistory />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/payment/result"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <PaymentResult />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/medical-records"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <MedicalRecords />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/medical-records/:id"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <MedicalRecordDetail />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/health-metrics"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <HealthMetrics />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/family"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <FamilyMembers />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/messages"
           element={
-            <ProtectedRoute>
-              <DashboardLayout>
+            <ProtectedDashboardPage>
                 <Messages />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/notifications"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <NotificationCenter />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/prescriptions/:id"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <PrescriptionDetail />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
@@ -242,33 +241,27 @@ function App() {
         <Route
           path="/patient/consultations"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <ConsultationList />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/patient/consultations/new"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <ConsultationRequest />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/patient/consultations/:consultationId"
           element={
-            <ProtectedRoute allowedRoles={['PATIENT']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
                 <ConsultationChat />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
@@ -276,77 +269,63 @@ function App() {
         <Route
           path="/doctor/appointments"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorAppointments />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/doctor/create-medical-record"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <CreateMedicalRecord />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/schedule"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorSchedule />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/patients"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorPatients />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/consultations"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorConsultations />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/doctor/consultations/:consultationId"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorConsultationChat />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/doctor/analytics"
           element={
-            <ProtectedRoute allowedRoles={['DOCTOR']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
                 <DoctorAnalytics />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
@@ -356,66 +335,54 @@ function App() {
         <Route
           path="/users"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
                 <UserManagement />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/doctors"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
                 <DoctorManagement />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/admin/clinics"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
                 <ClinicManagement />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/admin/services"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
                 <ServiceManagement />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/admin/rooms"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
                 <RoomManagement />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
         <Route
           path="/admin/reports"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
                 <Reports />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 
@@ -423,31 +390,25 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
-              <DashboardLayout>
+            <ProtectedDashboardPage>
                 <ProfileSettings />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
         <Route
           path="/profile/security"
           element={
-            <ProtectedRoute>
-              <DashboardLayout>
+            <ProtectedDashboardPage>
                 <SecuritySettings />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
         <Route
           path="/profile/notifications"
           element={
-            <ProtectedRoute>
-              <DashboardLayout>
+            <ProtectedDashboardPage>
                 <NotificationSettings />
-              </DashboardLayout>
-            </ProtectedRoute>
+            </ProtectedDashboardPage>
           }
         />
 

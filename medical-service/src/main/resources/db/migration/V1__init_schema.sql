@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS health_metrics (
     unit VARCHAR(20),
     measured_at TIMESTAMP NOT NULL,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes
@@ -50,3 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_appointment_id ON medical_records(appointment_id)
 CREATE INDEX IF NOT EXISTS idx_medical_record ON prescriptions(medical_record_id);
 CREATE INDEX IF NOT EXISTS idx_doctor ON prescriptions(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_patient_metric ON health_metrics(patient_id, metric_type, measured_at);
+CREATE INDEX IF NOT EXISTS idx_health_metric_patient_id ON health_metrics(patient_id);
+CREATE INDEX IF NOT EXISTS idx_health_metric_type ON health_metrics(metric_type);
+CREATE INDEX IF NOT EXISTS idx_health_metric_measured_at ON health_metrics(measured_at);
+CREATE INDEX IF NOT EXISTS idx_health_metric_created_at ON health_metrics(created_at);

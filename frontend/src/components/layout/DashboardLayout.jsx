@@ -1,5 +1,6 @@
 import { Navbar } from './Navbar'
 import { Sidebar } from './Sidebar'
+import { ChatbotWidget } from '../chatbot/ChatbotWidget'
 import { ToastContainer } from '../ui/Toast'
 import { useUIStore } from '@/store/uiStore'
 
@@ -17,6 +18,7 @@ export function DashboardLayout({ children }) {
           </div>
         </main>
       </div>
+      <ChatbotWidget />
       <ToastContainer toast={toast} onClose={hideToast} />
     </div>
   )

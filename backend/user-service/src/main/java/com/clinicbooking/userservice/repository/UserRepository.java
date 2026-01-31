@@ -41,9 +41,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Search doctors with complex criteria
     @Query("SELECT u FROM User u WHERE u.role = :role " +
-            "AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "    OR LOWER(u.specialization) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND (:specialization IS NULL OR LOWER(u.specialization) = LOWER(:specialization)) " +
+            "AND (COALESCE(:keyword, '') = '' OR LOWER(COALESCE(u.fullName, '')) LIKE CONCAT('%', LOWER(COALESCE(:keyword, '')), '%') " +
+            "    OR LOWER(COALESCE(u.specialization, '')) LIKE CONCAT('%', LOWER(COALESCE(:keyword, '')), '%')) " +
+            "AND (COALESCE(:specialization, '') = '' OR LOWER(COALESCE(u.specialization, '')) = LOWER(COALESCE(:specialization, ''))) " +
             "AND (:minRating IS NULL OR u.rating >= :minRating) " +
             "AND (:maxFee IS NULL OR u.consultationFee <= :maxFee) " +
             "AND u.isActive = true")

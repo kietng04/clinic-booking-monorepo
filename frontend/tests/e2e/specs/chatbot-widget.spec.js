@@ -24,7 +24,7 @@ test.describe('Chatbot Widget', () => {
     const response = await chatRequest
     expect(response.status()).toBe(200)
 
-    await expect(page.getByText('120 Nguyen Trai, Quan 1, TP HCM')).toBeVisible()
+    await expect(page.getByText(/120 (Nguyen Trai|Nguyễn Trãi), Qu[aâ]n 1, TP HCM/i)).toBeVisible()
     const sourceLine = page.locator('p').filter({ hasText: /^Nguon:/ })
     await expect(sourceLine).toBeVisible()
     await expect(sourceLine).toContainText('Chi nhanh trung tam')

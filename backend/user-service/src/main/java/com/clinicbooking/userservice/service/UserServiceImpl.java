@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -218,8 +219,12 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Page<UserResponseDto> searchDoctors(String keyword, String specialization, BigDecimal minRating, BigDecimal maxFee, Pageable pageable) {
         log.info("Searching doctors - keyword: {}, specialization: {}, minRating: {}, maxFee: {}", keyword, specialization, minRating, maxFee);
-        String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
-        String spec = (specialization != null && !specialization.isBlank()) ? specialization.trim() : null;
+        String kw = (keyword != null && !keyword.isBlank())
+                ? keyword.trim().toLowerCase(Locale.ROOT)
+                : "";
+        String spec = (specialization != null && !specialization.isBlank())
+                ? specialization.trim().toLowerCase(Locale.ROOT)
+                : "";
         Page<User> doctors = userRepository.searchDoctors(User.UserRole.DOCTOR, kw, spec, minRating, maxFee, pageable);
         return doctors.map(userMapper::toDto);
     }

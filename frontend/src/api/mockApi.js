@@ -751,3 +751,41 @@ export const consultationApi = {
     return consultations[index]
   },
 }
+
+export const chatbotApi = {
+  chat: async (message) => {
+    await delay(900)
+    return {
+      question: message,
+      normalizedQuestion: String(message || '').trim().toLowerCase(),
+      answer: 'Toi dang chay o che do demo. Hay chuyen sang backend that de test RAG va live data.',
+      intentId: 'UNKNOWN',
+      intentName: 'Khong xac dinh',
+      confidence: 0,
+      classifierProvider: 'MOCK',
+      fallbackUsed: true,
+      answerProvider: 'MOCK',
+      ragUsed: false,
+      sources: [],
+    }
+  },
+
+  classify: async (question) => {
+    await delay(300)
+    return {
+      question,
+      normalizedQuestion: String(question || '').trim().toLowerCase(),
+      intentId: 'UNKNOWN',
+      intentName: 'Khong xac dinh',
+      confidence: 0,
+      provider: 'MOCK',
+      fallbackUsed: true,
+      reason: 'Mock classifier',
+    }
+  },
+
+  getIntents: async () => {
+    await delay(200)
+    return []
+  },
+}

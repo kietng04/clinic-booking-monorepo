@@ -51,7 +51,7 @@
     "id": "CLINIC_ADDRESS",
     "name": "Dia chi phong kham",
     "description": "Nguoi dung hoi dia chi va thong tin di chuyen",
-    "keywords": ["dia chi", "address", "o dau", "chi nhanh", "ban do", "tru so", "co so"]
+    "keywords": ["dia chi", "address", "o dau", "chi nhanh", "ban do", "tru so", "co so", "gio mo cua", "mo cua may gio", "gio lam viec", "dong cua may gio", "phong kham lam viec", "lam viec tu may gio", "tu may gio den may gio", "mo cua luc nao"]
   },
   {
     "id": "SERVICE_PRICE",

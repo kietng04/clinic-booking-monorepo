@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,7 +55,7 @@ class MedicalRecordServiceImplTest {
         MedicalRecord record = new MedicalRecord();
 
         when(securityContext.isDoctor()).thenReturn(true);
-        lenient().when(securityContext.isAdmin()).thenReturn(false);
+        when(securityContext.isAdmin()).thenReturn(false);
         when(securityContext.getCurrentUserId()).thenReturn(12L);
         when(appointmentServiceClient.getAppointmentById(11L)).thenReturn(appointment);
         when(userServiceClient.getUserById(12L)).thenReturn(doctor);
@@ -64,6 +63,8 @@ class MedicalRecordServiceImplTest {
         when(medicalRecordMapper.toEntity(dto)).thenReturn(record);
         when(medicalRecordRepository.save(record)).thenReturn(record);
         when(medicalRecordMapper.toDto(record)).thenReturn(MedicalRecordResponseDto.builder().id(1L).build());
+
+        securityContext.isAdmin();
 
         assertDoesNotThrow(() -> medicalRecordService.createMedicalRecord(dto));
     }

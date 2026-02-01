@@ -14,7 +14,9 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { userApi, scheduleApi, appointmentApi } from '@/api/mockApi'
+import { userApi } from '@/api/userApiWrapper'
+import { scheduleApi } from '@/api/scheduleApiWrapper'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -102,9 +104,10 @@ export function BookAppointment() {
   const loadAvailableSlots = async (date) => {
     try {
       setLoading(true)
-      const schedule = await scheduleApi.getSchedule(bookingData.doctorId, date)
-      if (schedule) {
-        setAvailableSlots(schedule.slots.filter((slot) => slot.available))
+      const slots = await scheduleApi.getAvailableSlots(bookingData.doctorId, date)
+
+      if (slots && slots.length > 0) {
+        setAvailableSlots(slots.filter((slot) => slot.available))
       } else {
         // Generate default slots if no schedule exists
         const defaultSlots = [
@@ -124,7 +127,21 @@ export function BookAppointment() {
     }
   }
 
+  const isFutureDate = (dateStr) => {
+    if (!dateStr) return false
+    const selected = new Date(dateStr)
+    const today = new Date()
+    selected.setHours(0, 0, 0, 0)
+    today.setHours(0, 0, 0, 0)
+    return selected > today
+  }
+
   const selectDateTime = (date, time) => {
+    if (!isFutureDate(date)) {
+      showToast('Ngày khám phải là ngày trong tương lai', 'error')
+      return
+    }
+
     setBookingData({ ...bookingData, date, time })
     setCurrentStep(3)
   }
@@ -132,6 +149,11 @@ export function BookAppointment() {
   const handleSubmit = async () => {
     try {
       setLoading(true)
+      if (!isFutureDate(bookingData.date)) {
+        showToast('Ngày khám phải là ngày trong tương lai', 'error')
+        return
+      }
+
       const appointmentData = {
         patientId: user.id,
         patientName: user.name,
@@ -161,7 +183,7 @@ export function BookAppointment() {
   // Get next 7 days for date selection
   const getNextDays = () => {
     const days = []
-    for (let i = 0; i < 7; i++) {
+    for (let i = 1; i <= 7; i++) {
       const date = new Date()
       date.setDate(date.getDate() + i)
       days.push(date)

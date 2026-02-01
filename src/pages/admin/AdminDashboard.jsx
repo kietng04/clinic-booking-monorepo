@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
-import { statsApi } from '@/api/mockApi'
+import { statsApi } from '@/api/statsApiWrapper'
+// TODO: Replace mockAdminAnalytics with real admin analytics API
 import { mockAdminAnalytics } from '@/api/mockData'
 import { vi } from '@/lib/translations'
 

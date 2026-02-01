@@ -13,7 +13,10 @@ import {
   Activity,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { appointmentApi, statsApi, healthMetricsApi, medicalRecordApi } from '@/api/mockApi'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { statsApi } from '@/api/statsApiWrapper'
+import { healthMetricsApi } from '@/api/healthMetricsApiWrapper'
+import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'

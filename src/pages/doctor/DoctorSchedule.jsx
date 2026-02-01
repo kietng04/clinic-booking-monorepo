@@ -1,54 +1,142 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, Plus, Check, X } from 'lucide-react'
+import { Calendar, Clock, Save, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Badge } from '@/components/ui/Badge'
+import { SkeletonCard } from '@/components/ui/Loading'
+import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
+import { scheduleApi } from '@/api/scheduleApiWrapper'
 import { vi } from '@/lib/translations'
 
+const DAYS_OF_WEEK = [
+  { dayOfWeek: 1, name: 'Thứ 2' },
+  { dayOfWeek: 2, name: 'Thứ 3' },
+  { dayOfWeek: 3, name: 'Thứ 4' },
+  { dayOfWeek: 4, name: 'Thứ 5' },
+  { dayOfWeek: 5, name: 'Thứ 6' },
+  { dayOfWeek: 6, name: 'Thứ 7' },
+  { dayOfWeek: 0, name: 'Chủ nhật' },
+]
+
 const DoctorSchedule = () => {
+  const { user } = useAuthStore()
   const { showToast } = useUIStore()
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [workingHours, setWorkingHours] = useState({ start: '08:00', end: '17:00' })
-  const [slotDuration, setSlotDuration] = useState(30)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [weekSchedule, setWeekSchedule] = useState(
+    DAYS_OF_WEEK.map((day) => ({
+      ...day,
+      id: null,
+      startTime: '08:00',
+      endTime: '17:00',
+      isAvailable: day.dayOfWeek !== 0 && day.dayOfWeek !== 6, // Default: Mon-Fri available
+    }))
+  )
 
-  // Generate next 7 days
-  const dates = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date()
-    date.setDate(date.getDate() + i)
-    return date
-  })
+  useEffect(() => {
+    fetchSchedules()
+  }, [])
 
-  // Generate time slots
-  const generateSlots = () => {
-    const slots = []
-    const start = parseInt(workingHours.start.split(':')[0])
-    const end = parseInt(workingHours.end.split(':')[0])
+  const fetchSchedules = async () => {
+    setIsLoading(true)
+    try {
+      const schedules = await scheduleApi.getDoctorSchedules(user.id)
 
-    for (let hour = start; hour < end; hour++) {
-      if (slotDuration === 30) {
-        slots.push({ time: `${hour.toString().padStart(2, '0')}:00`, status: 'available' })
-        slots.push({ time: `${hour.toString().padStart(2, '0')}:30`, status: 'available' })
-      } else {
-        slots.push({ time: `${hour.toString().padStart(2, '0')}:00`, status: 'available' })
-      }
+      // Merge fetched schedules with default week schedule
+      setWeekSchedule((prev) =>
+        prev.map((day) => {
+          const found = schedules.find((s) => s.dayOfWeek === day.dayOfWeek)
+          if (found) {
+            return {
+              ...day,
+              id: found.id,
+              startTime: found.startTime?.substring(0, 5) || '08:00',
+              endTime: found.endTime?.substring(0, 5) || '17:00',
+              isAvailable: found.isAvailable ?? true,
+            }
+          }
+          return day
+        })
+      )
+    } catch (error) {
+      console.error('Failed to fetch schedules:', error)
+      // Keep default schedule if fetch fails
+    } finally {
+      setIsLoading(false)
     }
-    return slots
   }
 
-  const [timeSlots, setTimeSlots] = useState(generateSlots())
-
-  const toggleSlot = (index) => {
-    const newSlots = [...timeSlots]
-    newSlots[index].status = newSlots[index].status === 'available' ? 'blocked' : 'available'
-    setTimeSlots(newSlots)
+  const handleTimeChange = (dayOfWeek, field, value) => {
+    setWeekSchedule((prev) =>
+      prev.map((day) =>
+        day.dayOfWeek === dayOfWeek ? { ...day, [field]: value } : day
+      )
+    )
   }
 
-  const handleSave = () => {
-    showToast({ type: 'success', message: vi.doctor.schedule.scheduleUpdated })
+  const handleToggleAvailable = (dayOfWeek) => {
+    setWeekSchedule((prev) =>
+      prev.map((day) =>
+        day.dayOfWeek === dayOfWeek ? { ...day, isAvailable: !day.isAvailable } : day
+      )
+    )
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const promises = weekSchedule.map(async (day) => {
+        const payload = {
+          doctorId: user.id,
+          // doctorName removed - backend fetches this
+          dayOfWeek: day.dayOfWeek,
+          startTime: day.startTime.length === 5 ? `${day.startTime}:00` : day.startTime,
+          endTime: day.endTime.length === 5 ? `${day.endTime}:00` : day.endTime,
+          isAvailable: day.isAvailable,
+        }
+
+        try {
+          if (day.id) {
+            // Update existing schedule
+            return await scheduleApi.updateSchedule(day.id, payload)
+          } else {
+            // Create new schedule
+            return await scheduleApi.createSchedule(payload)
+          }
+        } catch (err) {
+          console.error(`Error saving schedule for day ${day.dayOfWeek}:`, err)
+          throw err
+        }
+      })
+
+      const results = await Promise.all(promises)
+
+      // Update local state with returned IDs
+      setWeekSchedule((prev) =>
+        prev.map((day, index) => ({
+          ...day,
+          id: results[index]?.id || day.id,
+        }))
+      )
+
+      showToast({ type: 'success', message: vi.doctor.schedule.scheduleUpdated })
+    } catch (error) {
+      console.error('Failed to save schedule:', error)
+      showToast({ type: 'error', message: 'Không thể lưu lịch làm việc' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    )
   }
 
   return (
@@ -57,133 +145,110 @@ const DoctorSchedule = () => {
         <h1 className="text-3xl font-display font-bold text-sage-900 mb-2">
           {vi.doctor.schedule.title}
         </h1>
-        <p className="text-sage-600">Thiết lập lịch làm việc và khung giờ khám</p>
+        <p className="text-sage-600">Thiết lập lịch làm việc hàng tuần của bạn</p>
       </div>
 
-      {/* Calendar */}
+      {/* Weekly Schedule */}
       <Card>
         <CardHeader>
-          <CardTitle>{vi.doctor.schedule.selectDate}</CardTitle>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-sage-600" />
+            <CardTitle>Lịch làm việc trong tuần</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-2">
-            {dates.map((date, index) => {
-              const isSelected = date.toDateString() === selectedDate.toDateString()
-              const isToday = date.toDateString() === new Date().toDateString()
-
-              return (
-                <button
-                  key={index}
-                  onClick={() => setSelectedDate(date)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    isSelected
-                      ? 'border-sage-600 bg-sage-50'
-                      : 'border-sage-200 hover:border-sage-400'
+          <div className="space-y-4">
+            {weekSchedule.map((day, index) => (
+              <motion.div
+                key={day.dayOfWeek}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={`p-4 rounded-lg border-2 transition-all ${day.isAvailable
+                  ? 'border-sage-200 bg-white'
+                  : 'border-sage-100 bg-sage-50'
                   }`}
-                >
-                  <div className="text-center">
-                    <div className="text-xs text-sage-600 mb-1">
-                      {date.toLocaleDateString('vi-VN', { weekday: 'short' })}
-                    </div>
-                    <div className={`text-2xl font-bold ${isToday ? 'text-sage-600' : 'text-sage-900'}`}>
-                      {date.getDate()}
-                    </div>
-                    <div className="text-xs text-sage-500">
-                      {date.toLocaleDateString('vi-VN', { month: 'short' })}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Working Hours */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{vi.doctor.schedule.workingHours}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Input
-              label={vi.doctor.schedule.startTime}
-              type="time"
-              value={workingHours.start}
-              onChange={(e) => setWorkingHours({ ...workingHours, start: e.target.value })}
-            />
-            <Input
-              label={vi.doctor.schedule.endTime}
-              type="time"
-              value={workingHours.end}
-              onChange={(e) => setWorkingHours({ ...workingHours, end: e.target.value })}
-            />
-            <Select
-              label={vi.doctor.schedule.slotDuration}
-              value={slotDuration}
-              onChange={(e) => setSlotDuration(parseInt(e.target.value))}
-              options={[
-                { value: 30, label: '30 phút' },
-                { value: 60, label: '60 phút' },
-              ]}
-            />
-          </div>
-          <Button
-            onClick={() => setTimeSlots(generateSlots())}
-            className="mt-4"
-            leftIcon={<Plus />}
-          >
-            {vi.doctor.schedule.generateSlots}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Time Slots */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Khung giờ - {selectedDate.toLocaleDateString('vi-VN')}</CardTitle>
-            <div className="flex gap-2 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-sage-600 rounded"></div>
-                <span className="text-sage-600">Có sẵn</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-600 rounded"></div>
-                <span className="text-sage-600">Đã chặn</span>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-            {timeSlots.map((slot, index) => (
-              <motion.button
-                key={index}
-                onClick={() => toggleSlot(index)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  slot.status === 'available'
-                    ? 'border-sage-600 bg-sage-50 hover:bg-sage-100'
-                    : 'border-red-600 bg-red-50 hover:bg-red-100'
-                }`}
               >
-                <div className="text-sm font-medium">
-                  {slot.time}
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  {/* Day Name & Toggle */}
+                  <div className="flex items-center gap-3 md:w-40">
+                    <button
+                      onClick={() => handleToggleAvailable(day.dayOfWeek)}
+                      className={`w-12 h-6 rounded-full p-1 transition-colors ${day.isAvailable ? 'bg-sage-600' : 'bg-sage-300'
+                        }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full bg-white transition-transform ${day.isAvailable ? 'translate-x-6' : 'translate-x-0'
+                          }`}
+                      />
+                    </button>
+                    <span
+                      className={`font-medium ${day.isAvailable ? 'text-sage-900' : 'text-sage-400'
+                        }`}
+                    >
+                      {day.name}
+                    </span>
+                  </div>
+
+                  {/* Time Inputs */}
+                  {day.isAvailable ? (
+                    <div className="flex items-center gap-3 flex-1">
+                      <Clock className="w-4 h-4 text-sage-500" />
+                      <Input
+                        type="time"
+                        value={day.startTime}
+                        onChange={(e) =>
+                          handleTimeChange(day.dayOfWeek, 'startTime', e.target.value)
+                        }
+                        className="w-32"
+                      />
+                      <span className="text-sage-500">đến</span>
+                      <Input
+                        type="time"
+                        value={day.endTime}
+                        onChange={(e) =>
+                          handleTimeChange(day.dayOfWeek, 'endTime', e.target.value)
+                        }
+                        className="w-32"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1">
+                      <span className="text-sage-400 italic">Nghỉ</span>
+                    </div>
+                  )}
                 </div>
-                {slot.status === 'available' ? (
-                  <Check className="w-4 h-4 mx-auto mt-1 text-sage-600" />
-                ) : (
-                  <X className="w-4 h-4 mx-auto mt-1 text-red-600" />
-                )}
-              </motion.button>
+              </motion.div>
             ))}
           </div>
+
+          {/* Save Button */}
           <div className="mt-6 flex justify-end">
-            <Button onClick={handleSave}>
-              Lưu lịch làm việc
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              leftIcon={isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+            >
+              {isSaving ? 'Đang lưu...' : 'Lưu lịch làm việc'}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info Card */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 bg-sage-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-5 h-5 text-sage-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sage-900 mb-1">Lưu ý</h3>
+              <p className="text-sm text-sage-600">
+                Lịch làm việc này sẽ được sử dụng để hiển thị khung giờ có sẵn khi bệnh nhân
+                đặt lịch khám với bạn. Hãy đảm bảo cập nhật kịp thời khi có thay đổi.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

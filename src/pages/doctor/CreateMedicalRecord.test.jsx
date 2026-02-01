@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import CreateMedicalRecord from '@/pages/doctor/CreateMedicalRecord'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
 import { medicationApi } from '@/api/medicationApiWrapper'
 
 const mockNavigate = vi.fn()
@@ -87,5 +88,31 @@ describe('CreateMedicalRecord', () => {
     
     // Verify button is disabled
     expect(saveButton).toBeDisabled()
+  })
+
+  it('blocks submit when appointment is not confirmed', async () => {
+    appointmentApi.getAppointment.mockResolvedValue({
+      id: 1,
+      patientId: 1,
+      patientName: 'Test Patient',
+      appointmentDate: '2026-02-01',
+      appointmentTime: '10:00',
+      status: 'PENDING'
+    })
+
+    const { container } = render(<CreateMedicalRecord />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Tạo hồ sơ bệnh án')).toBeInTheDocument()
+    })
+
+    const form = container.querySelector('form')
+    fireEvent.submit(form)
+
+    expect(mockShowToast).toHaveBeenCalledWith({
+      type: 'error',
+      message: 'Chỉ có thể tạo hồ sơ cho lịch hẹn đã xác nhận'
+    })
+    expect(medicalRecordApi.create).not.toHaveBeenCalled()
   })
 })

@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 class MedicalRecordServiceImplTest {
     @Mock private MedicalRecordRepository medicalRecordRepository;
     @Mock private MedicalRecordMapper medicalRecordMapper;
@@ -37,6 +36,7 @@ class MedicalRecordServiceImplTest {
     @InjectMocks private MedicalRecordServiceImpl medicalRecordService;
 
     @Test
+    @MockitoSettings(strictness = Strictness.LENIENT)
     void createMedicalRecord_allowsConfirmedAppointment() {
         MedicalRecordCreateDto dto = MedicalRecordCreateDto.builder()
             .appointmentId(11L)

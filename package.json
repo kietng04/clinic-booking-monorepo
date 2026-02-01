@@ -9,6 +9,9 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest --run"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",
     "axios": "^1.13.2",

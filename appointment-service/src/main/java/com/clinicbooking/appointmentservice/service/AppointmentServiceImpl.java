@@ -306,11 +306,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new ValidationException("Chỉ có thể hoàn thành lịch hẹn đã xác nhận");
         }
 
-        // Cannot complete future appointments
-        if (appointment.isUpcoming()) {
-            throw new ValidationException("Không thể hoàn thành lịch hẹn chưa đến giờ");
-        }
-
         appointment.setStatus(Appointment.AppointmentStatus.COMPLETED);
         appointment = appointmentRepository.save(appointment);
 

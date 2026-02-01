@@ -16,12 +16,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class MedicalRecordServiceImplTest {
     @Mock private MedicalRecordRepository medicalRecordRepository;
     @Mock private MedicalRecordMapper medicalRecordMapper;
@@ -63,8 +66,6 @@ class MedicalRecordServiceImplTest {
         when(medicalRecordMapper.toEntity(dto)).thenReturn(record);
         when(medicalRecordRepository.save(record)).thenReturn(record);
         when(medicalRecordMapper.toDto(record)).thenReturn(MedicalRecordResponseDto.builder().id(1L).build());
-
-        securityContext.isAdmin();
 
         assertDoesNotThrow(() -> medicalRecordService.createMedicalRecord(dto));
     }

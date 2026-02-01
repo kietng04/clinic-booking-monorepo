@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -134,7 +133,6 @@ public class AggregateStatisticsController {
     }
 
     @GetMapping("/analytics/admin/dashboard")
-    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Get admin analytics dashboard",
             description = "Retrieve comprehensive analytics dashboard for admins with time-series data (12-month trends), top doctors, recent activities, and distribution metrics. Results are cached for 5 minutes."
@@ -164,7 +162,6 @@ public class AggregateStatisticsController {
     }
 
     @GetMapping("/analytics/doctor/{doctorId}/dashboard")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     @Operation(
             summary = "Get doctor analytics dashboard",
             description = "Retrieve comprehensive analytics dashboard for a specific doctor with time-series data (6-month trends), appointment types, time slots, and patient demographics. Results are cached for 5 minutes. Doctors can only access their own data unless they are admins."

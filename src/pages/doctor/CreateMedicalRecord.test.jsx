@@ -145,6 +145,7 @@ describe('CreateMedicalRecord', () => {
     await waitFor(() => {
       expect(medicalRecordApi.create).toHaveBeenCalled()
     })
+    expect(appointmentApi.completeAppointment).toHaveBeenCalled()
   })
 
   it('skips completeAppointment when appointment is already completed', async () => {

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { authApi } from '../api/mockApi'
+import { authApi } from '../api/authApiWrapper'
 
 export const useAuthStore = create(
   persist(
@@ -15,43 +15,69 @@ export const useAuthStore = create(
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const data = await authApi.login(email, password)
+          const { user, token, refreshToken } = await authApi.login({ email, password })
+
+          // Map backend response to frontend user object
+          const mappedUser = {
+            id: user.userId,
+            email: user.email,
+            name: user.fullName,
+            role: user.role,
+            avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.email}`,
+            emailVerified: user.emailVerified,
+            phoneVerified: user.phoneVerified,
+          }
+
           set({
-            user: data.user,
-            token: data.token,
-            refreshToken: data.refreshToken,
+            user: mappedUser,
+            token,
+            refreshToken,
             isAuthenticated: true,
             isLoading: false,
           })
-          return data
+          return { user: mappedUser, token, refreshToken }
         } catch (error) {
-          set({ error: error.message, isLoading: false })
-          throw error
+          const errorMessage = error.response?.data?.message || error.message || 'Login failed'
+          set({ error: errorMessage, isLoading: false })
+          throw new Error(errorMessage)
         }
       },
 
       register: async (userData) => {
         set({ isLoading: true, error: null })
         try {
-          const data = await authApi.register(userData)
+          const { user, token, refreshToken } = await authApi.register(userData)
+
+          // Map backend response to frontend user object
+          const mappedUser = {
+            id: user.userId,
+            email: user.email,
+            name: user.fullName,
+            role: user.role,
+            avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.email}`,
+            emailVerified: user.emailVerified,
+            phoneVerified: user.phoneVerified,
+          }
+
           set({
-            user: data.user,
-            token: data.token,
-            refreshToken: data.refreshToken,
+            user: mappedUser,
+            token,
+            refreshToken,
             isAuthenticated: true,
             isLoading: false,
           })
-          return data
+          return { user: mappedUser, token, refreshToken }
         } catch (error) {
-          set({ error: error.message, isLoading: false })
-          throw error
+          const errorMessage = error.response?.data?.message || error.message || 'Registration failed'
+          set({ error: errorMessage, isLoading: false })
+          throw new Error(errorMessage)
         }
       },
 
       logout: async () => {
         set({ isLoading: true })
         try {
-          await authApi.logout()
+          authApi.logout()
           set({
             user: null,
             token: null,

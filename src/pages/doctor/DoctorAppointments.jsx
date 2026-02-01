@@ -1,29 +1,25 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, User, MapPin, Video, CheckCircle, XCircle } from 'lucide-react'
+import { Calendar, Clock, User, MapPin, Video, CheckCircle, XCircle, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
-import { Modal } from '@/components/ui/Modal'
-import { Input } from '@/components/ui/Input'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { appointmentApi } from '@/api/mockApi'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { formatDate, formatTime, translateStatus } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
 const DoctorAppointments = () => {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { showToast } = useUIStore()
   const [appointments, setAppointments] = useState([])
   const [filter, setFilter] = useState('today')
   const [isLoading, setIsLoading] = useState(true)
-  const [completeModal, setCompleteModal] = useState(false)
-  const [selectedAppointment, setSelectedAppointment] = useState(null)
-  const [diagnosis, setDiagnosis] = useState('')
-  const [notes, setNotes] = useState('')
 
   useEffect(() => {
     fetchAppointments()
@@ -32,8 +28,20 @@ const DoctorAppointments = () => {
   const fetchAppointments = async () => {
     setIsLoading(true)
     try {
-      const data = await appointmentApi.getDoctorAppointments(user.id, { filter })
-      setAppointments(data)
+      const data = await appointmentApi.getAppointments({ doctorId: user.id })
+
+      // Filter by status based on tab
+      let filtered = data
+      if (filter === 'today') {
+        const today = new Date().toISOString().split('T')[0]
+        filtered = data.filter(apt => apt.appointmentDate === today && apt.status !== 'CANCELLED')
+      } else if (filter === 'upcoming') {
+        filtered = data.filter(apt => apt.status === 'CONFIRMED' || apt.status === 'PENDING')
+      } else if (filter === 'completed') {
+        filtered = data.filter(apt => apt.status === 'COMPLETED')
+      }
+
+      setAppointments(filtered)
     } catch (error) {
       showToast({ type: 'error', message: 'Không thể tải lịch hẹn' })
     } finally {
@@ -43,7 +51,7 @@ const DoctorAppointments = () => {
 
   const handleConfirm = async (appointmentId) => {
     try {
-      await appointmentApi.updateAppointmentStatus(appointmentId, 'CONFIRMED')
+      await appointmentApi.confirmAppointment(appointmentId)
       showToast({ type: 'success', message: vi.appointments.confirmed })
       fetchAppointments()
     } catch (error) {
@@ -51,18 +59,6 @@ const DoctorAppointments = () => {
     }
   }
 
-  const handleComplete = async () => {
-    try {
-      await appointmentApi.completeAppointment(selectedAppointment.id, { diagnosis, notes })
-      showToast({ type: 'success', message: vi.doctor.appointments.appointmentCompleted })
-      setCompleteModal(false)
-      setDiagnosis('')
-      setNotes('')
-      fetchAppointments()
-    } catch (error) {
-      showToast({ type: 'error', message: 'Không thể hoàn thành lịch hẹn' })
-    }
-  }
 
   const tabs = [
     { id: 'today', label: vi.appointments.tabs.today },
@@ -183,12 +179,10 @@ const DoctorAppointments = () => {
                         <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => {
-                            setSelectedAppointment(apt)
-                            setCompleteModal(true)
-                          }}
+                          onClick={() => navigate(`/doctor/create-medical-record?appointmentId=${apt.id}`)}
+                          leftIcon={<FileText className="w-4 h-4" />}
                         >
-                          Hoàn thành
+                          Tạo hồ sơ
                         </Button>
                       )}
                     </div>
@@ -208,40 +202,6 @@ const DoctorAppointments = () => {
         )}
       </div>
 
-      <Modal
-        isOpen={completeModal}
-        onClose={() => {
-          setCompleteModal(false)
-          setDiagnosis('')
-          setNotes('')
-        }}
-        title={vi.doctor.appointments.completeAppointment}
-      >
-        <div className="space-y-4">
-          <Input
-            label={vi.doctor.appointments.addDiagnosis}
-            value={diagnosis}
-            onChange={(e) => setDiagnosis(e.target.value)}
-            placeholder="Nhập chẩn đoán..."
-          />
-          <Input
-            label={vi.doctor.appointments.addNotes}
-            as="textarea"
-            rows={4}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Ghi chú thêm..."
-          />
-          <div className="flex gap-3 justify-end">
-            <Button variant="ghost" onClick={() => setCompleteModal(false)}>
-              {vi.common.cancel}
-            </Button>
-            <Button onClick={handleComplete}>
-              {vi.common.confirm}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   )
 }

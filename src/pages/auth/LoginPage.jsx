@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Lock, ArrowRight } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { Button } from '@/components/ui/Button'
@@ -15,22 +15,36 @@ export function LoginPage() {
     email: '',
     password: '',
   })
+  const [quickLoginLoading, setQuickLoginLoading] = useState(null)
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e?.preventDefault()
     try {
       await login(formData.email, formData.password)
-      showToast('Welcome back!', 'success')
+      showToast({ type: 'success', message: 'Đăng nhập thành công!' })
       navigate('/dashboard')
     } catch (error) {
-      showToast(error.message || 'Invalid credentials', 'error')
+      showToast({ type: 'error', message: error.message || 'Thông tin đăng nhập không hợp lệ' })
+    }
+  }
+
+  const handleQuickLogin = async (email, password, role) => {
+    setQuickLoginLoading(role)
+    try {
+      await login(email, password)
+      showToast({ type: 'success', message: 'Đăng nhập thành công!' })
+      navigate('/dashboard')
+    } catch (error) {
+      showToast({ type: 'error', message: error.message || 'Đăng nhập thất bại' })
+    } finally {
+      setQuickLoginLoading(null)
     }
   }
 
   const quickLogins = [
-    { email: 'john.anderson@email.com', password: 'password', label: 'Bệnh nhân', role: 'PATIENT' },
-    { email: 'sarah.mitchell@healthflow.com', password: 'password', label: 'Bác sĩ', role: 'DOCTOR' },
-    { email: 'admin@healthflow.com', password: 'password', label: 'Quản trị', role: 'ADMIN' },
+    { email: 'patient@clinic.com', password: 'password', label: 'Bệnh nhân', role: 'PATIENT' },
+    { email: 'demo.doctor@clinic.com', password: 'password', label: 'Bác sĩ', role: 'DOCTOR' },
+    { email: 'admin@clinic.com', password: 'password', label: 'Quản trị', role: 'ADMIN' },
   ]
 
   return (
@@ -69,12 +83,11 @@ export function LoginPage() {
               {quickLogins.map((demo) => (
                 <button
                   key={demo.role}
-                  onClick={() => {
-                    setFormData({ email: demo.email, password: demo.password })
-                    setTimeout(() => document.querySelector('form').requestSubmit(), 100)
-                  }}
-                  className="px-3 py-1.5 bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700 rounded-lg text-xs font-medium text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-700 transition-colors"
+                  onClick={() => handleQuickLogin(demo.email, demo.password, demo.role)}
+                  disabled={quickLoginLoading !== null}
+                  className="px-3 py-1.5 bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700 rounded-lg text-xs font-medium text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-700 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
+                  {quickLoginLoading === demo.role && <Loader2 className="w-3 h-3 animate-spin" />}
                   {demo.label}
                 </button>
               ))}

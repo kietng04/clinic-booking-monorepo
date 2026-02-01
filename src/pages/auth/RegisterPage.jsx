@@ -25,17 +25,29 @@ export function RegisterPage() {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
-      showToast('Passwords do not match', 'error')
+      showToast('Mật khẩu không khớp', 'error')
+      return
+    }
+
+    if (formData.password.length < 8) {
+      showToast('Mật khẩu phải có ít nhất 8 ký tự', 'error')
       return
     }
 
     try {
-      const { confirmPassword, ...registerData } = formData
+      // Map to backend format
+      const { confirmPassword, name, ...rest } = formData
+      const registerData = {
+        ...rest,
+        fullName: name, // Backend expects fullName
+        role: formData.role,
+      }
+
       await register(registerData)
-      showToast('Account created successfully!', 'success')
+      showToast('Đăng ký thành công!', 'success')
       navigate('/dashboard')
     } catch (error) {
-      showToast(error.message || 'Registration failed', 'error')
+      showToast(error.message || 'Đăng ký thất bại', 'error')
     }
   }
 

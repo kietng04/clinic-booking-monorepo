@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Calendar,
@@ -21,7 +22,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Loading, SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { appointmentApi } from '@/api/mockApi'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { formatDate, formatTime, translateStatus } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
@@ -48,7 +49,7 @@ const Appointments = () => {
   const fetchAppointments = async () => {
     setIsLoading(true)
     try {
-      const data = await appointmentApi.getUserAppointments(user.id)
+      const data = await appointmentApi.getAppointments({ patientId: user.id })
       setAppointments(data)
     } catch (error) {
       showToast({
@@ -325,9 +326,11 @@ const Appointments = () => {
                             </Button>
                           )}
 
-                          <Button variant="ghost" size="sm">
-                            {vi.appointments.actions.viewDetails}
-                          </Button>
+                          <Link to={`/appointments/${appointment.id}`}>
+                            <Button variant="ghost" size="sm">
+                              {vi.appointments.actions.viewDetails}
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>

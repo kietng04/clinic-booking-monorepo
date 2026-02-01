@@ -19,7 +19,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { medicalRecordApi } from '@/api/mockApi'
+import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
 import { formatDate } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
@@ -42,9 +42,12 @@ const MedicalRecords = () => {
   const fetchRecords = async () => {
     setIsLoading(true)
     try {
-      const data = await medicalRecordApi.getRecordsByPatient(user.id)
-      setRecords(data)
+      const data = await medicalRecordApi.getByPatientId(user.id)
+      // Sort by date descending (newest first)
+      const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      setRecords(sortedData)
     } catch (error) {
+      console.error('Failed to fetch medical records:', error)
       showToast({
         type: 'error',
         message: 'Không thể tải hồ sơ bệnh án',
@@ -169,7 +172,7 @@ const MedicalRecords = () => {
                             <div className="flex flex-wrap gap-3 text-sm text-sage-600">
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {formatDate(record.date)}
+                                {formatDate(record.createdAt)}
                               </div>
                               <div className="flex items-center gap-1">
                                 <User className="w-4 h-4" />
@@ -180,39 +183,49 @@ const MedicalRecords = () => {
                         </div>
 
                         {/* Symptoms */}
-                        {record.symptoms && record.symptoms.length > 0 && (
+                        {record.symptoms && (
                           <div className="mb-3">
                             <span className="text-sm font-medium text-sage-900">Triệu chứng:</span>
                             <p className="text-sm text-sage-700 mt-1">
-                              {record.symptoms.join(', ')}
+                              {record.symptoms}
                             </p>
                           </div>
                         )}
 
-                        {/* Treatment */}
-                        {record.treatment && (
+                        {/* Treatment Plan */}
+                        {record.treatmentPlan && (
                           <div className="mb-3">
-                            <span className="text-sm font-medium text-sage-900">Điều trị:</span>
-                            <p className="text-sm text-sage-700 mt-1">{record.treatment}</p>
+                            <span className="text-sm font-medium text-sage-900">Phương án điều trị:</span>
+                            <p className="text-sm text-sage-700 mt-1">{record.treatmentPlan}</p>
                           </div>
                         )}
 
-                        {/* Has Prescription */}
-                        {record.prescriptionId && (
+                        {/* Follow-up Date */}
+                        {record.followUpDate && (
                           <Badge className="bg-terra-100 text-terra-800 border-terra-200">
-                            <Pill className="w-3 h-3 mr-1" />
-                            Có đơn thuốc
+                            <Calendar className="w-3 h-3 mr-1" />
+                            Tái khám: {formatDate(record.followUpDate)}
                           </Badge>
                         )}
                       </div>
 
-                      {/* Right: Action Button */}
-                      <Link to={`/medical-records/${record.id}`}>
-                        <Button variant="outline" size="sm">
-                          {vi.medicalRecords.viewRecord}
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </Link>
+                      {/* Right: Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {record.prescriptionId && (
+                          <Link to={`/prescriptions/${record.prescriptionId}`}>
+                            <Button variant="outline" size="sm" className="text-terra-700 border-terra-200 hover:bg-terra-50">
+                              <Pill className="w-4 h-4 mr-1" />
+                              Đơn thuốc
+                            </Button>
+                          </Link>
+                        )}
+                        <Link to={`/medical-records/${record.id}`}>
+                          <Button variant="outline" size="sm">
+                            {vi.medicalRecords.viewRecord}
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

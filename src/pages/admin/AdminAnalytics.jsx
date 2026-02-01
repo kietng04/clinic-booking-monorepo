@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   LineChart,
@@ -23,13 +23,64 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { mockAdminAnalytics } from '@/api/mockData'
+import { statsApi } from '@/api/realApis/statsApi'
+import { useUIStore } from '@/store/uiStore'
 import { vi } from '@/lib/translations'
 
 const AdminAnalytics = () => {
   const [dateRange, setDateRange] = useState('12months')
-  const analytics = mockAdminAnalytics
+  const [analytics, setAnalytics] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const { showToast } = useUIStore()
 
   const COLORS = ['#5d7a60', '#bfa094', '#f4c430', '#dc2626']
+
+  useEffect(() => {
+    fetchAdminAnalytics()
+  }, [dateRange])
+
+  const fetchAdminAnalytics = async () => {
+    setIsLoading(true)
+    try {
+      const data = await statsApi.getAdminAnalyticsDashboard()
+      setAnalytics(transformDataByDateRange(data, dateRange))
+    } catch (error) {
+      console.error('Failed to load admin analytics:', error)
+      showToast({ type: 'error', message: 'Không thể tải dữ liệu phân tích' })
+      setAnalytics(mockAdminAnalytics)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const transformDataByDateRange = (data, range) => {
+    if (range === '6months') {
+      return {
+        ...data,
+        revenue: data.revenue?.slice(-6) || [],
+        userGrowth: data.userGrowth?.slice(-6) || [],
+        appointmentTrends: data.appointmentTrends?.slice(-6) || [],
+      }
+    }
+    return data
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse bg-sage-50 rounded-lg h-64"></div>
+        <div className="animate-pulse bg-sage-50 rounded-lg h-64"></div>
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="animate-pulse bg-sage-50 rounded-lg h-64"></div>
+          <div className="animate-pulse bg-sage-50 rounded-lg h-64"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!analytics) {
+    return <div className="text-center py-12 text-sage-600">No data available</div>
+  }
 
   const kpiCards = [
     {

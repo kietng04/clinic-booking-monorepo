@@ -6,8 +6,12 @@ export function cn(...inputs) {
 }
 
 export function formatDate(date, format = 'PP') {
+  if (!date) return '—'
   // Simple date formatter - can be enhanced with date-fns
   const d = new Date(date)
+  if (Number.isNaN(d.getTime())) {
+    return String(date)
+  }
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -16,7 +20,19 @@ export function formatDate(date, format = 'PP') {
 }
 
 export function formatTime(date) {
+  if (!date) return '—'
+  if (typeof date === 'string') {
+    if (/^\d{2}:\d{2}:\d{2}/.test(date)) {
+      return date.slice(0, 5)
+    }
+    if (/^\d{2}:\d{2}/.test(date)) {
+      return date
+    }
+  }
   const d = new Date(date)
+  if (Number.isNaN(d.getTime())) {
+    return String(date)
+  }
   return d.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'

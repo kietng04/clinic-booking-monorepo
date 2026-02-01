@@ -21,7 +21,7 @@ import { Select } from '@/components/ui/Select'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { statsApi } from '@/api/mockApi'
+import { statsApi } from '@/api/realApis/statsApi'
 import { mockDoctorAnalytics } from '@/api/mockData'
 import { vi } from '@/lib/translations'
 
@@ -29,24 +29,42 @@ const DoctorAnalytics = () => {
   const { user } = useAuthStore()
   const { showToast } = useUIStore()
   const [stats, setStats] = useState(null)
-  const [analytics, setAnalytics] = useState(mockDoctorAnalytics)
+  const [analytics, setAnalytics] = useState(null)
   const [dateRange, setDateRange] = useState('6months')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (user?.id) {
+      fetchData()
+    }
+  }, [user?.id, dateRange])
 
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const statsData = await statsApi.getDoctorStats(user.id)
+      const [statsData, analyticsData] = await Promise.all([
+        statsApi.getDoctorStats(user.id),
+        statsApi.getDoctorAnalyticsDashboard(user.id),
+      ])
       setStats(statsData)
+      setAnalytics(transformDataByDateRange(analyticsData, dateRange))
     } catch (error) {
-      showToast({ type: 'error', message: 'Không thể tải dữ liệu thống kê' })
+      console.error('Failed to load doctor analytics:', error)
+      showToast({ type: 'error', message: 'Không thể tải dữ liệu phân tích' })
+      setAnalytics(mockDoctorAnalytics)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const transformDataByDateRange = (data, range) => {
+    if (range === '3months') {
+      return {
+        ...data,
+        appointments: data.appointments?.slice(-3) || [],
+      }
+    }
+    return data
   }
 
   const COLORS = ['#5d7a60', '#bfa094', '#f4c430', '#82ca9d']
@@ -91,6 +109,10 @@ const DoctorAnalytics = () => {
         <SkeletonCard />
       </div>
     )
+  }
+
+  if (!analytics) {
+    return <div className="text-center py-12 text-sage-600">No data available</div>
   }
 
   return (

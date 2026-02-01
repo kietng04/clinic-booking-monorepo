@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import CreateMedicalRecord from '@/pages/doctor/CreateMedicalRecord'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
 import { medicationApi } from '@/api/medicationApiWrapper'
@@ -58,6 +57,11 @@ vi.mock('@/api/medicationApiWrapper', () => ({
 }))
 
 describe('CreateMedicalRecord', () => {
+  const loadComponent = async () => {
+    const module = await import('@/pages/doctor/CreateMedicalRecord')
+    return module.default
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     
@@ -76,6 +80,7 @@ describe('CreateMedicalRecord', () => {
       status: 'PENDING'
     })
 
+    const CreateMedicalRecord = await loadComponent()
     render(<CreateMedicalRecord />)
 
     // Wait for component to load
@@ -100,6 +105,7 @@ describe('CreateMedicalRecord', () => {
       status: 'PENDING'
     })
 
+    const CreateMedicalRecord = await loadComponent()
     const { container } = render(<CreateMedicalRecord />)
 
     await waitFor(() => {
@@ -128,6 +134,7 @@ describe('CreateMedicalRecord', () => {
     medicalRecordApi.create.mockResolvedValue({ id: 123 })
     appointmentApi.completeAppointment.mockResolvedValue({})
 
+    const CreateMedicalRecord = await loadComponent()
     const { container } = render(<CreateMedicalRecord />)
 
     await waitFor(() => {
@@ -160,6 +167,7 @@ describe('CreateMedicalRecord', () => {
     medicalRecordApi.create.mockResolvedValue({ id: 456 })
     appointmentApi.completeAppointment.mockResolvedValue({})
 
+    const CreateMedicalRecord = await loadComponent()
     const { container } = render(<CreateMedicalRecord />)
 
     await waitFor(() => {

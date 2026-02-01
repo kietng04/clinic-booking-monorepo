@@ -150,8 +150,19 @@ const CreateMedicalRecord = () => {
     return true
   }
 
+  const canSave =
+    appointment?.status === 'CONFIRMED' || appointment?.status === 'COMPLETED'
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!canSave) {
+      showToast({
+        type: 'error',
+        message: 'Chỉ có thể tạo hồ sơ cho lịch hẹn đã xác nhận'
+      })
+      return
+    }
 
     if (!validateForm()) return
 
@@ -225,9 +236,6 @@ const CreateMedicalRecord = () => {
       </div>
     )
   }
-
-  const canSave =
-    appointment?.status === 'CONFIRMED' || appointment?.status === 'COMPLETED'
 
   return (
     <motion.div

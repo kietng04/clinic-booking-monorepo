@@ -226,6 +226,9 @@ const CreateMedicalRecord = () => {
     )
   }
 
+  const canSave =
+    appointment?.status === 'CONFIRMED' || appointment?.status === 'COMPLETED'
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -523,13 +526,20 @@ const CreateMedicalRecord = () => {
           >
             Hủy
           </Button>
-          <Button
-            type="submit"
-            leftIcon={<Save />}
-            disabled={isSaving}
-          >
-            {isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            {!canSave && (
+              <p className="text-sm text-sage-600">
+                Chỉ có thể tạo hồ sơ cho lịch hẹn đã xác nhận
+              </p>
+            )}
+            <Button
+              type="submit"
+              leftIcon={<Save />}
+              disabled={isSaving || !canSave}
+            >
+              {isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}
+            </Button>
+          </div>
         </div>
       </form>
     </motion.div>

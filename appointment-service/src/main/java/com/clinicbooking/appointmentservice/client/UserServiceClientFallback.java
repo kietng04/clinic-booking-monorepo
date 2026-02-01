@@ -1,9 +1,15 @@
 package com.clinicbooking.appointmentservice.client;
 
+import com.clinicbooking.appointmentservice.dto.PatientDemographicsDto;
+import com.clinicbooking.appointmentservice.dto.SpecializationDistributionDto;
 import com.clinicbooking.appointmentservice.dto.UserDto;
+import com.clinicbooking.appointmentservice.dto.UserGrowthDto;
 import com.clinicbooking.appointmentservice.dto.UserStatisticsDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -36,6 +42,27 @@ public class UserServiceClientFallback implements UserServiceClient {
                 .newDoctorsThisMonth(0L)
                 .emailVerifiedUsers(0L)
                 .phoneVerifiedUsers(0L)
+                .build();
+    }
+
+    @Override
+    public List<UserGrowthDto> getUserGrowthByMonth(int months) {
+        log.warn("Fallback: User service is unavailable. Returning empty user growth list");
+        return new ArrayList<>();
+    }
+
+    @Override
+    public List<SpecializationDistributionDto> getSpecializationDistribution() {
+        log.warn("Fallback: User service is unavailable. Returning empty specialization distribution");
+        return new ArrayList<>();
+    }
+
+    @Override
+    public PatientDemographicsDto getPatientDemographics(Long doctorId) {
+        log.warn("Fallback: User service is unavailable. Returning empty patient demographics for doctor ID: {}", doctorId);
+        return PatientDemographicsDto.builder()
+                .ageDistribution(new ArrayList<>())
+                .genderRatio(new ArrayList<>())
                 .build();
     }
 }

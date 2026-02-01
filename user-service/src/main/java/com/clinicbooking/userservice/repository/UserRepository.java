@@ -9,6 +9,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -82,4 +85,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE YEAR(u.createdAt) = YEAR(CURRENT_DATE()) AND MONTH(u.createdAt) = MONTH(CURRENT_DATE())")
     long countNewUsersThisMonth();
+
+    // Analytics queries for dashboard
+
+    // User growth by month
+    @Query("SELECT new map(FUNCTION('TO_CHAR', u.createdAt, 'YYYY-MM') as month, " +
+            "COUNT(CASE WHEN u.role = 'PATIENT' THEN 1 END) as patients, " +
+            "COUNT(CASE WHEN u.role = 'DOCTOR' THEN 1 END) as doctors, " +
+            "COUNT(u) as total) " +
+            "FROM User u " +
+            "WHERE u.createdAt >= :startDate " +
+            "GROUP BY FUNCTION('TO_CHAR', u.createdAt, 'YYYY-MM') " +
+            "ORDER BY month")
+    List<Map<String, Object>> getUserGrowthByMonth(@Param("startDate") LocalDateTime startDate);
+
+    // Specialization distribution
+    @Query("SELECT new map(u.specialization as specialization, COUNT(u) as count) " +
+            "FROM User u " +
+            "WHERE u.role = 'DOCTOR' AND u.specialization IS NOT NULL " +
+            "GROUP BY u.specialization")
+    List<Map<String, Object>> getSpecializationDistribution();
+
+    // Recent doctors (ordered by creation date)
+    @Query("SELECT u FROM User u " +
+            "WHERE u.role = 'DOCTOR' " +
+            "ORDER BY u.createdAt DESC")
+    List<User> getRecentDoctors(Pageable pageable);
 }

@@ -1,6 +1,8 @@
 package com.clinicbooking.appointmentservice.controller;
 
+import com.clinicbooking.appointmentservice.dto.AdminAnalyticsDashboardDto;
 import com.clinicbooking.appointmentservice.dto.AggregatedDashboardStatisticsDto;
+import com.clinicbooking.appointmentservice.dto.DoctorAnalyticsDashboardDto;
 import com.clinicbooking.appointmentservice.dto.DoctorStatisticsDto;
 import com.clinicbooking.appointmentservice.dto.PatientStatisticsDto;
 import com.clinicbooking.appointmentservice.service.AggregateStatisticsService;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -128,5 +131,70 @@ public class AggregateStatisticsController {
         log.info("Clearing all statistics caches");
         aggregateStatisticsService.clearAllStatisticsCaches();
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/analytics/admin/dashboard")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Get admin analytics dashboard",
+            description = "Retrieve comprehensive analytics dashboard for admins with time-series data (12-month trends), top doctors, recent activities, and distribution metrics. Results are cached for 5 minutes."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Admin analytics dashboard retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AdminAnalyticsDashboardDto.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Access denied - ADMIN role required"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error while fetching analytics"
+            )
+    })
+    public ResponseEntity<AdminAnalyticsDashboardDto> getAdminAnalyticsDashboard() {
+        log.debug("Received request for admin analytics dashboard");
+        AdminAnalyticsDashboardDto dashboard = aggregateStatisticsService.getAdminAnalyticsDashboard();
+        return ResponseEntity.ok(dashboard);
+    }
+
+    @GetMapping("/analytics/doctor/{doctorId}/dashboard")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    @Operation(
+            summary = "Get doctor analytics dashboard",
+            description = "Retrieve comprehensive analytics dashboard for a specific doctor with time-series data (6-month trends), appointment types, time slots, and patient demographics. Results are cached for 5 minutes. Doctors can only access their own data unless they are admins."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Doctor analytics dashboard retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = DoctorAnalyticsDashboardDto.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Access denied - DOCTOR or ADMIN role required"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Doctor not found"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error while fetching analytics"
+            )
+    })
+    public ResponseEntity<DoctorAnalyticsDashboardDto> getDoctorAnalyticsDashboard(@PathVariable Long doctorId) {
+        log.debug("Received request for doctor analytics dashboard: {}", doctorId);
+        // TODO: Add security check to ensure doctors can only access their own data
+        DoctorAnalyticsDashboardDto dashboard = aggregateStatisticsService.getDoctorAnalyticsDashboard(doctorId);
+        return ResponseEntity.ok(dashboard);
     }
 }

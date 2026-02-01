@@ -1,5 +1,8 @@
 package com.clinicbooking.userservice.controller;
 
+import com.clinicbooking.userservice.dto.statistics.PatientDemographicsDto;
+import com.clinicbooking.userservice.dto.statistics.SpecializationDistributionDto;
+import com.clinicbooking.userservice.dto.statistics.UserGrowthDto;
 import com.clinicbooking.userservice.dto.statistics.UserStatisticsDto;
 import com.clinicbooking.userservice.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/statistics")
@@ -68,5 +73,73 @@ public class StatisticsController {
         log.info("Clearing statistics cache");
         statisticsService.clearStatisticsCache();
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/users/growth")
+    @Operation(
+            summary = "Get user growth by month",
+            description = "Retrieve user growth statistics grouped by month for the specified number of months. Returns patient, doctor, and total user counts per month."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "User growth statistics retrieved successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error while fetching growth statistics"
+            )
+    })
+    public ResponseEntity<List<UserGrowthDto>> getUserGrowthByMonth(
+            @RequestParam(defaultValue = "12") int months) {
+        log.debug("Received request for user growth statistics for {} months", months);
+        List<UserGrowthDto> growthData = statisticsService.getUserGrowthByMonth(months);
+        return ResponseEntity.ok(growthData);
+    }
+
+    @GetMapping("/users/specializations")
+    @Operation(
+            summary = "Get specialization distribution",
+            description = "Retrieve the distribution of doctors by specialization with count and percentage."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Specialization distribution retrieved successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error while fetching specialization data"
+            )
+    })
+    public ResponseEntity<List<SpecializationDistributionDto>> getSpecializationDistribution() {
+        log.debug("Received request for specialization distribution");
+        List<SpecializationDistributionDto> distribution = statisticsService.getSpecializationDistribution();
+        return ResponseEntity.ok(distribution);
+    }
+
+    @GetMapping("/users/doctor/{doctorId}/patient-demographics")
+    @Operation(
+            summary = "Get patient demographics for doctor",
+            description = "Retrieve patient demographics (age distribution and gender ratio) for patients who have appointments with the specified doctor."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Patient demographics retrieved successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Doctor not found"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error while fetching demographics"
+            )
+    })
+    public ResponseEntity<PatientDemographicsDto> getPatientDemographics(@PathVariable Long doctorId) {
+        log.debug("Received request for patient demographics for doctor: {}", doctorId);
+        PatientDemographicsDto demographics = statisticsService.getPatientDemographics(doctorId);
+        return ResponseEntity.ok(demographics);
     }
 }

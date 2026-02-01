@@ -20,6 +20,7 @@
         <module>appointment-service</module>
         <module>medical-service</module>
         <module>payment-service</module>
+        <module>consultation-service</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>

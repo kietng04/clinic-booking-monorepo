@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Plus, Edit2, Trash2, Calendar, Phone, User, Inbox } from 'lucide-react'
+import { Plus, Edit2, Trash2, Calendar, Inbox, Droplet } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { familyMemberApi } from '@/api/mockApi'
+import { familyMemberApi } from '@/api/familyMemberApiWrapper'
 import { vi } from '@/lib/translations'
 
 const FamilyMembers = () => {
@@ -34,11 +34,19 @@ const FamilyMembers = () => {
     fetchMembers()
   }, [])
 
+  const normalizeMember = (member) => ({
+    ...member,
+    name: member.name || member.fullName,
+    phone: member.phone || member.bloodType || '',
+    medicalNotes: member.medicalNotes || member.chronicDiseases || '',
+    avatar: member.avatar || member.avatarUrl,
+  })
+
   const fetchMembers = async () => {
     setIsLoading(true)
     try {
-      const data = await familyMemberApi.getFamilyMembers(user.id)
-      setMembers(data)
+      const data = await familyMemberApi.getMembers(user.id)
+      setMembers((data || []).map(normalizeMember))
     } catch (error) {
       showToast({ type: 'error', message: 'Không thể tải danh sách thành viên' })
     } finally {
@@ -46,9 +54,19 @@ const FamilyMembers = () => {
     }
   }
 
+  const normalizeDateValue = (value) => {
+    if (!value) return ''
+    if (typeof value !== 'string') return value
+    return value.includes('T') ? value.split('T')[0] : value
+  }
+
+  const isValidDateString = (value) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(value).getTime())
+
   const calculateAge = (dateOfBirth) => {
     const today = new Date()
     const birthDate = new Date(dateOfBirth)
+    if (Number.isNaN(birthDate.getTime())) return '—'
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -59,11 +77,26 @@ const FamilyMembers = () => {
 
   const handleSave = async () => {
     try {
+      const normalizedDate = normalizeDateValue(formData.dateOfBirth)
+      if (!isValidDateString(normalizedDate)) {
+        showToast({ type: 'error', message: 'Ngày sinh không hợp lệ (YYYY-MM-DD)' })
+        return
+      }
+
+      const payload = {
+        fullName: formData.name,
+        dateOfBirth: normalizedDate,
+        gender: formData.gender,
+        relationship: formData.relationship,
+        bloodType: formData.phone || null,
+        chronicDiseases: formData.medicalNotes || null,
+      }
+
       if (editingMember) {
-        await familyMemberApi.updateFamilyMember(editingMember.id, formData)
+        await familyMemberApi.updateMember(editingMember.id, payload)
         showToast({ type: 'success', message: vi.family.memberUpdated })
       } else {
-        await familyMemberApi.addFamilyMember({ ...formData, userId: user.id })
+        await familyMemberApi.addMember({ ...payload, userId: user.id })
         showToast({ type: 'success', message: vi.family.memberAdded })
       }
       setShowModal(false)
@@ -86,7 +119,7 @@ const FamilyMembers = () => {
     setEditingMember(member)
     setFormData({
       name: member.name,
-      dateOfBirth: member.dateOfBirth,
+      dateOfBirth: normalizeDateValue(member.dateOfBirth),
       gender: member.gender || 'MALE',
       relationship: member.relationship,
       phone: member.phone || '',
@@ -98,7 +131,7 @@ const FamilyMembers = () => {
   const handleDelete = async (memberId) => {
     if (!confirm(vi.family.confirmDelete)) return
     try {
-      await familyMemberApi.deleteFamilyMember(memberId)
+      await familyMemberApi.deleteMember(memberId)
       showToast({ type: 'success', message: vi.family.memberDeleted })
       fetchMembers()
     } catch (error) {
@@ -181,7 +214,7 @@ const FamilyMembers = () => {
                     )}
                     {member.phone && (
                       <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
+                        <Droplet className="w-4 h-4" />
                         <span>{member.phone}</span>
                       </div>
                     )}
@@ -238,7 +271,9 @@ const FamilyMembers = () => {
 
           <Input
             label={vi.family.dateOfBirth}
-            type="date"
+            type="text"
+            inputMode="numeric"
+            placeholder="YYYY-MM-DD"
             value={formData.dateOfBirth}
             onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
             required
@@ -265,10 +300,11 @@ const FamilyMembers = () => {
           />
 
           <Input
-            label={vi.family.phone}
+            label="Nhóm máu"
             type="tel"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="O+"
           />
 
           <Input

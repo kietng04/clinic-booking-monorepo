@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Plus, Edit2, Trash2, User, Mail, Phone } from 'lucide-react'
+import { Search, Plus, Edit2, Trash2, Mail, Phone } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -10,7 +10,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
-import { userApi } from '@/api/mockApi'
+import { userApi } from '@/api/userApiWrapper'
 import { vi } from '@/lib/translations'
 
 const UserManagement = () => {
@@ -27,6 +27,7 @@ const UserManagement = () => {
     email: '',
     phone: '',
     role: 'PATIENT',
+    password: '',
   })
 
   useEffect(() => {
@@ -40,8 +41,13 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true)
     try {
-      const data = await userApi.getAllUsers()
-      setUsers(data)
+      const data = await userApi.getUsers({ size: 200 })
+      const normalized = (data || []).map(user => ({
+        ...user,
+        name: user.name || user.fullName,
+        avatar: user.avatar || user.avatarUrl,
+      }))
+      setUsers(normalized)
     } catch (error) {
       showToast({ type: 'error', message: 'Không thể tải danh sách người dùng' })
     } finally {
@@ -69,15 +75,27 @@ const UserManagement = () => {
   const handleSave = async () => {
     try {
       if (editingUser) {
-        await userApi.updateUser(editingUser.id, formData)
+        const payload = {
+          fullName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+        }
+        await userApi.updateUser(editingUser.id, payload)
         showToast({ type: 'success', message: vi.admin.users.userUpdated })
       } else {
-        await userApi.createUser(formData)
+        const payload = {
+          fullName: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          password: formData.password,
+        }
+        await userApi.createUser(payload)
         showToast({ type: 'success', message: vi.admin.users.userAdded })
       }
       setShowModal(false)
       setEditingUser(null)
-      setFormData({ name: '', email: '', phone: '', role: 'PATIENT' })
+      setFormData({ name: '', email: '', phone: '', role: 'PATIENT', password: '' })
       fetchUsers()
     } catch (error) {
       showToast({ type: 'error', message: 'Không thể lưu người dùng' })
@@ -201,6 +219,7 @@ const UserManagement = () => {
                         email: user.email,
                         phone: user.phone || '',
                         role: user.role,
+                        password: '',
                       })
                       setShowModal(true)
                     }}
@@ -227,7 +246,7 @@ const UserManagement = () => {
         onClose={() => {
           setShowModal(false)
           setEditingUser(null)
-          setFormData({ name: '', email: '', phone: '', role: 'PATIENT' })
+          setFormData({ name: '', email: '', phone: '', role: 'PATIENT', password: '' })
         }}
         title={editingUser ? vi.admin.users.editUser : vi.admin.users.addUser}
       >
@@ -255,12 +274,22 @@ const UserManagement = () => {
             label={vi.admin.users.role}
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            disabled={!!editingUser}
             options={[
               { value: 'PATIENT', label: 'Bệnh nhân' },
               { value: 'DOCTOR', label: 'Bác sĩ' },
               { value: 'ADMIN', label: 'Quản trị viên' },
             ]}
           />
+          {!editingUser && (
+            <Input
+              label="Mật khẩu"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              required
+            />
+          )}
           <div className="flex gap-3 justify-end">
             <Button variant="ghost" onClick={() => setShowModal(false)}>
               {vi.common.cancel}

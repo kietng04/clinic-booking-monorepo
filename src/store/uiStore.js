@@ -45,7 +45,12 @@ export const useUIStore = create((set) => ({
   },
 
   showToast: (message, type = 'info') => {
-    set({ toast: { message, type, id: Date.now() } })
+    const payload =
+      typeof message === 'object' && message !== null
+        ? { message: message.message || 'Unknown error', type: message.type || type }
+        : { message, type }
+
+    set({ toast: { ...payload, id: Date.now() } })
     setTimeout(() => {
       set({ toast: null })
     }, 5000)

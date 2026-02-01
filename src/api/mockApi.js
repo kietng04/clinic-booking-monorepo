@@ -33,8 +33,12 @@ let aiAnalyses = [...mockAIAnalyses]
 
 // Auth API
 export const authApi = {
-  login: async (email, password) => {
+  login: async (credentials) => {
     await delay(800)
+    // Support both object format { email, password } and separate parameters
+    const email = typeof credentials === 'string' ? credentials : credentials?.email
+    const password = typeof credentials === 'string' ? arguments[1] : credentials?.password
+
     const user = users.find(u => u.email === email)
 
     if (!user) {
@@ -45,7 +49,15 @@ export const authApi = {
     const token = btoa(JSON.stringify({ userId: user.id, role: user.role }))
 
     return {
-      user,
+      user: {
+        userId: user.id,
+        email: user.email,
+        fullName: user.name,
+        role: user.role,
+        avatar: user.avatar,
+        emailVerified: true,
+        phoneVerified: true,
+      },
       token,
       refreshToken: 'mock-refresh-token',
     }
@@ -336,6 +348,21 @@ export const healthMetricsApi = {
     return filtered.sort((a, b) => new Date(b.date) - new Date(a.date))
   },
 
+  getMetricsByPatient: async (patientId) => {
+    await delay(400)
+    return healthMetrics.filter(m => m.patientId === patientId).sort((a, b) => new Date(b.date) - new Date(a.date))
+  },
+
+  logMetric: async (metricData) => {
+    await delay(600)
+    const newMetric = {
+      id: String(healthMetrics.length + 1),
+      ...metricData,
+    }
+    healthMetrics.push(newMetric)
+    return newMetric
+  },
+
   addMetric: async (metricData) => {
     await delay(600)
     const newMetric = {
@@ -383,6 +410,36 @@ export const familyMemberApi = {
 
 // Message API
 export const messageApi = {
+  getConversations: async (userId) => {
+    await delay(400)
+    const relatedMessages = messages.filter(
+      m => m.senderId === userId || m.receiverId === userId
+    )
+
+    const conversationMap = new Map()
+    relatedMessages.forEach((message) => {
+      const otherId = message.senderId === userId ? message.receiverId : message.senderId
+      const existing = conversationMap.get(otherId)
+      const messageTime = new Date(message.timestamp).getTime()
+
+      if (!existing || messageTime > existing.lastMessageTime) {
+        conversationMap.set(otherId, {
+          id: otherId,
+          name: message.senderId === userId ? message.receiverName : message.senderName,
+          specialization: '',
+          lastMessage: message,
+          lastMessageTime: messageTime,
+          unreadCount: 0,
+          online: false,
+        })
+      }
+    })
+
+    return Array.from(conversationMap.values()).sort(
+      (a, b) => b.lastMessageTime - a.lastMessageTime
+    )
+  },
+
   getConversation: async (userId1, userId2) => {
     await delay(400)
     return messages
@@ -393,23 +450,35 @@ export const messageApi = {
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
   },
 
+  getMessages: async (userId, otherUserId) => {
+    return messageApi.getConversation(userId, otherUserId)
+  },
+
   sendMessage: async (messageData) => {
     await delay(300)
+    const senderId = messageData.senderId || messageData.from
+    const receiverId = messageData.receiverId || messageData.to
+    const senderProfile = users.find(u => u.id === senderId)
+    const receiverProfile = users.find(u => u.id === receiverId)
+
     const newMessage = {
       id: String(messages.length + 1),
-      ...messageData,
+      senderId,
+      senderName: messageData.senderName || senderProfile?.name || `User ${senderId}`,
+      receiverId,
+      receiverName: messageData.receiverName || receiverProfile?.name || `User ${receiverId}`,
+      content: messageData.content,
       timestamp: new Date().toISOString(),
       read: false,
     }
     messages.push(newMessage)
 
-    // Create notification
     notifications.push({
       id: String(notifications.length + 1),
-      userId: messageData.receiverId,
+      userId: receiverId,
       type: 'MESSAGE_RECEIVED',
       title: 'New Message',
-      message: `You have a new message from ${messageData.senderName}`,
+      message: `You have a new message from ${newMessage.senderName}`,
       timestamp: new Date().toISOString(),
       read: false,
     })

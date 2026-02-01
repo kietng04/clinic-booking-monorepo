@@ -13,6 +13,12 @@ import {
   Stethoscope,
   UserCog,
   BarChart3,
+  Bell,
+  Building2,
+  Wrench,
+  Tag,
+  BarChart2,
+  CreditCard,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
@@ -21,30 +27,39 @@ import { cn } from '@/lib/utils'
 const patientNav = [
   { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Đặt lịch khám', path: '/appointments/book', icon: Calendar },
+  { name: 'Tư vấn trực tuyến', path: '/patient/consultations', icon: Stethoscope },
   { name: 'Lịch hẹn', path: '/appointments', icon: Clock },
   { name: 'Hồ sơ bệnh án', path: '/medical-records', icon: FileText },
+  { name: 'Lịch sử thanh toán', path: '/payments', icon: CreditCard },
   { name: 'Chỉ số sức khỏe', path: '/health-metrics', icon: Heart },
+  { name: 'Thông báo', path: '/notifications', icon: Bell },
   { name: 'Tin nhắn', path: '/messages', icon: MessageSquare },
   { name: 'Gia đình', path: '/family', icon: Users },
+  { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]
 
 const doctorNav = [
   { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Lịch hẹn', path: '/appointments', icon: Calendar },
+  { name: 'Lịch hẹn', path: '/doctor/appointments', icon: Calendar },
   { name: 'Lịch làm việc', path: '/schedule', icon: Clock },
   { name: 'Bệnh nhân', path: '/patients', icon: Users },
   { name: 'Tư vấn', path: '/consultations', icon: Stethoscope },
   { name: 'Tin nhắn', path: '/messages', icon: MessageSquare },
-  { name: 'Thống kê', path: '/analytics', icon: TrendingUp },
+  { name: 'Thống kê', path: '/doctor/analytics', icon: TrendingUp },
+  { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]
 
 const adminNav = [
   { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Người dùng', path: '/users', icon: Users },
   { name: 'Bác sĩ', path: '/doctors', icon: Stethoscope },
-  { name: 'Lịch hẹn', path: '/appointments', icon: Calendar },
-  { name: 'Thống kê', path: '/analytics', icon: BarChart3 },
-  { name: 'Cài đặt', path: '/settings', icon: Settings },
+  { name: 'Phòng khám', path: '/admin/clinics', icon: Building2 },
+  { name: 'Dịch vụ', path: '/admin/services', icon: Wrench },
+  { name: 'Phòng', path: '/admin/rooms', icon: UserCog },
+  { name: 'Voucher', path: '/admin/vouchers', icon: Tag },
+  { name: 'Báo cáo', path: '/admin/reports', icon: BarChart2 },
+  { name: 'Thống kê', path: '/admin/analytics', icon: BarChart3 },
+  { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]
 
 export function Sidebar() {
@@ -56,8 +71,8 @@ export function Sidebar() {
 
   const navigation =
     user.role === 'PATIENT' ? patientNav :
-    user.role === 'DOCTOR' ? doctorNav :
-    adminNav
+      user.role === 'DOCTOR' ? doctorNav :
+        adminNav
 
   return (
     <>

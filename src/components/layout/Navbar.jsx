@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Menu, X, Bell, Moon, Sun, LogOut } from 'lucide-react'
+import { Menu, X, Moon, Sun, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { Avatar } from '../ui/Avatar'
 import { Button } from '../ui/Button'
+import NotificationBell from '../NotificationBell'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function Navbar() {
@@ -53,10 +54,7 @@ export function Navbar() {
             {user ? (
               <>
                 {/* Notifications */}
-                <button className="p-2 rounded-lg hover:bg-sage-100 dark:hover:bg-sage-800 transition-colors relative">
-                  <Bell className="w-5 h-5 text-sage-600 dark:text-sage-400" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                <NotificationBell />
 
                 {/* Profile menu */}
                 <div className="relative">

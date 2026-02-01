@@ -9,7 +9,8 @@ import { Avatar } from '@/components/ui/Avatar'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { statsApi, appointmentApi } from '@/api/mockApi'
+import { statsApi } from '@/api/statsApiWrapper'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { formatTime, translateStatus } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
@@ -29,10 +30,13 @@ const DoctorDashboard = () => {
     try {
       const statsData = await statsApi.getDoctorStats(user.id)
       const today = new Date().toISOString().split('T')[0]
-      const appointmentsData = await appointmentApi.getDoctorAppointments(user.id, { date: today })
+
+      // Get all doctor appointments and filter for today
+      const appointmentsData = await appointmentApi.getAppointments({ doctorId: user.id })
+      const todayAppts = appointmentsData.filter(apt => apt.appointmentDate === today)
 
       setStats(statsData)
-      setTodayAppointments(appointmentsData)
+      setTodayAppointments(todayAppts)
     } catch (error) {
       showToast({ type: 'error', message: 'Không thể tải dữ liệu' })
     } finally {

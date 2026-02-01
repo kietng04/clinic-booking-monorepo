@@ -19,9 +19,7 @@ import {
   Weight,
   Droplet,
   TrendingUp,
-  TrendingDown,
   Plus,
-  Calendar
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -31,8 +29,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { healthMetricsApi } from '@/api/mockApi'
-import { mockHealthMetricsHistory } from '@/api/mockData'
+import { healthMetricsApi } from '@/api/healthMetricsApiWrapper'
 import { formatDate } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
@@ -60,13 +57,20 @@ const HealthMetrics = () => {
 
   useEffect(() => {
     updateChartData()
-  }, [selectedType, dateRange])
+  }, [selectedType, dateRange, metrics])
 
   const fetchMetrics = async () => {
     setIsLoading(true)
     try {
-      const data = await healthMetricsApi.getMetricsByPatient(user.id)
-      setMetrics(data)
+      const data = await healthMetricsApi.getMetricsByPatient(user.id, { size: 200 })
+      const normalized = (data || []).map((metric) => ({
+        ...metric,
+        type: metric.type || metric.metricType,
+        date: metric.measuredAt ? metric.measuredAt.split('T')[0] : metric.date,
+        measuredAt: metric.measuredAt || metric.createdAt || metric.date,
+      }))
+      normalized.sort((a, b) => new Date(b.measuredAt) - new Date(a.measuredAt))
+      setMetrics(normalized)
     } catch (error) {
       showToast({
         type: 'error',
@@ -78,22 +82,55 @@ const HealthMetrics = () => {
   }
 
   const updateChartData = () => {
-    const history = mockHealthMetricsHistory[selectedType] || []
     const days = dateRange === '7days' ? 7 : dateRange === '30days' ? 30 : 90
-    const data = history.slice(-days)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days + 1)
+
+    const filtered = metrics
+      .filter(m => m.type === selectedType)
+      .filter(m => new Date(m.measuredAt) >= cutoff)
+      .sort((a, b) => new Date(a.measuredAt) - new Date(b.measuredAt))
+
+    const data = filtered.map((metric) => {
+      if (selectedType === 'BLOOD_PRESSURE') {
+        const [systolic, diastolic] = String(metric.value || '').split('/').map(Number)
+        return {
+          date: metric.date,
+          systolic: Number.isFinite(systolic) ? systolic : null,
+          diastolic: Number.isFinite(diastolic) ? diastolic : null,
+        }
+      }
+
+      const numericValue = Number.parseFloat(metric.value)
+      return {
+        date: metric.date,
+        value: Number.isFinite(numericValue) ? numericValue : null,
+      }
+    }).filter((metric) => metric.date)
+
     setChartData(data)
   }
 
   const handleLogMetric = async () => {
     try {
+      const unitMap = {
+        BLOOD_PRESSURE: vi.healthMetrics.units.mmHg,
+        HEART_RATE: vi.healthMetrics.units.bpm,
+        WEIGHT: vi.healthMetrics.units.kg,
+        BLOOD_SUGAR: vi.healthMetrics.units['mg/dL'],
+        TEMPERATURE: vi.healthMetrics.units.celsius || '°C',
+        OXYGEN_SATURATION: vi.healthMetrics.units.percent || '%',
+      }
+
       const metricData = {
         patientId: user.id,
-        type: newMetric.type,
+        metricType: newMetric.type,
         value: newMetric.type === 'BLOOD_PRESSURE'
           ? `${newMetric.systolic}/${newMetric.diastolic}`
           : newMetric.value,
-        date: newMetric.date,
-        notes: newMetric.notes,
+        unit: unitMap[newMetric.type] || null,
+        measuredAt: `${newMetric.date}T00:00:00`,
+        notes: newMetric.notes || null,
       }
 
       await healthMetricsApi.logMetric(metricData)
@@ -120,7 +157,7 @@ const HealthMetrics = () => {
   }
 
   const getLatestMetric = (type) => {
-    const typeMetrics = metrics.filter(m => m.type === type)
+      const typeMetrics = metrics.filter(m => m.type === type)
     return typeMetrics.length > 0 ? typeMetrics[0] : null
   }
 

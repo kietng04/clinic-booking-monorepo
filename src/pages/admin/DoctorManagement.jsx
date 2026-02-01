@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
-import { userApi } from '@/api/mockApi'
+import { userApi } from '@/api/userApiWrapper'
 import { vi } from '@/lib/translations'
 
 const DoctorManagement = () => {

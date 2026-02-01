@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
-import { medicalRecordApi, prescriptionApi } from '@/api/mockApi'
+import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
+import { prescriptionApi } from '@/api/prescriptionApiWrapper'
 import { formatDate } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
@@ -24,7 +25,7 @@ const MedicalRecordDetail = () => {
   const navigate = useNavigate()
   const { showToast } = useUIStore()
   const [record, setRecord] = useState(null)
-  const [prescription, setPrescription] = useState(null)
+  const [prescriptions, setPrescriptions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -34,14 +35,15 @@ const MedicalRecordDetail = () => {
   const fetchRecordDetail = async () => {
     setIsLoading(true)
     try {
-      const recordData = await medicalRecordApi.getRecordById(id)
+      // Fetch medical record
+      const recordData = await medicalRecordApi.getById(id)
       setRecord(recordData)
 
-      if (recordData.prescriptionId) {
-        const prescriptionData = await prescriptionApi.getPrescriptionById(recordData.prescriptionId)
-        setPrescription(prescriptionData)
-      }
+      // Fetch prescriptions for this medical record
+      const prescriptionData = await prescriptionApi.getByMedicalRecordId(id)
+      setPrescriptions(prescriptionData || [])
     } catch (error) {
+      console.error('Failed to fetch medical record:', error)
       showToast({
         type: 'error',
         message: 'Không thể tải hồ sơ bệnh án',
@@ -91,7 +93,7 @@ const MedicalRecordDetail = () => {
             <h1 className="text-3xl font-display font-bold text-sage-900">
               {vi.medicalRecords.recordDetail}
             </h1>
-            <p className="text-sage-600 mt-1">{formatDate(record.date)}</p>
+            <p className="text-sage-600 mt-1">{formatDate(record.createdAt)}</p>
           </div>
         </div>
         <Button variant="outline" leftIcon={<Download />}>
@@ -112,7 +114,7 @@ const MedicalRecordDetail = () => {
             <label className="text-sm font-medium text-sage-600">
               {vi.medicalRecords.visitDate}
             </label>
-            <p className="text-sage-900 font-medium mt-1">{formatDate(record.date)}</p>
+            <p className="text-sage-900 font-medium mt-1">{formatDate(record.createdAt)}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-sage-600">
@@ -120,6 +122,14 @@ const MedicalRecordDetail = () => {
             </label>
             <p className="text-sage-900 font-medium mt-1">{record.doctorName}</p>
           </div>
+          {record.followUpDate && (
+            <div>
+              <label className="text-sm font-medium text-sage-600">
+                Ngày tái khám
+              </label>
+              <p className="text-sage-900 font-medium mt-1">{formatDate(record.followUpDate)}</p>
+            </div>
+          )}
           <div className="md:col-span-2">
             <label className="text-sm font-medium text-sage-600">
               {vi.medicalRecords.diagnosis}
@@ -136,15 +146,8 @@ const MedicalRecordDetail = () => {
             <CardTitle>{vi.medicalRecords.symptoms}</CardTitle>
           </CardHeader>
           <CardContent>
-            {record.symptoms && record.symptoms.length > 0 ? (
-              <ul className="space-y-2">
-                {record.symptoms.map((symptom, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="w-1.5 h-1.5 bg-sage-600 rounded-full mt-2" />
-                    <span className="text-sage-700">{symptom}</span>
-                  </li>
-                ))}
-              </ul>
+            {record.symptoms ? (
+              <p className="text-sage-700 whitespace-pre-line">{record.symptoms}</p>
             ) : (
               <p className="text-sage-500">Không có triệu chứng được ghi nhận</p>
             )}
@@ -153,69 +156,21 @@ const MedicalRecordDetail = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>{vi.medicalRecords.treatment}</CardTitle>
+            <CardTitle>Phương án điều trị</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sage-700">{record.treatment || 'Không có thông tin điều trị'}</p>
+            <p className="text-sage-700 whitespace-pre-line">{record.treatmentPlan || 'Không có thông tin điều trị'}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Vital Signs */}
-      {record.vitalSigns && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Chỉ số sinh tồn
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {record.vitalSigns.bloodPressure && (
-                <div className="bg-sage-50 p-4 rounded-lg">
-                  <p className="text-sm text-sage-600 mb-1">Huyết áp</p>
-                  <p className="text-lg font-semibold text-sage-900">
-                    {record.vitalSigns.bloodPressure} <span className="text-sm font-normal">mmHg</span>
-                  </p>
-                </div>
-              )}
-              {record.vitalSigns.heartRate && (
-                <div className="bg-sage-50 p-4 rounded-lg">
-                  <p className="text-sm text-sage-600 mb-1">Nhịp tim</p>
-                  <p className="text-lg font-semibold text-sage-900">
-                    {record.vitalSigns.heartRate} <span className="text-sm font-normal">bpm</span>
-                  </p>
-                </div>
-              )}
-              {record.vitalSigns.temperature && (
-                <div className="bg-sage-50 p-4 rounded-lg">
-                  <p className="text-sm text-sage-600 mb-1">Nhiệt độ</p>
-                  <p className="text-lg font-semibold text-sage-900">
-                    {record.vitalSigns.temperature} <span className="text-sm font-normal">°F</span>
-                  </p>
-                </div>
-              )}
-              {record.vitalSigns.weight && (
-                <div className="bg-sage-50 p-4 rounded-lg">
-                  <p className="text-sm text-sage-600 mb-1">Cân nặng</p>
-                  <p className="text-lg font-semibold text-sage-900">
-                    {record.vitalSigns.weight} <span className="text-sm font-normal">lbs</span>
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Prescription */}
-      {prescription && (
+      {/* Prescriptions */}
+      {prescriptions.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Pill className="w-5 h-5" />
-              {vi.medicalRecords.prescription}
+              Đơn thuốc ({prescriptions.length} loại)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -224,36 +179,47 @@ const MedicalRecordDetail = () => {
                 <thead>
                   <tr className="border-b border-sage-200">
                     <th className="text-left py-3 px-4 text-sm font-semibold text-sage-900">
-                      {vi.medicalRecords.medication}
+                      Tên thuốc
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-sage-900">
-                      {vi.medicalRecords.dosage}
+                      Liều dùng
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-sage-900">
-                      {vi.medicalRecords.instructions}
+                      Tần suất
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-sage-900">
-                      {vi.medicalRecords.duration}
+                      Thời gian
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-sage-900">
+                      Hướng dẫn
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {prescription.medications.map((med) => (
-                    <tr key={med.id} className="border-b border-sage-100">
-                      <td className="py-3 px-4 text-sage-900 font-medium">{med.name}</td>
-                      <td className="py-3 px-4 text-sage-700">{med.dosage}</td>
-                      <td className="py-3 px-4 text-sage-700">{med.frequency}</td>
-                      <td className="py-3 px-4 text-sage-700">{med.duration}</td>
+                  {prescriptions.map((prescription) => (
+                    <tr key={prescription.id} className="border-b border-sage-100">
+                      <td className="py-3 px-4 text-sage-900 font-medium">{prescription.medicationName}</td>
+                      <td className="py-3 px-4 text-sage-700">{prescription.dosage}</td>
+                      <td className="py-3 px-4 text-sage-700">{prescription.frequency}</td>
+                      <td className="py-3 px-4 text-sage-700">{prescription.duration}</td>
+                      <td className="py-3 px-4 text-sage-700">{prescription.instructions}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {prescription.notes && (
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm font-medium text-yellow-900 mb-1">Ghi chú:</p>
-                <p className="text-sm text-yellow-800">{prescription.notes}</p>
+            {/* Show notes from prescriptions if any */}
+            {prescriptions.some(p => p.notes) && (
+              <div className="mt-4 space-y-2">
+                {prescriptions.filter(p => p.notes).map((prescription) => (
+                  <div key={prescription.id} className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm font-medium text-yellow-900 mb-1">
+                      Ghi chú cho {prescription.medicationName}:
+                    </p>
+                    <p className="text-sm text-yellow-800">{prescription.notes}</p>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

@@ -146,4 +146,36 @@ describe('CreateMedicalRecord', () => {
       expect(medicalRecordApi.create).toHaveBeenCalled()
     })
   })
+
+  it('skips completeAppointment when appointment is already completed', async () => {
+    appointmentApi.getAppointment.mockResolvedValue({
+      id: 1,
+      patientId: 1,
+      patientName: 'Test Patient',
+      appointmentDate: '2026-02-01',
+      appointmentTime: '10:00',
+      status: 'COMPLETED'
+    })
+    medicalRecordApi.create.mockResolvedValue({ id: 456 })
+    appointmentApi.completeAppointment.mockResolvedValue({})
+
+    const { container } = render(<CreateMedicalRecord />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Tạo hồ sơ bệnh án')).toBeInTheDocument()
+    })
+
+    const diagnosisInput = screen.getByPlaceholderText(
+      'VD: Viêm họng cấp do virus'
+    )
+    fireEvent.change(diagnosisInput, { target: { value: 'Test diagnosis' } })
+
+    const form = container.querySelector('form')
+    fireEvent.submit(form)
+
+    await waitFor(() => {
+      expect(medicalRecordApi.create).toHaveBeenCalled()
+    })
+    expect(appointmentApi.completeAppointment).not.toHaveBeenCalled()
+  })
 })

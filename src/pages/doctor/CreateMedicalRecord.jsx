@@ -202,8 +202,10 @@ const CreateMedicalRecord = () => {
         }
       }
 
-      // Mark appointment as completed
-      await appointmentApi.completeAppointment(appointmentId)
+      // Mark appointment as completed (skip if already completed)
+      if (appointment?.status === 'CONFIRMED') {
+        await appointmentApi.completeAppointment(appointmentId)
+      }
 
       showToast({ type: 'success', message: 'Hồ sơ bệnh án đã được tạo thành công' })
       navigate('/doctor/appointments')

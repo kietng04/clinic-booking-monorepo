@@ -77,9 +77,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 throw new ValidationException("Cuộc hẹn không hợp lệ cho bệnh nhân và bác sĩ này");
             }
 
-            // Validate appointment is completed
-            if (!"COMPLETED".equals(appointment.getStatus())) {
-                throw new ValidationException("Chỉ có thể tạo hồ sơ y tế cho cuộc hẹn đã hoàn thành");
+            // Validate appointment is completed or confirmed
+            if (!"COMPLETED".equals(appointment.getStatus()) && !"CONFIRMED".equals(appointment.getStatus())) {
+                throw new ValidationException("Chỉ có thể tạo hồ sơ y tế cho cuộc hẹn đã xác nhận hoặc đã hoàn thành");
             }
         }
 

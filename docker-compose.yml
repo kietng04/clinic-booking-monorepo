@@ -298,8 +298,8 @@ services:
   # Medical Service
   medical-service:
     build:
-      context: ./medical-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: medical-service/Dockerfile
     container_name: clinic_medical_service
     ports:
       - "8083:8083"
@@ -337,10 +337,50 @@ services:
     restart: unless-stopped
 
   # Payment Service
+
+  # Consultation Service
+  consultation-service:
+    build:
+      context: .
+      dockerfile: consultation-service/Dockerfile
+    container_name: clinic_consultation_service
+    ports:
+      - "8085:8085"
+    environment:
+      POSTGRES_HOST: postgres-consultation
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: consultation_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=
+    depends_on:
+      postgres-consultation:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+    networks:
+      - clinic-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
   payment-service:
     build:
-      context: ./payment-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: payment-service/Dockerfile
     container_name: clinic_payment_service
     ports:
       - "8084:8084"

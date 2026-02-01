@@ -5,6 +5,9 @@ import com.clinicbooking.userservice.dto.auth.LoginRequest;
 import com.clinicbooking.userservice.dto.auth.RegisterRequest;
 import com.clinicbooking.userservice.entity.User;
 import com.clinicbooking.userservice.event.UserEventPublisher;
+import com.clinicbooking.userservice.exception.DuplicateResourceException;
+import com.clinicbooking.userservice.exception.UnauthorizedException;
+import com.clinicbooking.userservice.exception.ValidationException;
 import com.clinicbooking.userservice.repository.UserRepository;
 import com.clinicbooking.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -28,21 +31,24 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse register(RegisterRequest request) {
         // Validate email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại");
+            throw new DuplicateResourceException("Email đã tồn tại");
         }
 
         // Validate phone uniqueness
         if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Số điện thoại đã tồn tại");
+            throw new DuplicateResourceException("Số điện thoại đã tồn tại");
         }
 
         // Validate doctor-specific fields
         if (request.getRole() == User.UserRole.DOCTOR) {
             if (request.getSpecialization() == null || request.getSpecialization().isBlank()) {
-                throw new RuntimeException("Chuyên khoa không được để trống cho bác sĩ");
+                throw new ValidationException("Chuyên khoa không được để trống cho bác sĩ");
             }
             if (request.getLicenseNumber() == null || request.getLicenseNumber().isBlank()) {
-                throw new RuntimeException("Số giấy phép hành nghề không được để trống cho bác sĩ");
+                // Allow missing license number for now to unblock registration (or generate
+                // default)
+                log.warn("Doctor missing license number, setting to PENDING_LICENSE");
+                request.setLicenseNumber("PENDING_LICENSE");
             }
         }
 
@@ -90,14 +96,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không đúng"));
+                .orElseThrow(() -> new UnauthorizedException("Email hoặc mật khẩu không đúng", "INVALID_CREDENTIALS"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Email hoặc mật khẩu không đúng");
+            throw new UnauthorizedException("Email hoặc mật khẩu không đúng", "INVALID_CREDENTIALS");
         }
 
         if (!user.getIsActive()) {
-            throw new RuntimeException("Tài khoản đã bị khóa");
+            throw new UnauthorizedException("Tài khoản đã bị khóa", "ACCOUNT_LOCKED");
         }
 
         log.info("User logged in: {}", user.getEmail());

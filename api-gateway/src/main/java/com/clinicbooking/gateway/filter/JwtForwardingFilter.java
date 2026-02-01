@@ -48,12 +48,33 @@ public class JwtForwardingFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        String path = request.getURI().getPath();
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         // Generate correlation ID if not present
         String correlationId = request.getHeaders().getFirst("X-Correlation-Id");
         if (correlationId == null || correlationId.isEmpty()) {
             correlationId = UUID.randomUUID().toString();
+        }
+
+        // Skip JWT validation for authentication endpoints
+        if (path.startsWith("/api/auth/")) {
+            ServerHttpRequest modifiedRequest = request.mutate()
+                    .header("X-Correlation-Id", correlationId)
+                    .build();
+
+            log.debug("[{}] Skipping JWT validation for auth endpoint: {}", correlationId, path);
+            return chain.filter(exchange.mutate().request(modifiedRequest).build());
+        }
+
+        // Skip JWT validation for actuator health endpoint
+        if (path.startsWith("/actuator/health")) {
+            ServerHttpRequest modifiedRequest = request.mutate()
+                    .header("X-Correlation-Id", correlationId)
+                    .build();
+
+            log.debug("[{}] Skipping JWT validation for health endpoint", correlationId);
+            return chain.filter(exchange.mutate().request(modifiedRequest).build());
         }
 
         // Nếu không có Authorization header, chỉ forward request với correlation ID

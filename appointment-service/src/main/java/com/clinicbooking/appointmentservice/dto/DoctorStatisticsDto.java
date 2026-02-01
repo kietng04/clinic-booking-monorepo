@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,7 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Schema(description = "Doctor-specific Statistics")
-public class DoctorStatisticsDto {
+public class DoctorStatisticsDto implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "Doctor ID", example = "456")
     private Long doctorId;

@@ -3,7 +3,7 @@ package com.clinicbooking.gateway.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
@@ -14,7 +14,13 @@ import java.util.Map;
 @Slf4j
 public class FallbackController {
 
-    @GetMapping("/fallback")
+    @RequestMapping(value = "/fallback", method = {
+            org.springframework.web.bind.annotation.RequestMethod.GET,
+            org.springframework.web.bind.annotation.RequestMethod.POST,
+            org.springframework.web.bind.annotation.RequestMethod.PUT,
+            org.springframework.web.bind.annotation.RequestMethod.DELETE,
+            org.springframework.web.bind.annotation.RequestMethod.PATCH
+    })
     public ResponseEntity<Map<String, Object>> fallback() {
         log.error("Circuit breaker triggered - service unavailable");
 

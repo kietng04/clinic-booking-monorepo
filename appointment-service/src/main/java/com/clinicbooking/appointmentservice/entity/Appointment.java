@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -89,6 +90,19 @@ public class Appointment {
     @Column(length = 20)
     @Builder.Default
     private Priority priority = Priority.NORMAL;
+
+
+    @Column(name = "clinic_id")
+    private Long clinicId;
+
+    @Column(name = "room_id")
+    private Long roomId;
+
+    @Column(name = "service_id")
+    private Long serviceId;
+
+    @Column(name = "service_fee", precision = 10, scale = 2)
+    private BigDecimal serviceFee;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,7 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Schema(description = "Comprehensive Dashboard Statistics - Aggregated from all services")
-public class AggregatedDashboardStatisticsDto {
+public class AggregatedDashboardStatisticsDto implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "User Service Statistics")
     private UserStatisticsDto userStatistics;
@@ -38,7 +40,8 @@ public class AggregatedDashboardStatisticsDto {
     @AllArgsConstructor
     @Builder
     @Schema(description = "System Health Metrics")
-    public static class SystemHealthDto {
+    public static class SystemHealthDto implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "Total active users in system")
         private Long totalActiveUsers;
 

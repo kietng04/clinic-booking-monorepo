@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,7 +14,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Schema(description = "User Statistics - Aggregated from User Service")
-public class UserStatisticsDto {
+public class UserStatisticsDto implements Serializable {
+    private static final long serialVersionUID = 1L;
     @Schema(example = "250")
     private Long totalUsers;
     @Schema(example = "180")

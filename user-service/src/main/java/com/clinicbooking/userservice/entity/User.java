@@ -124,7 +124,7 @@ public class User {
     }
 
     public enum UserRole {
-        PATIENT, DOCTOR, ADMIN
+        PATIENT, DOCTOR, ADMIN, RECEPTIONIST, NURSE, LAB_TECHNICIAN, PHARMACIST
     }
 
     // Helper methods

@@ -9,13 +9,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -224,9 +231,104 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
     }
 
     @Override
-    @CacheEvict(value = {"dashboardStatistics", "patientStatistics", "doctorStatistics"}, allEntries = true)
+    @CacheEvict(value = {"dashboardStatistics", "patientStatistics", "doctorStatistics", "adminAnalyticsDashboard", "doctorAnalyticsDashboard"}, allEntries = true)
     public void clearAllStatisticsCaches() {
         log.info("Cleared all statistics caches");
+    }
+
+    @Override
+    @Cacheable(value = "adminAnalyticsDashboard", unless = "#result == null")
+    public AdminAnalyticsDashboardDto getAdminAnalyticsDashboard() {
+        log.info("Fetching admin analytics dashboard");
+
+        try {
+            // 1. Get monthly revenue (last 12 months)
+            LocalDate twelveMonthsAgo = LocalDate.now().minusMonths(12);
+            List<MonthlyRevenueDto> revenue = buildMonthlyRevenue(
+                    appointmentRepository.getMonthlyRevenue(twelveMonthsAgo)
+            );
+
+            // 2. Get user growth from UserService via Feign
+            List<UserGrowthDto> userGrowth = userServiceClient.getUserGrowthByMonth(12);
+
+            // 3. Get appointment trends
+            List<AppointmentTrendDto> appointmentTrends = buildAppointmentTrends(
+                    appointmentRepository.getAppointmentTrendsByMonth(twelveMonthsAgo)
+            );
+
+            // 4. Get status distribution
+            List<StatusDistributionDto> appointmentStatus = buildStatusDistribution(
+                    appointmentRepository.getStatusDistribution()
+            );
+
+            // 5. Get specialization distribution from UserService
+            List<SpecializationDistributionDto> specializationDistribution =
+                    userServiceClient.getSpecializationDistribution();
+
+            // 6. Get top doctors
+            List<TopDoctorDto> topDoctors = buildTopDoctors(
+                    appointmentRepository.getTopDoctorStats(PageRequest.of(0, 10))
+            );
+
+            // 7. Get recent activities
+            List<RecentActivityDto> recentActivities = buildRecentActivities();
+
+            return AdminAnalyticsDashboardDto.builder()
+                    .revenue(revenue)
+                    .userGrowth(userGrowth)
+                    .appointmentTrends(appointmentTrends)
+                    .appointmentStatus(appointmentStatus)
+                    .specializationDistribution(specializationDistribution)
+                    .topDoctors(topDoctors)
+                    .recentActivities(recentActivities)
+                    .generatedAt(LocalDateTime.now())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Error fetching admin analytics dashboard", e);
+            throw new RuntimeException("Failed to fetch admin analytics dashboard", e);
+        }
+    }
+
+    @Override
+    @Cacheable(value = "doctorAnalyticsDashboard", key = "#doctorId", unless = "#result == null")
+    public DoctorAnalyticsDashboardDto getDoctorAnalyticsDashboard(Long doctorId) {
+        log.info("Fetching doctor analytics dashboard for doctor: {}", doctorId);
+
+        try {
+            // 1. Get appointments by month (last 6 months)
+            LocalDate sixMonthsAgo = LocalDate.now().minusMonths(6);
+            List<Map<String, Object>> trendsData = appointmentRepository.getAppointmentTrendsByMonth(sixMonthsAgo);
+
+            // Filter for this doctor and build monthly appointments
+            List<MonthlyAppointmentDto> appointments = buildMonthlyAppointmentsForDoctor(doctorId, sixMonthsAgo);
+
+            // 2. Get appointment type breakdown
+            List<AppointmentTypeBreakdownDto> appointmentTypes = buildAppointmentTypeBreakdown(
+                    appointmentRepository.getAppointmentTypeBreakdown(doctorId)
+            );
+
+            // 3. Get popular time slots
+            List<TimeSlotStatsDto> timeSlots = buildTimeSlotStats(
+                    appointmentRepository.getTimeSlotStats(doctorId)
+            );
+
+            // 4. Get patient demographics from UserService
+            PatientDemographicsDto patientDemographics =
+                    userServiceClient.getPatientDemographics(doctorId);
+
+            return DoctorAnalyticsDashboardDto.builder()
+                    .appointments(appointments)
+                    .appointmentTypes(appointmentTypes)
+                    .timeSlots(timeSlots)
+                    .patientDemographics(patientDemographics)
+                    .generatedAt(LocalDateTime.now())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("Error fetching doctor analytics dashboard for doctorId: {}", doctorId, e);
+            throw new RuntimeException("Failed to fetch doctor analytics dashboard", e);
+        }
     }
 
     /**
@@ -292,5 +394,258 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                 .doctorPatientRatio(Math.round(doctorPatientRatio * 100.0) / 100.0)
                 .pendingActionsCount(pendingActionsCount)
                 .build();
+    }
+
+    // Helper methods for analytics dashboard
+
+    private List<MonthlyRevenueDto> buildMonthlyRevenue(List<Map<String, Object>> queryResults) {
+        Map<String, BigDecimal> revenueMap = new HashMap<>();
+        for (Map<String, Object> row : queryResults) {
+            String month = (String) row.get("month");
+            BigDecimal revenue = (BigDecimal) row.getOrDefault("revenue", BigDecimal.ZERO);
+            revenueMap.put(month, revenue);
+        }
+
+        // Generate 12 months with formatted names
+        List<MonthlyRevenueDto> result = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+        for (int i = 11; i >= 0; i--) {
+            LocalDate date = now.minusMonths(i);
+            String monthKey = date.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            String monthName = "Tháng " + date.getMonthValue();
+
+            BigDecimal thisYearRevenue = revenueMap.getOrDefault(monthKey, BigDecimal.ZERO);
+            // For last year comparison, check same month last year
+            LocalDate lastYearDate = date.minusYears(1);
+            String lastYearKey = lastYearDate.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            BigDecimal lastYearRevenue = revenueMap.getOrDefault(lastYearKey, BigDecimal.ZERO);
+
+            result.add(MonthlyRevenueDto.builder()
+                    .month(monthName)
+                    .thisYear(thisYearRevenue)
+                    .lastYear(lastYearRevenue)
+                    .build());
+        }
+        return result;
+    }
+
+    private List<AppointmentTrendDto> buildAppointmentTrends(List<Map<String, Object>> queryResults) {
+        Map<String, AppointmentTrendDto> trendsMap = new HashMap<>();
+        for (Map<String, Object> row : queryResults) {
+            String month = (String) row.get("month");
+            Integer total = ((Number) row.getOrDefault("total", 0)).intValue();
+            Integer completed = ((Number) row.getOrDefault("completed", 0)).intValue();
+            Integer cancelled = ((Number) row.getOrDefault("cancelled", 0)).intValue();
+
+            trendsMap.put(month, AppointmentTrendDto.builder()
+                    .month(month)
+                    .total(total)
+                    .completed(completed)
+                    .cancelled(cancelled)
+                    .build());
+        }
+
+        // Generate 12 months
+        List<AppointmentTrendDto> result = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+        for (int i = 11; i >= 0; i--) {
+            LocalDate date = now.minusMonths(i);
+            String monthKey = date.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            String monthName = "Tháng " + date.getMonthValue();
+
+            AppointmentTrendDto trend = trendsMap.getOrDefault(monthKey,
+                    AppointmentTrendDto.builder()
+                            .month(monthName)
+                            .total(0)
+                            .completed(0)
+                            .cancelled(0)
+                            .build());
+            trend.setMonth(monthName); // Update to localized name
+            result.add(trend);
+        }
+        return result;
+    }
+
+    private List<StatusDistributionDto> buildStatusDistribution(List<Map<String, Object>> queryResults) {
+        Map<String, String> statusColors = Map.of(
+                "PENDING", "#FFA500",
+                "CONFIRMED", "#4169E1",
+                "COMPLETED", "#32CD32",
+                "CANCELLED", "#DC143C"
+        );
+
+        Map<String, String> statusNames = Map.of(
+                "PENDING", "Chờ xác nhận",
+                "CONFIRMED", "Đã xác nhận",
+                "COMPLETED", "Hoàn thành",
+                "CANCELLED", "Đã hủy"
+        );
+
+        List<StatusDistributionDto> result = new ArrayList<>();
+        for (Map<String, Object> row : queryResults) {
+            String status = row.get("status").toString();
+            Integer count = ((Number) row.getOrDefault("count", 0)).intValue();
+
+            result.add(StatusDistributionDto.builder()
+                    .name(statusNames.getOrDefault(status, status))
+                    .value(count)
+                    .color(statusColors.getOrDefault(status, "#808080"))
+                    .build());
+        }
+        return result;
+    }
+
+    private List<TopDoctorDto> buildTopDoctors(List<Map<String, Object>> queryResults) {
+        List<TopDoctorDto> result = new ArrayList<>();
+        for (Map<String, Object> row : queryResults) {
+            Long doctorId = ((Number) row.get("doctorId")).longValue();
+            String doctorName = (String) row.get("doctorName");
+            Integer totalAppointments = ((Number) row.get("totalAppointments")).intValue();
+            BigDecimal totalRevenue = (BigDecimal) row.getOrDefault("totalRevenue", BigDecimal.ZERO);
+            Integer completedCount = ((Number) row.getOrDefault("completedCount", 0)).intValue();
+            Integer totalCount = ((Number) row.getOrDefault("totalCount", 1)).intValue();
+
+            // Calculate completion rate
+            Integer completionRate = totalCount > 0 ? (completedCount * 100) / totalCount : 0;
+
+            // Try to get doctor details from user service for specialization
+            String specialization = "N/A";
+            try {
+                UserDto doctor = userServiceClient.getUserById(doctorId);
+                if (doctor != null && doctor.getSpecialization() != null) {
+                    specialization = doctor.getSpecialization();
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch doctor details for ID: {}", doctorId);
+            }
+
+            result.add(TopDoctorDto.builder()
+                    .id(doctorId)
+                    .name(doctorName)
+                    .specialization(specialization)
+                    .appointments(totalAppointments)
+                    .revenue(totalRevenue)
+                    .rating(4.5) // TODO: Implement actual rating system
+                    .completionRate(completionRate)
+                    .build());
+        }
+        return result;
+    }
+
+    private List<RecentActivityDto> buildRecentActivities() {
+        List<RecentActivityDto> activities = new ArrayList<>();
+
+        // Get recent appointments
+        List<Appointment> recentAppointments = appointmentRepository.getRecentAppointments(PageRequest.of(0, 10));
+        for (Appointment appointment : recentAppointments) {
+            String message = String.format("Lịch hẹn mới từ bệnh nhân %s với bác sĩ %s",
+                    appointment.getPatientName(), appointment.getDoctorName());
+
+            activities.add(RecentActivityDto.builder()
+                    .id(appointment.getId())
+                    .type(RecentActivityDto.ActivityType.APPOINTMENT)
+                    .message(message)
+                    .timestamp(appointment.getCreatedAt())
+                    .build());
+        }
+
+        // Sort by timestamp descending
+        activities.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
+
+        return activities.stream().limit(10).collect(Collectors.toList());
+    }
+
+    private List<MonthlyAppointmentDto> buildMonthlyAppointmentsForDoctor(Long doctorId, LocalDate startDate) {
+        // Get all appointments for this doctor
+        List<Appointment> doctorAppointments = appointmentRepository
+                .findByDoctorId(doctorId, PageRequest.of(0, Integer.MAX_VALUE))
+                .getContent()
+                .stream()
+                .filter(a -> !a.getAppointmentDate().isBefore(startDate))
+                .collect(Collectors.toList());
+
+        // Group by month
+        Map<String, MonthlyAppointmentDto> monthlyData = new HashMap<>();
+        for (Appointment appointment : doctorAppointments) {
+            String monthKey = appointment.getAppointmentDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+            MonthlyAppointmentDto existing = monthlyData.getOrDefault(monthKey,
+                    MonthlyAppointmentDto.builder()
+                            .month(monthKey)
+                            .count(0)
+                            .revenue(BigDecimal.ZERO)
+                            .completed(0)
+                            .build());
+
+            existing.setCount(existing.getCount() + 1);
+            if (appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED) {
+                existing.setCompleted(existing.getCompleted() + 1);
+                BigDecimal serviceFee = appointment.getServiceFee() != null ? appointment.getServiceFee() : BigDecimal.ZERO;
+                existing.setRevenue(existing.getRevenue().add(serviceFee));
+            }
+
+            monthlyData.put(monthKey, existing);
+        }
+
+        // Generate 6 months
+        List<MonthlyAppointmentDto> result = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+        for (int i = 5; i >= 0; i--) {
+            LocalDate date = now.minusMonths(i);
+            String monthKey = date.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            String monthName = "Tháng " + date.getMonthValue();
+
+            MonthlyAppointmentDto data = monthlyData.getOrDefault(monthKey,
+                    MonthlyAppointmentDto.builder()
+                            .month(monthName)
+                            .count(0)
+                            .revenue(BigDecimal.ZERO)
+                            .completed(0)
+                            .build());
+            data.setMonth(monthName);
+            result.add(data);
+        }
+        return result;
+    }
+
+    private List<AppointmentTypeBreakdownDto> buildAppointmentTypeBreakdown(List<Map<String, Object>> queryResults) {
+        Map<String, String> typeNames = Map.of(
+                "CONSULTATION", "Tư vấn",
+                "CHECKUP", "Khám sức khỏe",
+                "FOLLOWUP", "Tái khám",
+                "EMERGENCY", "Cấp cứu"
+        );
+
+        List<AppointmentTypeBreakdownDto> result = new ArrayList<>();
+        int total = queryResults.stream()
+                .mapToInt(row -> ((Number) row.getOrDefault("count", 0)).intValue())
+                .sum();
+
+        for (Map<String, Object> row : queryResults) {
+            String type = row.get("type").toString();
+            Integer count = ((Number) row.getOrDefault("count", 0)).intValue();
+            Integer percentage = total > 0 ? (count * 100) / total : 0;
+
+            result.add(AppointmentTypeBreakdownDto.builder()
+                    .name(typeNames.getOrDefault(type, type))
+                    .value(percentage)
+                    .count(count)
+                    .build());
+        }
+        return result;
+    }
+
+    private List<TimeSlotStatsDto> buildTimeSlotStats(List<Map<String, Object>> queryResults) {
+        List<TimeSlotStatsDto> result = new ArrayList<>();
+        for (Map<String, Object> row : queryResults) {
+            String timeSlot = (String) row.get("timeSlot");
+            Integer bookings = ((Number) row.getOrDefault("bookings", 0)).intValue();
+
+            result.add(TimeSlotStatsDto.builder()
+                    .time(timeSlot)
+                    .bookings(bookings)
+                    .build());
+        }
+        return result;
     }
 }

@@ -24,17 +24,16 @@ import { adminApi } from '@/api/adminApiWrapper'
 
 const CATEGORIES = [
   { value: 'all', label: 'Tất cả danh mục' },
-  { value: 'General', label: 'Đa khoa' },
-  { value: 'Specialist', label: 'Chuyên khoa' },
-  { value: 'Lab', label: 'Xét nghiệm' },
-  { value: 'Imaging', label: 'Hình ảnh' },
-  { value: 'Procedure', label: 'Thủ thuật' },
+  { value: 'GENERAL', label: 'Đa khoa' },
+  { value: 'SPECIALIST', label: 'Chuyên khoa' },
+  { value: 'LAB', label: 'Xét nghiệm' },
+  { value: 'IMAGING', label: 'Hình ảnh' },
 ]
 
 const defaultForm = {
   name: '',
   clinicId: '',
-  category: 'General',
+  category: 'GENERAL',
   duration: 30,
   basePrice: 0,
   description: '',
@@ -98,13 +97,29 @@ const ServiceManagement = () => {
       return
     }
 
+    if (!formData.clinicId || formData.clinicId === '') {
+      showToast({ type: 'error', message: 'Vui lòng chọn phòng khám' })
+      return
+    }
+
     setIsSubmitting(true)
     try {
+      // Transform form data to match backend DTO field names and types
+      const payload = {
+        name: formData.name,
+        clinicId: parseInt(formData.clinicId, 10),
+        category: formData.category,
+        durationMinutes: formData.duration,
+        description: formData.description,
+        basePrice: formData.basePrice,
+        isActive: formData.active,
+      }
+
       if (editingService) {
-        await adminApi.updateService(editingService.id, formData)
+        await adminApi.updateService(editingService.id, payload)
         showToast({ type: 'success', message: 'Đã cập nhật dịch vụ' })
       } else {
-        await adminApi.createService(formData)
+        await adminApi.createService(payload)
         showToast({ type: 'success', message: 'Đã thêm dịch vụ' })
       }
       setShowModal(false)
@@ -120,11 +135,11 @@ const ServiceManagement = () => {
 
   const handleToggleStatus = async (service) => {
     try {
-      await adminApi.updateService(service.id, { active: !service.active })
+      await adminApi.updateService(service.id, { isActive: !service.isActive })
       setServices(prev =>
-        prev.map(s => s.id === service.id ? { ...s, active: !s.active } : s)
+        prev.map(s => s.id === service.id ? { ...s, isActive: !s.isActive } : s)
       )
-      showToast({ type: 'success', message: service.active ? 'Đã vô hiệu hóa dịch vụ' : 'Đã kích hoạt dịch vụ' })
+      showToast({ type: 'success', message: service.isActive ? 'Đã vô hiệu hóa dịch vụ' : 'Đã kích hoạt dịch vụ' })
     } catch {
       showToast({ type: 'error', message: 'Không thể thay đổi trạng thái' })
     }
@@ -209,8 +224,8 @@ const ServiceManagement = () => {
                       <h3 className="font-semibold text-sage-900">{service.name}</h3>
                       <div className="flex gap-2 mt-1">
                         <Badge className="bg-sage-100 text-sage-700 text-xs">{service.category}</Badge>
-                        <Badge className={service.active ? 'bg-green-100 text-green-800 text-xs' : 'bg-gray-100 text-gray-600 text-xs'}>
-                          {service.active ? 'Hoạt động' : 'Tạm ngừng'}
+                        <Badge className={service.isActive ? 'bg-green-100 text-green-800 text-xs' : 'bg-gray-100 text-gray-600 text-xs'}>
+                          {service.isActive ? 'Hoạt động' : 'Tạm ngừng'}
                         </Badge>
                       </div>
                     </div>
@@ -218,7 +233,7 @@ const ServiceManagement = () => {
                       onClick={() => handleToggleStatus(service)}
                       className="text-sage-400 hover:text-sage-600"
                     >
-                      {service.active ? <ToggleRight className="w-5 h-5 text-sage-600" /> : <ToggleLeft className="w-5 h-5" />}
+                      {service.isActive ? <ToggleRight className="w-5 h-5 text-sage-600" /> : <ToggleLeft className="w-5 h-5" />}
                     </button>
                   </div>
 
@@ -231,11 +246,11 @@ const ServiceManagement = () => {
                     )}
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      <span>{service.duration} phút</span>
+                      <span>{service.durationMinutes} phút</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4" />
-                      <span className="font-medium text-sage-900">{formatPrice(service.basePrice)}</span>
+                      <span className="font-medium text-sage-900">{formatPrice(service.currentPrice || 0)}</span>
                     </div>
                   </div>
 
@@ -248,11 +263,11 @@ const ServiceManagement = () => {
                       setFormData({
                         name: service.name,
                         clinicId: service.clinicId || '',
-                        category: service.category || 'General',
-                        duration: service.duration || 30,
-                        basePrice: service.basePrice || 0,
+                        category: service.category || 'GENERAL',
+                        duration: service.durationMinutes || 30,
+                        basePrice: service.currentPrice || 0,
                         description: service.description || '',
-                        active: service.active !== false,
+                        active: service.isActive !== false,
                       })
                       setShowModal(true)
                     }}
@@ -281,10 +296,11 @@ const ServiceManagement = () => {
             required
           />
           <Select
-            label="Phòng khám"
+            label="Phòng khám *"
             value={formData.clinicId}
             onChange={(e) => setFormData({ ...formData, clinicId: e.target.value })}
             options={clinics.map(c => ({ value: c.id, label: c.name }))}
+            placeholder="-- Chọn phòng khám --"
           />
           <div className="grid grid-cols-2 gap-4">
             <Select

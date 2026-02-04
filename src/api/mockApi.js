@@ -12,6 +12,8 @@ import {
   mockConsultations,
   mockAIAnalyses,
   mockStats,
+  mockAdminAnalytics,
+  mockDoctorAnalytics,
 } from './mockData'
 
 // Simulate network delay
@@ -156,6 +158,44 @@ export const userApi = {
     }
 
     return doctors
+  },
+
+  createUser: async (userData) => {
+    await delay(600)
+    const newUser = {
+      id: String(Date.now()),
+      name: userData.fullName || userData.name,
+      email: userData.email,
+      phone: userData.phone || '',
+      role: userData.role || 'PATIENT',
+      avatar: `https://i.pravatar.cc/150?u=${userData.email}`,
+      createdAt: new Date().toISOString(),
+    }
+    users.push(newUser)
+    return newUser
+  },
+
+  updateUser: async (userId, updates) => {
+    await delay(500)
+    const index = users.findIndex(u => u.id === userId)
+    if (index === -1) throw new Error('User not found')
+
+    users[index] = {
+      ...users[index],
+      name: updates.fullName || updates.name || users[index].name,
+      email: updates.email || users[index].email,
+      phone: updates.phone || users[index].phone,
+    }
+    return users[index]
+  },
+
+  deleteUser: async (userId) => {
+    await delay(400)
+    const index = users.findIndex(u => u.id === userId)
+    if (index === -1) throw new Error('User not found')
+
+    users.splice(index, 1)
+    return { success: true, message: 'User deleted' }
   },
 }
 
@@ -540,6 +580,31 @@ export const statsApi = {
   getAdminStats: async () => {
     await delay(500)
     return mockStats.admin
+  },
+
+  getAdminAnalyticsDashboard: async () => {
+    await delay(600)
+    return {
+      userGrowth: mockAdminAnalytics.userGrowth,
+      revenue: mockAdminAnalytics.revenue,
+      appointmentTrends: mockAdminAnalytics.appointmentTrends,
+      appointmentStatus: mockAdminAnalytics.appointmentStatus,
+      specializationDistribution: mockAdminAnalytics.specializationDistribution,
+      topDoctors: mockAdminAnalytics.topDoctors,
+      recentActivities: mockAdminAnalytics.recentActivities,
+      generatedAt: new Date().toISOString(),
+    }
+  },
+
+  getDoctorAnalyticsDashboard: async (doctorId) => {
+    await delay(600)
+    return {
+      appointments: mockDoctorAnalytics.appointments,
+      appointmentTypes: mockDoctorAnalytics.appointmentTypes,
+      timeSlots: mockDoctorAnalytics.timeSlots,
+      patientDemographics: mockDoctorAnalytics.patientDemographics,
+      generatedAt: new Date().toISOString(),
+    }
   },
 }
 

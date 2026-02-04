@@ -134,6 +134,25 @@ export const medicalRecordApi = {
     const response = await medicalServiceClient.delete(`/api/medical-records/${id}`)
     return response.data
   },
+
+  /**
+   * Alias for getByPatientId - used by DoctorPatients component
+   * @param {string} patientId - Patient ID
+   * @returns {Promise} Medical records array
+   */
+  getRecordsByPatient: async (patientId) => {
+    try {
+      const { page = 0, size = 50 } = {}
+      const response = await medicalServiceClient.get(
+        `/api/medical-records/patient/${patientId}`,
+        { params: { page, size } }
+      )
+      return response.data.content || response.data || []
+    } catch (error) {
+      console.warn('No medical records found for patient:', patientId)
+      return []
+    }
+  },
 }
 
 export default medicalRecordApi

@@ -49,7 +49,165 @@ const mockAdminApi = {
   getAppointmentReport: async () => { throw new Error('Use mock') },
   getRevenueReport: async () => { throw new Error('Use mock') },
   getPatientReport: async () => { throw new Error('Use mock') },
-  exportReport: async () => { throw new Error('Not implemented') },
+  exportReport: async (format) => {
+    await new Promise(r => setTimeout(r, 300))
+
+    // Generate professional PDF using jsPDF + autoTable
+    const { jsPDF } = await import('jspdf')
+    const autoTable = (await import('jspdf-autotable')).default
+    const doc = new jsPDF()
+
+    // Colors
+    const primaryColor = [45, 106, 79] // Dark green
+    const accentColor = [180, 83, 9]   // Orange/Terra
+    const lightGray = [248, 250, 252]
+    const darkText = [30, 41, 59]
+
+    // === HEADER ===
+    doc.setFillColor(...primaryColor)
+    doc.rect(0, 0, 210, 35, 'F')
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.setFont('helvetica', 'bold')
+    doc.text('HEALTHFLOW', 105, 15, { align: 'center' })
+
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'normal')
+    doc.text('BAO CAO TONG HOP HE THONG', 105, 25, { align: 'center' })
+
+    doc.setFontSize(10)
+    doc.text(`Ngay xuat: ${new Date().toLocaleDateString('vi-VN')} | Ky bao cao: Thang ${new Date().getMonth() + 1}/${new Date().getFullYear()}`, 105, 32, { align: 'center' })
+
+    // === SUMMARY BOXES ===
+    let y = 45
+    const boxWidth = 60
+    const boxHeight = 25
+    const boxGap = 5
+    const startX = 14
+
+    // Box 1: Appointments
+    doc.setFillColor(236, 253, 245)
+    doc.roundedRect(startX, y, boxWidth, boxHeight, 3, 3, 'F')
+    doc.setDrawColor(...primaryColor)
+    doc.roundedRect(startX, y, boxWidth, boxHeight, 3, 3, 'S')
+    doc.setTextColor(...primaryColor)
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('987', startX + boxWidth / 2, y + 12, { align: 'center' })
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Tong lich hen', startX + boxWidth / 2, y + 20, { align: 'center' })
+
+    // Box 2: Revenue
+    doc.setFillColor(254, 243, 199)
+    doc.roundedRect(startX + boxWidth + boxGap, y, boxWidth, boxHeight, 3, 3, 'F')
+    doc.setDrawColor(...accentColor)
+    doc.roundedRect(startX + boxWidth + boxGap, y, boxWidth, boxHeight, 3, 3, 'S')
+    doc.setTextColor(...accentColor)
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('150M', startX + boxWidth + boxGap + boxWidth / 2, y + 12, { align: 'center' })
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Doanh thu (VND)', startX + boxWidth + boxGap + boxWidth / 2, y + 20, { align: 'center' })
+
+    // Box 3: Patients
+    doc.setFillColor(239, 246, 255)
+    doc.roundedRect(startX + (boxWidth + boxGap) * 2, y, boxWidth, boxHeight, 3, 3, 'F')
+    doc.setDrawColor(59, 130, 246)
+    doc.roundedRect(startX + (boxWidth + boxGap) * 2, y, boxWidth, boxHeight, 3, 3, 'S')
+    doc.setTextColor(59, 130, 246)
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('500', startX + (boxWidth + boxGap) * 2 + boxWidth / 2, y + 12, { align: 'center' })
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Benh nhan', startX + (boxWidth + boxGap) * 2 + boxWidth / 2, y + 20, { align: 'center' })
+
+    // === SECTION 1: APPOINTMENTS TABLE ===
+    y = 80
+    doc.setTextColor(...darkText)
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('1. CHI TIET LICH HEN', 14, y)
+
+    autoTable(doc, {
+      startY: y + 5,
+      head: [['Trang thai', 'So luong', 'Ty le']],
+      body: [
+        ['Da xac nhan', '643', '65.1%'],
+        ['Hoan thanh', '378', '38.3%'],
+        ['Da huy', '94', '9.5%'],
+        ['Cho xu ly', '128', '13.0%'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor, fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 10 },
+      alternateRowStyles: { fillColor: lightGray },
+      margin: { left: 14, right: 14 },
+      tableWidth: 'auto',
+    })
+
+    // === SECTION 2: REVENUE TABLE ===
+    y = doc.lastAutoTable.finalY + 15
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('2. CHI TIET DOANH THU', 14, y)
+
+    autoTable(doc, {
+      startY: y + 5,
+      head: [['Hang muc', 'Gia tri (VND)', 'Ty le']],
+      body: [
+        ['Tong doanh thu', '150,000,000', '100%'],
+        ['Thanh toan Online', '90,000,000', '60%'],
+        ['Thanh toan Tien mat', '60,000,000', '40%'],
+        ['Doanh thu thang truoc', '125,000,000', '-'],
+        ['Tang truong', '+25,000,000', '+20%'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: accentColor, fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 10 },
+      alternateRowStyles: { fillColor: [254, 249, 242] },
+      margin: { left: 14, right: 14 },
+    })
+
+    // === SECTION 3: PATIENTS TABLE ===
+    y = doc.lastAutoTable.finalY + 15
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('3. CHI TIET BENH NHAN', 14, y)
+
+    autoTable(doc, {
+      startY: y + 5,
+      head: [['Thong tin', 'So luong']],
+      body: [
+        ['Tong benh nhan', '500'],
+        ['Benh nhan moi (thang nay)', '45'],
+        ['Dang dieu tri', '320'],
+        ['Benh nhan quay lai', '180'],
+        ['Ty le hai long', '98.5%'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246], fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 10 },
+      alternateRowStyles: { fillColor: [239, 246, 255] },
+      margin: { left: 14, right: 14 },
+    })
+
+    // === FOOTER ===
+    const pageHeight = doc.internal.pageSize.height
+    doc.setFillColor(...primaryColor)
+    doc.rect(0, pageHeight - 15, 210, 15, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
+    doc.text('HealthFlow Clinic Management System | Demo Report | Generated automatically', 105, pageHeight - 6, { align: 'center' })
+
+    // Get PDF as arraybuffer and create proper blob with content
+    const pdfArrayBuffer = doc.output('arraybuffer')
+    const pdfBlob = new Blob([pdfArrayBuffer], { type: 'application/pdf' })
+    return pdfBlob
+  },
 
   getVouchers: async () => {
     await new Promise(r => setTimeout(r, 500))

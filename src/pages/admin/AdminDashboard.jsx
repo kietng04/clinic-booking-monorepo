@@ -6,13 +6,12 @@ import { Badge } from '@/components/ui/Badge'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { statsApi } from '@/api/statsApiWrapper'
-// TODO: Replace mockAdminAnalytics with real admin analytics API
-import { mockAdminAnalytics } from '@/api/mockData'
 import { vi } from '@/lib/translations'
 
 const AdminDashboard = () => {
   const { showToast } = useUIStore()
   const [stats, setStats] = useState(null)
+  const [analytics, setAnalytics] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -22,9 +21,14 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const data = await statsApi.getAdminStats()
-      setStats(data)
+      const [statsData, analyticsData] = await Promise.all([
+        statsApi.getAdminStats(),
+        statsApi.getAdminAnalyticsDashboard()
+      ])
+      setStats(statsData)
+      setAnalytics(analyticsData)
     } catch (error) {
+      console.error('Error fetching admin data:', error)
       showToast({ type: 'error', message: 'Không thể tải dữ liệu' })
     } finally {
       setIsLoading(false)
@@ -126,33 +130,36 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {mockAdminAnalytics.recentActivities.map((activity, index) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-4 p-3 bg-sage-50 rounded-lg"
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  activity.type === 'NEW_USER' ? 'bg-sage-100' :
-                  activity.type === 'DOCTOR_APPLICATION' ? 'bg-terra-100' :
-                  activity.type === 'DOCTOR_APPROVED' ? 'bg-green-100' :
-                  'bg-blue-100'
-                }`}>
-                  {activity.type === 'NEW_USER' ? <Users className="w-5 h-5 text-sage-600" /> :
-                   activity.type === 'DOCTOR_APPLICATION' ? <UserCheck className="w-5 h-5 text-terra-600" /> :
-                   activity.type === 'DOCTOR_APPROVED' ? <UserCheck className="w-5 h-5 text-green-600" /> :
-                   <Calendar className="w-5 h-5 text-blue-600" />}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-sage-900">{activity.message}</p>
-                  <p className="text-xs text-sage-500 mt-1">
-                    {new Date(activity.timestamp).toLocaleString('vi-VN')}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+            {(analytics?.recentActivities || []).length > 0 ? (
+              (analytics?.recentActivities || []).map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-start gap-4 p-3 bg-sage-50 rounded-lg"
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${activity.type === 'NEW_USER' ? 'bg-sage-100' :
+                      activity.type === 'DOCTOR_APPLICATION' ? 'bg-terra-100' :
+                        activity.type === 'DOCTOR_APPROVED' ? 'bg-green-100' :
+                          'bg-blue-100'
+                    }`}>
+                    {activity.type === 'NEW_USER' ? <Users className="w-5 h-5 text-sage-600" /> :
+                      activity.type === 'DOCTOR_APPLICATION' ? <UserCheck className="w-5 h-5 text-terra-600" /> :
+                        activity.type === 'DOCTOR_APPROVED' ? <UserCheck className="w-5 h-5 text-green-600" /> :
+                          <Calendar className="w-5 h-5 text-blue-600" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-sage-900">{activity.message}</p>
+                    <p className="text-xs text-sage-500 mt-1">
+                      {new Date(activity.timestamp).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-sage-500 text-center py-4">Không có hoạt động gần đây</p>
+            )}
           </div>
         </CardContent>
       </Card>

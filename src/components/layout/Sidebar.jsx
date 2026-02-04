@@ -58,7 +58,6 @@ const adminNav = [
   { name: 'Phòng', path: '/admin/rooms', icon: UserCog },
   { name: 'Voucher', path: '/admin/vouchers', icon: Tag },
   { name: 'Báo cáo', path: '/admin/reports', icon: BarChart2 },
-  { name: 'Thống kê', path: '/admin/analytics', icon: BarChart3 },
   { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]
 

@@ -30,7 +30,7 @@ import ConsultationChat from './pages/patient/ConsultationChat'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
 import DoctorManagement from './pages/admin/DoctorManagement'
-import AdminAnalytics from './pages/admin/AdminAnalytics'
+
 import ClinicManagement from './pages/admin/ClinicManagement'
 import ServiceManagement from './pages/admin/ServiceManagement'
 import RoomManagement from './pages/admin/RoomManagement'
@@ -48,6 +48,8 @@ import { VerifyPhone } from './pages/auth/VerifyPhone'
 import ProfileSettings from './pages/profile/ProfileSettings'
 import SecuritySettings from './pages/profile/SecuritySettings'
 import NotificationSettings from './pages/profile/NotificationSettings'
+import MedicationPickerDemo from './pages/demo/MedicationPickerDemo'
+import MedicationPickerE2EDemo from './pages/demo/MedicationPickerE2EDemo'
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
@@ -57,6 +59,8 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/demo/medication-picker" element={<MedicationPickerDemo />} />
+        <Route path="/demo/medication-picker-e2e" element={<MedicationPickerE2EDemo />} />
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
         <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/dashboard" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -335,16 +339,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/admin/analytics"
-          element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
-                <AdminAnalytics />
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
+
 
         {/* Admin routes */}
         <Route

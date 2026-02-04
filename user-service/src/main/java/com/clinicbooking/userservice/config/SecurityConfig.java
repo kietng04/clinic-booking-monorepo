@@ -27,7 +27,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * - STATELESS session management (no cookies, JWT-based)
  * - CSRF protection disabled (stateless API)
  * - JwtAuthenticationFilter added before UsernamePasswordAuthenticationFilter
- * - Whitelisted paths: /api/auth/**, /actuator/**, /swagger-ui/**, /v3/api-docs/**
+ * - Whitelisted paths: /api/auth/**, /actuator/**, /swagger-ui/**,
+ * /v3/api-docs/**
  * - Protected paths: All other endpoints require valid JWT authentication
  * - UserDetailsService loads user by email from database
  * - BCryptPasswordEncoder for password hashing
@@ -106,9 +107,10 @@ public class SecurityConfig {
      * 1. CSRF is disabled (stateless API)
      * 2. Session management is STATELESS (JWT-based)
      * 3. HTTP authorization requests are configured:
-     *    - Whitelisted paths: permitAll()
-     *    - Protected paths: authenticated()
-     * 4. JwtAuthenticationFilter is added before UsernamePasswordAuthenticationFilter
+     * - Whitelisted paths: permitAll()
+     * - Protected paths: authenticated()
+     * 4. JwtAuthenticationFilter is added before
+     * UsernamePasswordAuthenticationFilter
      * 5. HTTP Basic and Form Login are disabled
      */
     @Bean
@@ -123,9 +125,11 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/webjars/**").permitAll()
+                        // Internal service-to-service communication endpoints (no JWT required)
+                        .requestMatchers("/api/statistics/**").permitAll()
+                        .requestMatchers("/api/users/internal/**").permitAll()
                         // All other endpoints require authentication
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(httpBasic -> httpBasic.disable())

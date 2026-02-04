@@ -4,6 +4,8 @@ import com.clinicbooking.appointmentservice.dto.*;
 import com.clinicbooking.appointmentservice.service.MedicalServiceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,14 @@ import java.util.List;
 public class MedicalServiceController {
 
     private final MedicalServiceService medicalServiceService;
+
+    @GetMapping
+    public ResponseEntity<Page<MedicalServiceResponseDto>> getAllServices(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(required = false) String category,
+            Pageable pageable) {
+        return ResponseEntity.ok(medicalServiceService.getAllServices(name, category, pageable));
+    }
 
     @GetMapping("/clinic/{clinicId}")
     public ResponseEntity<List<MedicalServiceResponseDto>> getServicesByClinic(@PathVariable Long clinicId) {

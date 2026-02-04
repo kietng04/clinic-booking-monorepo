@@ -13,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -68,5 +70,14 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Lấy thông tin hồ sơ người dùng hiện tại")
+    public ResponseEntity<UserResponseDto> getCurrentUserProfile(Authentication authentication) {
+        String email = authentication.getName();
+        UserResponseDto profile = userService.getCurrentUserProfile(email);
+        return ResponseEntity.ok(profile);
     }
 }

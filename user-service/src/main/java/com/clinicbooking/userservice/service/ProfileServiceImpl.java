@@ -27,7 +27,7 @@ public class ProfileServiceImpl implements ProfileService {
     public UserResponseDto getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ValidationException("Người dùng không tìm thấy"));
-        return userMapper.toResponseDto(user);
+        return userMapper.toDto(user);
     }
 
     @Override
@@ -36,19 +36,22 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ValidationException("Người dùng không tìm thấy"));
 
-        if (dto.getFullName() != null) user.setFullName(dto.getFullName());
+        if (dto.getFullName() != null)
+            user.setFullName(dto.getFullName());
         if (dto.getPhone() != null) {
             if (userRepository.existsByPhoneAndIdNot(dto.getPhone(), userId)) {
                 throw new ValidationException("Số điện thoại đã tồn tại");
             }
             user.setPhone(dto.getPhone());
         }
-        if (dto.getDateOfBirth() != null) user.setDateOfBirth(dto.getDateOfBirth());
-        if (dto.getGender() != null) user.setGender(dto.getGender());
+        if (dto.getDateOfBirth() != null)
+            user.setDateOfBirth(dto.getDateOfBirth());
+        if (dto.getGender() != null)
+            user.setGender(dto.getGender());
 
         User savedUser = userRepository.save(user);
         log.info("Profile updated for user: {}", userId);
-        return userMapper.toResponseDto(savedUser);
+        return userMapper.toDto(savedUser);
     }
 
     @Override

@@ -129,18 +129,44 @@ const Reports = () => {
     }
   }
 
-  const handleExportCSV = () => {
-    showToast({ type: 'info', message: 'Đang xuất dữ liệu CSV...' })
+  const handleExportPdf = async () => {
+    try {
+      showToast({ type: 'info', message: 'Đang xuất báo cáo PDF...' })
+      const blob = await adminApi.exportReport('pdf')
+
+      // Create blob URL and trigger download
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `bao-cao-tong-hop-${new Date().toISOString().slice(0, 10)}.pdf`
+      link.style.display = 'none'
+      document.body.appendChild(link)
+
+      // Use setTimeout to ensure browser processes download attribute
+      setTimeout(() => {
+        link.click()
+        // Cleanup after download starts
+        setTimeout(() => {
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+        }, 100)
+      }, 0)
+
+      showToast({ type: 'success', message: 'Xuất báo cáo thành công!' })
+    } catch (error) {
+      console.error('Export failed:', error)
+      showToast({ type: 'error', message: 'Không thể xuất báo cáo' })
+    }
   }
 
   const handlePrint = () => {
     window.print()
   }
 
-  const appointmentStatusData = appointmentData.length > 0 ? [
-    { name: 'Đã xác nhận', value: appointmentData.reduce((s, d) => s + (d.confirmed || 0), 0) },
-    { name: 'Đã hoàn thành', value: appointmentData.reduce((s, d) => s + (d.completed || 0), 0) },
-    { name: 'Đã hủy', value: appointmentData.reduce((s, d) => s + (d.cancelled || 0), 0) },
+  const appointmentStatusData = (appointmentData || []).length > 0 ? [
+    { name: 'Đã xác nhận', value: (appointmentData || []).reduce((s, d) => s + (d.confirmed || 0), 0) },
+    { name: 'Đã hoàn thành', value: (appointmentData || []).reduce((s, d) => s + (d.completed || 0), 0) },
+    { name: 'Đã hủy', value: (appointmentData || []).reduce((s, d) => s + (d.cancelled || 0), 0) },
   ] : []
 
   return (
@@ -152,9 +178,9 @@ const Reports = () => {
           <p className="text-sage-600">Phân tích dữ liệu và báo cáo tổng hợp</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+          <Button variant="outline" size="sm" onClick={handleExportPdf}>
             <Download className="w-4 h-4 mr-1" />
-            Xuất CSV
+            Xuất PDF
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-1" />
@@ -216,10 +242,10 @@ const Reports = () => {
               {/* KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Tổng lịch hẹn', value: appointmentData.reduce((s, d) => s + (d.total || 0), 0), icon: Calendar, color: 'sage' },
-                  { label: 'Đã xác nhận', value: appointmentData.reduce((s, d) => s + (d.confirmed || 0), 0), icon: TrendingUp, color: 'green' },
-                  { label: 'Đã hoàn thành', value: appointmentData.reduce((s, d) => s + (d.completed || 0), 0), icon: Users, color: 'terra' },
-                  { label: 'Đã hủy', value: appointmentData.reduce((s, d) => s + (d.cancelled || 0), 0), icon: FileText, color: 'red' },
+                  { label: 'Tổng lịch hẹn', value: (appointmentData || []).reduce((s, d) => s + (d.total || 0), 0), icon: Calendar, color: 'sage' },
+                  { label: 'Đã xác nhận', value: (appointmentData || []).reduce((s, d) => s + (d.confirmed || 0), 0), icon: TrendingUp, color: 'green' },
+                  { label: 'Đã hoàn thành', value: (appointmentData || []).reduce((s, d) => s + (d.completed || 0), 0), icon: Users, color: 'terra' },
+                  { label: 'Đã hủy', value: (appointmentData || []).reduce((s, d) => s + (d.cancelled || 0), 0), icon: FileText, color: 'red' },
                 ].map((kpi, i) => {
                   const Icon = kpi.icon
                   return (

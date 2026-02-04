@@ -91,7 +91,8 @@ export const clinicApi = {
    * @returns {Promise} List of services
    */
   getClinicServices: async (clinicId, filters = {}) => {
-    const response = await clinicServiceClient.get(`/api/clinics/${clinicId}/services`, {
+    // Backend endpoint is /api/services/clinic/{clinicId}
+    const response = await clinicServiceClient.get(`/api/services/clinic/${clinicId}`, {
       params: filters,
     })
     return response.data
@@ -103,7 +104,8 @@ export const clinicApi = {
    * @returns {Promise} List of rooms
    */
   getClinicRooms: async (clinicId) => {
-    const response = await clinicServiceClient.get(`/api/clinics/${clinicId}/rooms`)
+    // Backend endpoint is /api/rooms/clinic/{clinicId}
+    const response = await clinicServiceClient.get(`/api/rooms/clinic/${clinicId}`)
     return response.data
   },
 }

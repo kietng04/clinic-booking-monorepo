@@ -176,6 +176,83 @@ export const userApi = {
 
     return userApi.getUser(userId)
   },
+
+  /**
+   * Get patients for a specific doctor
+   * Fetches appointments for the doctor and extracts unique patients
+   * @param {number} doctorId - Doctor ID
+   * @returns {Promise} Array of patient objects
+   */
+  getDoctorPatients: async (doctorId) => {
+    // Get all completed and confirmed appointments for this doctor
+    const response = await userServiceClient.get(`/api/appointments/doctor/${doctorId}`, {
+      params: { page: 0, size: 1000 }
+    })
+
+    const appointments = response.data.content || response.data || []
+
+    // Extract unique patients from appointments
+    const patientMap = new Map()
+    appointments.forEach(apt => {
+      if (apt.patientId && !patientMap.has(apt.patientId)) {
+        patientMap.set(apt.patientId, {
+          id: apt.patientId,
+          name: apt.patientName || `Bệnh nhân #${apt.patientId}`,
+          phone: apt.patientPhone || null,
+          email: apt.patientEmail || null,
+          avatar: apt.patientAvatar || null,
+          lastVisit: apt.appointmentDate,
+          appointmentCount: 1
+        })
+      } else if (apt.patientId) {
+        const existing = patientMap.get(apt.patientId)
+        existing.appointmentCount++
+        // Update lastVisit if this appointment is more recent
+        if (apt.appointmentDate > existing.lastVisit) {
+          existing.lastVisit = apt.appointmentDate
+        }
+      }
+    })
+
+    // Fetch additional user details (age, etc.) for each patient
+    const patients = Array.from(patientMap.values())
+    const enhancedPatients = await Promise.all(
+      patients.map(async (patient) => {
+        try {
+          const userDetails = await userServiceClient.get(`/api/users/${patient.id}`)
+          const userData = userDetails.data
+
+          // Calculate age from dateOfBirth
+          let age = null
+          if (userData.dateOfBirth) {
+            const birthDate = new Date(userData.dateOfBirth)
+            const today = new Date()
+            age = today.getFullYear() - birthDate.getFullYear()
+            const monthDiff = today.getMonth() - birthDate.getMonth()
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--
+            }
+          }
+
+          return {
+            ...patient,
+            name: userData.fullName || patient.name,
+            phone: userData.phone || patient.phone,
+            email: userData.email || patient.email,
+            avatar: userData.avatarUrl || patient.avatar,
+            age: age,
+            gender: userData.gender,
+            dateOfBirth: userData.dateOfBirth
+          }
+        } catch (error) {
+          console.warn(`Could not fetch details for patient ${patient.id}`)
+          return patient
+        }
+      })
+    )
+
+    return enhancedPatients
+  },
 }
 
 export default userApi

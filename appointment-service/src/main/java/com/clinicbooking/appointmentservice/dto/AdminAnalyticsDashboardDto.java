@@ -1,5 +1,6 @@
 package com.clinicbooking.appointmentservice.dto;
 
+import java.io.Serializable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +13,9 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdminAnalyticsDashboardDto {
+public class AdminAnalyticsDashboardDto implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private List<MonthlyRevenueDto> revenue;
     private List<UserGrowthDto> userGrowth;
     private List<AppointmentTrendDto> appointmentTrends;

@@ -11,6 +11,13 @@ import java.util.List;
 @Repository
 public interface MedicalServiceRepository extends JpaRepository<MedicalService, Long> {
     List<MedicalService> findByClinicId(Long clinicId);
+
     List<MedicalService> findByClinicIdAndIsActiveTrue(Long clinicId);
+
     Page<MedicalService> findByCategoryAndIsActiveTrue(MedicalService.ServiceCategory category, Pageable pageable);
+
+    Page<MedicalService> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    Page<MedicalService> findByNameContainingIgnoreCaseAndCategory(String name, MedicalService.ServiceCategory category,
+            Pageable pageable);
 }

@@ -22,4 +22,6 @@ public class MedicalServiceCreateDto {
     private String description;
     private MedicalService.ServiceCategory category;
     private Integer durationMinutes;
+    private Boolean isActive;
+    private java.math.BigDecimal basePrice;
 }

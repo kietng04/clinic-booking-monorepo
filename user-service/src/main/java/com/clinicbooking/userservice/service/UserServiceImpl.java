@@ -203,4 +203,13 @@ public class UserServiceImpl implements UserService {
 
         log.info("User cache invalidated for ID: {}, user soft deleted successfully", id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponseDto getCurrentUserProfile(String email) {
+        log.info("Fetching profile for user: {}", email);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        return userMapper.toDto(user);
+    }
 }

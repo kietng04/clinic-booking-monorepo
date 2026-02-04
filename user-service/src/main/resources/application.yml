@@ -94,6 +94,9 @@ kafka:
 
 # Actuator
 management:
+  health:
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

@@ -23,8 +23,8 @@ public class VerificationController {
     public ResponseEntity<Map<String, String>> sendEmailVerification(
             @AuthenticationPrincipal UserDetails userDetails) {
         Long userId = jwtService.extractUserId(
-                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken)
-                        org.springframework.security.core.SecurityContextHolder.getContext().getAuthentication())
+                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken) org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication())
                         .getCredentials().toString());
         verificationService.sendEmailVerification(userId);
         return ResponseEntity.ok(Map.of("message", "Email xác minh đã được gửi"));
@@ -36,7 +36,8 @@ public class VerificationController {
         if (success) {
             return ResponseEntity.ok(Map.of("verified", true, "message", "Email đã được xác minh thành công"));
         }
-        return ResponseEntity.badRequest().body(Map.of("verified", false, "message", "Token không hợp lệ hoặc đã hết hiệu lực"));
+        return ResponseEntity.badRequest()
+                .body(Map.of("verified", false, "message", "Token không hợp lệ hoặc đã hết hiệu lực"));
     }
 
     @PostMapping("/send-sms-verification")
@@ -44,8 +45,8 @@ public class VerificationController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> request) {
         Long userId = jwtService.extractUserId(
-                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken)
-                        org.springframework.security.core.SecurityContextHolder.getContext().getAuthentication())
+                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken) org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication())
                         .getCredentials().toString());
         String phone = request.get("phone");
         verificationService.sendSmsVerification(userId, phone);
@@ -57,8 +58,8 @@ public class VerificationController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> request) {
         Long userId = jwtService.extractUserId(
-                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken)
-                        org.springframework.security.core.SecurityContextHolder.getContext().getAuthentication())
+                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken) org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication())
                         .getCredentials().toString());
         String code = request.get("code");
         boolean success = verificationService.verifySms(userId, code);

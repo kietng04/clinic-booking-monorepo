@@ -5,6 +5,8 @@ import com.clinicbooking.appointmentservice.dto.RoomResponseDto;
 import com.clinicbooking.appointmentservice.service.RoomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,13 @@ import java.util.List;
 public class RoomController {
 
     private final RoomService roomService;
+
+    @GetMapping
+    public ResponseEntity<Page<RoomResponseDto>> getAllRooms(
+            @RequestParam(defaultValue = "") String name,
+            Pageable pageable) {
+        return ResponseEntity.ok(roomService.getAllRooms(name, pageable));
+    }
 
     @GetMapping("/clinic/{clinicId}")
     public ResponseEntity<List<RoomResponseDto>> getRoomsByClinic(@PathVariable Long clinicId) {

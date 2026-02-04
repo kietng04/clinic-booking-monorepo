@@ -30,6 +30,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
 
+            // Allow OPTIONS requests (CORS preflight) without authentication
+            if (request.getMethod().matches("OPTIONS")) {
+                return chain.filter(exchange);
+            }
+
             // Check if Authorization header exists
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return onError(exchange, "Missing authorization header", HttpStatus.UNAUTHORIZED);
@@ -70,7 +75,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                         .build();
 
                 log.debug("[{}] Request authenticated - UserId: {}, Role: {}, Email: {}",
-                         correlationId, userId, role, email);
+                        correlationId, userId, role, email);
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
 

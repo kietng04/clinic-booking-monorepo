@@ -22,6 +22,7 @@ import { prescriptionApi } from '@/api/prescriptionApiWrapper'
 import { medicationApi } from '@/api/medicationApiWrapper'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { formatDate } from '@/lib/utils'
+import MedicationPicker from '@/components/doctor/MedicationPicker'
 
 const CreateMedicalRecord = () => {
   const navigate = useNavigate()
@@ -150,19 +151,8 @@ const CreateMedicalRecord = () => {
     return true
   }
 
-  const canSave =
-    appointment?.status === 'CONFIRMED' || appointment?.status === 'COMPLETED'
-
   const handleSubmit = async (e) => {
     e.preventDefault()
-
-    if (!canSave) {
-      showToast({
-        type: 'error',
-        message: 'Chỉ có thể tạo hồ sơ cho lịch hẹn đã xác nhận'
-      })
-      return
-    }
 
     if (!validateForm()) return
 
@@ -202,10 +192,8 @@ const CreateMedicalRecord = () => {
         }
       }
 
-      // Mark appointment as completed (skip if already completed)
-      if (appointment?.status === 'CONFIRMED') {
-        await appointmentApi.completeAppointment(appointmentId)
-      }
+      // Mark appointment as completed
+      await appointmentApi.completeAppointment(appointmentId)
 
       showToast({ type: 'success', message: 'Hồ sơ bệnh án đã được tạo thành công' })
       navigate('/doctor/appointments')
@@ -422,36 +410,32 @@ const CreateMedicalRecord = () => {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-3">
-                    {/* Medication Selection */}
-                    <div>
+                    {/* Medication Picker - Replaces old dropdown + manual entry */}
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Chọn thuốc từ danh mục
+                        Chọn hoặc tìm kiếm thuốc
                       </label>
-                      <select
+                      <MedicationPicker
+                        medications={medications}
                         value={prescription.medicationId}
-                        onChange={(e) => updatePrescription(prescription.id, 'medicationId', e.target.value)}
-                        className="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                      >
-                        <option value="">-- Chọn thuốc --</option>
-                        {medications.map((med) => (
-                          <option key={med.id} value={med.id}>
-                            {med.name} {med.genericName && `(${med.genericName})`}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Or manual entry */}
-                    <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Hoặc nhập tên thuốc
-                      </label>
-                      <Input
-                        type="text"
-                        value={prescription.medicationName}
-                        onChange={(e) => updatePrescription(prescription.id, 'medicationName', e.target.value)}
-                        placeholder="Tên thuốc"
-                        disabled={!!prescription.medicationId}
+                        onSelect={(selectedMed) => {
+                          // Update all fields with selected medication data
+                          setPrescriptions(prescriptions.map(p => 
+                            p.id === prescription.id 
+                              ? {
+                                  ...p,
+                                  medicationId: selectedMed.medicationId,
+                                  medicationName: selectedMed.medicationName,
+                                  dosage: selectedMed.dosage,
+                                  frequency: selectedMed.frequency,
+                                  duration: selectedMed.duration,
+                                  instructions: selectedMed.instructions
+                                }
+                              : p
+                          ))
+                        }}
+                        disabled={isSaving}
+                        placeholder="Chọn thuốc hoặc gõ tên..."
                       />
                     </div>
 
@@ -536,20 +520,13 @@ const CreateMedicalRecord = () => {
           >
             Hủy
           </Button>
-          <div className="flex flex-col items-end gap-2">
-            {!canSave && (
-              <p className="text-sm text-sage-600">
-                Chỉ có thể tạo hồ sơ cho lịch hẹn đã xác nhận
-              </p>
-            )}
-            <Button
-              type="submit"
-              leftIcon={<Save />}
-              disabled={isSaving || !canSave}
-            >
-              {isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            leftIcon={<Save />}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}
+          </Button>
         </div>
       </form>
     </motion.div>

@@ -7,17 +7,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "test": "vitest --run"
-  },
-  "engines": {
-    "node": ">=20.19.0"
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",
     "axios": "^1.13.2",
     "clsx": "^2.1.0",
     "date-fns": "^3.3.1",
+    "file-saver": "^2.0.5",
     "framer-motion": "^11.0.5",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -28,22 +30,24 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/ui": "^4.0.18",
+    "@vitest/ui": "^1.1.0",
     "autoprefixer": "^10.4.17",
+    "bcryptjs": "^3.0.3",
     "eslint": "^8.56.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-    "jsdom": "^27.4.0",
+    "jsdom": "^23.0.1",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "vite": "^5.1.4",
-    "vitest": "^4.0.18"
+    "vitest": "^1.1.0"
   }
 }

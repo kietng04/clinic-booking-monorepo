@@ -42,8 +42,8 @@ export function LoginPage() {
   }
 
   const quickLogins = [
-    { email: 'patient@clinic.com', password: 'password', label: 'Bệnh nhân', role: 'PATIENT' },
-    { email: 'demo.doctor@clinic.com', password: 'password', label: 'Bác sĩ', role: 'DOCTOR' },
+    { email: 'patient1@clinic.com', password: 'password', label: 'Bệnh nhân', role: 'PATIENT' },
+    { email: 'dr.sarah@clinic.com', password: 'password', label: 'Bác sĩ', role: 'DOCTOR' },
     { email: 'admin@clinic.com', password: 'password', label: 'Quản trị', role: 'ADMIN' },
   ]
 

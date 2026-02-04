@@ -102,7 +102,7 @@ export const statsApi = {
    * @returns {Promise} Admin analytics dashboard with 12-month trends, top doctors, recent activities
    */
   getAdminAnalyticsDashboard: async () => {
-    const response = await statsServiceClient.get('/api/statistics/analytics/admin/dashboard')
+    const response = await statsServiceClient.get('/api/statistics/aggregate/analytics/admin/dashboard')
     return response.data
   },
 
@@ -112,7 +112,7 @@ export const statsApi = {
    * @returns {Promise} Doctor analytics dashboard with 6-month trends, appointment types, time slots
    */
   getDoctorAnalyticsDashboard: async (doctorId) => {
-    const response = await statsServiceClient.get(`/api/statistics/analytics/doctor/${doctorId}/dashboard`)
+    const response = await statsServiceClient.get(`/api/statistics/aggregate/analytics/doctor/${doctorId}/dashboard`)
     return response.data
   },
 }

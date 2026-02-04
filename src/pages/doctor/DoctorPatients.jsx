@@ -10,7 +10,7 @@ import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { userApi } from '@/api/userApiWrapper'
-import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { formatDate } from '@/lib/utils'
 import { vi } from '@/lib/translations'
 
@@ -60,11 +60,16 @@ const DoctorPatients = () => {
   const viewPatientDetails = async (patient) => {
     setSelectedPatient(patient)
     try {
-      const records = await medicalRecordApi.getRecordsByPatient(patient.id)
-      setPatientRecords(records)
+      // Fetch appointments for this patient with current doctor
+      const appointments = await appointmentApi.getPatientAppointments(patient.id)
+      // Filter for appointments with this doctor
+      const doctorAppointments = appointments.filter(apt => apt.doctorId === user.id)
+      setPatientRecords(doctorAppointments)
       setShowDetailModal(true)
     } catch (error) {
-      showToast({ type: 'error', message: 'Không thể tải hồ sơ bệnh nhân' })
+      console.error('Error fetching appointments:', error)
+      setPatientRecords([])
+      setShowDetailModal(true)
     }
   }
 
@@ -190,18 +195,31 @@ const DoctorPatients = () => {
               <h4 className="font-semibold text-sage-900 mb-3">{vi.doctor.patients.appointmentHistory}</h4>
               <div className="space-y-2">
                 {patientRecords.length > 0 ? (
-                  patientRecords.map(record => (
-                    <div key={record.id} className="p-3 bg-cream-50 rounded-lg">
+                  patientRecords.map(apt => (
+                    <div key={apt.id} className="p-3 bg-cream-50 rounded-lg">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-sage-900">{record.diagnosis}</p>
-                          <p className="text-sm text-sage-600">{formatDate(record.date)}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${apt.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                              apt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700' :
+                                apt.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                  'bg-yellow-100 text-yellow-700'
+                              }`}>
+                              {apt.status === 'COMPLETED' ? 'Hoàn thành' :
+                                apt.status === 'CONFIRMED' ? 'Đã xác nhận' :
+                                  apt.status === 'CANCELLED' ? 'Đã hủy' : 'Chờ xác nhận'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-sage-600 mt-1">
+                            {formatDate(apt.appointmentDate)} - {apt.appointmentTime?.slice(0, 5)}
+                          </p>
+                          {apt.notes && <p className="text-xs text-sage-500 mt-1">{apt.notes}</p>}
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-sage-500">Chưa có hồ sơ khám bệnh</p>
+                  <p className="text-sm text-sage-500">Chưa có lịch sử khám</p>
                 )}
               </div>
             </div>

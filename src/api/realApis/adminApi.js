@@ -51,7 +51,18 @@ adminServiceClient.interceptors.response.use(
 export const adminApi = {
   // Clinics
   getClinics: async (filters = {}) => {
-    const response = await adminServiceClient.get('/api/clinics', { params: filters })
+    // Use search endpoint if pagination or search text is present
+    const useSearch = filters.page !== undefined || filters.search || filters.name
+    const url = useSearch ? '/api/clinics/search' : '/api/clinics'
+
+    // Map 'search' to 'name' for backend
+    const params = { ...filters }
+    if (filters.search) {
+      params.name = filters.search
+      delete params.search
+    }
+
+    const response = await adminServiceClient.get(url, { params })
     return response.data.content || response.data
   },
   createClinic: async (data) => {
@@ -102,18 +113,19 @@ export const adminApi = {
   // Reports
   getAppointmentReport: async (params = {}) => {
     const response = await adminServiceClient.get('/api/reports/appointments', { params })
-    return response.data
+    // Ensure we return an array, not an error object
+    return Array.isArray(response.data) ? response.data : (response.data.content || null)
   },
   getRevenueReport: async (params = {}) => {
     const response = await adminServiceClient.get('/api/reports/revenue', { params })
-    return response.data
+    return Array.isArray(response.data) ? response.data : (response.data.content || null)
   },
   getPatientReport: async (params = {}) => {
     const response = await adminServiceClient.get('/api/reports/patients', { params })
-    return response.data
+    return response.data && typeof response.data === 'object' ? response.data : null
   },
-  exportReport: async (type, params = {}) => {
-    const response = await adminServiceClient.get(`/api/reports/${type}/export`, {
+  exportReport: async (format = 'pdf', params = {}) => {
+    const response = await adminServiceClient.get(`/api/reports/export/${format}`, {
       params,
       responseType: 'blob',
     })
@@ -123,14 +135,46 @@ export const adminApi = {
   // Vouchers
   getVouchers: async (filters = {}) => {
     const response = await adminServiceClient.get('/api/vouchers', { params: filters })
-    return response.data.content || response.data
+    const vouchers = response.data.content || response.data
+
+    // Transform backend fields to frontend expected format
+    return vouchers.map(v => ({
+      ...v,
+      type: 'Percentage', // Backend only supports percentage discounts
+      value: v.discountPercentage || 0,
+      active: v.isActive ?? true,
+      minOrderAmount: v.minPurchaseAmount || 0,
+    }))
   },
   createVoucher: async (data) => {
-    const response = await adminServiceClient.post('/api/vouchers', data)
+    // Transform frontend format to backend expected format
+    const backendData = {
+      code: data.code,
+      description: data.description,
+      discountPercentage: data.value || data.discountPercentage,
+      maxDiscount: data.maxDiscount || 0,
+      minPurchaseAmount: data.minOrderAmount || data.minPurchaseAmount || 0,
+      validFrom: data.validFrom,
+      validTo: data.validTo,
+      usageLimit: data.usageLimit || -1,
+      isActive: data.active ?? data.isActive ?? true,
+    }
+    const response = await adminServiceClient.post('/api/vouchers', backendData)
     return response.data
   },
   updateVoucher: async (id, data) => {
-    const response = await adminServiceClient.put(`/api/vouchers/${id}`, data)
+    // Transform frontend format to backend expected format
+    const backendData = {
+      description: data.description,
+      discountPercentage: data.value || data.discountPercentage,
+      maxDiscount: data.maxDiscount,
+      minPurchaseAmount: data.minOrderAmount || data.minPurchaseAmount,
+      validFrom: data.validFrom,
+      validTo: data.validTo,
+      usageLimit: data.usageLimit,
+      isActive: data.active ?? data.isActive,
+    }
+    const response = await adminServiceClient.put(`/api/vouchers/${id}`, backendData)
     return response.data
   },
   getVoucherStats: async (id) => {

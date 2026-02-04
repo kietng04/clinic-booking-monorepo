@@ -12,6 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,6 +58,13 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository.findByClinicIdAndIsActiveTrue(clinicId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RoomResponseDto> getAllRooms(String name, Pageable pageable) {
+        Page<Room> page = roomRepository.findByNameContainingIgnoreCase(name, pageable);
+        return page.map(this::mapToResponse);
     }
 
     @Override

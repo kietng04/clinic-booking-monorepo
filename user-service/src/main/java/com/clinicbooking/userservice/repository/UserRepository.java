@@ -41,16 +41,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Search doctors with complex criteria
     @Query("SELECT u FROM User u WHERE u.role = :role " +
-            "AND (:specialization IS NULL OR LOWER(u.specialization) LIKE LOWER(CONCAT('%', :specialization, '%'))) " +
+            "AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(u.specialization) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:specialization IS NULL OR LOWER(u.specialization) = LOWER(:specialization)) " +
             "AND (:minRating IS NULL OR u.rating >= :minRating) " +
             "AND (:maxFee IS NULL OR u.consultationFee <= :maxFee) " +
             "AND u.isActive = true")
     Page<User> searchDoctors(
             @Param("role") User.UserRole role,
+            @Param("keyword") String keyword,
             @Param("specialization") String specialization,
             @Param("minRating") BigDecimal minRating,
             @Param("maxFee") BigDecimal maxFee,
             Pageable pageable);
+
+    // Get all distinct specializations
+    @Query("SELECT DISTINCT u.specialization FROM User u WHERE u.role = 'DOCTOR' AND u.specialization IS NOT NULL AND u.isActive = true ORDER BY u.specialization")
+    List<String> findDistinctSpecializations();
 
     // Search users with complex criteria
     @Query("SELECT u FROM User u WHERE " +

@@ -1,6 +1,7 @@
 package com.clinicbooking.paymentservice.repository;
 
 import com.clinicbooking.paymentservice.entity.PaymentOrder;
+import com.clinicbooking.paymentservice.enums.PaymentMethod;
 import com.clinicbooking.paymentservice.enums.PaymentStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -38,10 +39,25 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     
     List<PaymentOrder> findByStatus(PaymentStatus status);
 
-    
+
     Page<PaymentOrder> findByStatus(PaymentStatus status, Pageable pageable);
 
-    
+    /**
+     * Find payment orders by status ordered by creation date ascending
+     * Used for receptionist dashboard to show oldest pending payments first
+     */
+    Page<PaymentOrder> findByStatusOrderByCreatedAtAsc(PaymentStatus status, Pageable pageable);
+
+    /**
+     * Find payment orders by status and payment method (for counter payments)
+     * Used for receptionist dashboard to show only counter payment methods
+     */
+    @Query("SELECT po FROM PaymentOrder po WHERE po.status = :status AND po.paymentMethod IN :methods ORDER BY po.createdAt ASC")
+    Page<PaymentOrder> findByStatusAndPaymentMethodInOrderByCreatedAtAsc(
+            @Param("status") PaymentStatus status,
+            @Param("methods") java.util.List<PaymentMethod> methods,
+            Pageable pageable);
+
     List<PaymentOrder> findByPatientIdAndStatus(Long patientId, PaymentStatus status);
 
     

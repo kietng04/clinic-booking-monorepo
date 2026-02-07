@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -79,5 +80,24 @@ public class UserController {
         String email = authentication.getName();
         UserResponseDto profile = userService.getCurrentUserProfile(email);
         return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/doctors/search")
+    @Operation(summary = "Tìm kiếm bác sĩ với bộ lọc")
+    public ResponseEntity<Page<UserResponseDto>> searchDoctors(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String specialization,
+            @RequestParam(required = false) BigDecimal minRating,
+            @RequestParam(required = false) BigDecimal maxFee,
+            Pageable pageable) {
+        Page<UserResponseDto> doctors = userService.searchDoctors(keyword, specialization, minRating, maxFee, pageable);
+        return ResponseEntity.ok(doctors);
+    }
+
+    @GetMapping("/doctors/specializations")
+    @Operation(summary = "Lấy danh sách chuyên khoa")
+    public ResponseEntity<List<String>> getSpecializations() {
+        List<String> specializations = userService.getSpecializations();
+        return ResponseEntity.ok(specializations);
     }
 }

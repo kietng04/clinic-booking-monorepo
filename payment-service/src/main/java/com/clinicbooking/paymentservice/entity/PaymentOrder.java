@@ -106,6 +106,15 @@ public class PaymentOrder {
     @Column(name = "expired_at")
     private LocalDateTime expiredAt;
 
+    @Column(name = "confirmed_by_user_id")
+    private Long confirmedByUserId;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
+    @Column(name = "confirmation_note", columnDefinition = "TEXT")
+    private String confirmationNote;
+
     @OneToMany(mappedBy = "paymentOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PaymentTransaction> transactions = new ArrayList<>();

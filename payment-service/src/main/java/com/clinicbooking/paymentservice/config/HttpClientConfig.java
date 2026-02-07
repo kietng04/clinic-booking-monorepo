@@ -58,10 +58,9 @@ public class HttpClientConfig {
         HttpComponentsClientHttpRequestFactory requestFactory =
                 new HttpComponentsClientHttpRequestFactory(httpClient);
 
+        // HttpClient5 timeouts already configured via RequestConfig above
         RestTemplate restTemplate = builder
                 .requestFactory(() -> requestFactory)
-                .setConnectTimeout(Duration.ofSeconds(CONNECTION_TIMEOUT_SECONDS))
-                .setReadTimeout(Duration.ofSeconds(READ_TIMEOUT_SECONDS))
                 .build();
 
         log.info("RestTemplate bean successfully initialized with connection pooling and timeouts");

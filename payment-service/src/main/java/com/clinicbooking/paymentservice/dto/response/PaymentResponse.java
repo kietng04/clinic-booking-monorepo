@@ -37,19 +37,25 @@ public class PaymentResponse implements Serializable {
     
     private BigDecimal amount;
 
-    
+
     private String status;
 
-    
     @Builder.Default
     private String currency = "VND";
 
-    
     private LocalDateTime expiresAt;
 
-    
     private String transactionId;
 
-    
     private String errorMessage;
+
+    // Payment method (CASH, MOMO_WALLET, etc.)
+    private String paymentMethod;
+
+    // Counter payment confirmation metadata
+    private Long confirmedByUserId;
+
+    private LocalDateTime confirmedAt;
+
+    private String confirmationNote;
 }

@@ -1,5 +1,6 @@
 package com.clinicbooking.paymentservice.service.impl;
 
+import com.clinicbooking.paymentservice.dto.request.ConfirmCounterPaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.CreatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.RefundPaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.UpdatePaymentRequest;
@@ -35,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
@@ -114,6 +116,29 @@ public class PaymentService implements IPaymentService {
                     .doctorName(request.getDoctorName())
                     .build();
 
+            // For counter payments (CASH, BANK_TRANSFER, CARD_AT_COUNTER), skip Momo API
+            if (paymentMethod.requiresReceptionistConfirmation()) {
+                log.info("Creating counter payment order {} with method {}", orderId, paymentMethod);
+
+                paymentOrder = paymentOrderRepository.save(paymentOrder);
+                log.info("Created counter payment order {} for appointment {}", orderId, request.getAppointmentId());
+
+                try {
+                    publishPaymentCreated(paymentOrder);
+                } catch (Exception e) {
+                    log.error("Failed to publish payment.created event for order: {}", orderId, e);
+                }
+
+                return PaymentResponse.builder()
+                        .orderId(orderId)
+                        .amount(request.getAmount())
+                        .status(PaymentStatus.PENDING.toString())
+                        .currency("VND")
+                        .expiresAt(null)  // No expiration for counter payments
+                        .build();
+            }
+
+            // For online payments (Momo), call Momo API
             log.debug("Calling Momo API to create payment request for order {}", orderId);
             PaymentResponse momoResponse = momoPaymentService.createPaymentRequest(request, orderId);
 
@@ -121,7 +146,7 @@ public class PaymentService implements IPaymentService {
                     .paymentOrder(paymentOrder)
                     .partnerCode(momoResponse.getTransactionId() != null ? "PARTNER" : "PARTNER")
                     .requestId(orderId)
-                    .requestType("captureWallet")
+                    .requestType(paymentMethod.getMomoRequestType())
                     .amount(request.getAmount().longValue() * 1000)
                     .orderInfo("Payment for appointment " + request.getAppointmentId())
                     .payUrl(momoResponse.getPayUrl())
@@ -504,7 +529,7 @@ public class PaymentService implements IPaymentService {
         }
     }
 
-    
+
     @Override
     @Transactional
     @CacheEvict(value = CACHE_NAME, allEntries = true)
@@ -561,7 +586,102 @@ public class PaymentService implements IPaymentService {
         }
     }
 
-    
+    /**
+     * Confirm counter payment by receptionist
+     * Used when patient pays cash/bank transfer/card at clinic counter
+     */
+    @Override
+    @Transactional
+    @CacheEvict(value = CACHE_NAME, key = "#orderId")
+    public PaymentResponse confirmCounterPayment(String orderId, ConfirmCounterPaymentRequest request) {
+        log.info("Confirming counter payment for order {} by receptionist {}", orderId, request.getReceptionistName());
+
+        try {
+            // Find payment order
+            PaymentOrder paymentOrder = paymentOrderRepository.findByOrderId(orderId)
+                    .orElseThrow(() -> new PaymentNotFoundException(orderId));
+
+            // Validate payment status
+            if (!paymentOrder.isPending()) {
+                log.warn("Cannot confirm counter payment for order {} with status {}", orderId, paymentOrder.getStatus());
+                throw new PaymentException(
+                    "Can only confirm pending payments. Current status: " + paymentOrder.getStatus(),
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PAYMENT_STATUS"
+                );
+            }
+
+            // Validate payment method is a counter payment method
+            if (!request.getPaymentMethod().requiresReceptionistConfirmation()) {
+                log.error("Invalid payment method {} for counter payment confirmation", request.getPaymentMethod());
+                throw new PaymentException(
+                    "Invalid payment method for counter payment: " + request.getPaymentMethod(),
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PAYMENT_METHOD"
+                );
+            }
+
+            // Update payment order
+            paymentOrder.setPaymentMethod(request.getPaymentMethod());
+            paymentOrder.setStatus(PaymentStatus.COMPLETED);
+            paymentOrder.setCompletedAt(LocalDateTime.now());
+            paymentOrder.setConfirmedByUserId(request.getConfirmedByUserId());
+            paymentOrder.setConfirmedAt(LocalDateTime.now());
+            paymentOrder.setConfirmationNote(request.getNote());
+
+            paymentOrder = paymentOrderRepository.save(paymentOrder);
+            log.info("Counter payment confirmed successfully for order {} using {}", orderId, request.getPaymentMethod());
+
+            // Publish payment completed event
+            try {
+                publishPaymentCompleted(paymentOrder, null);
+            } catch (Exception e) {
+                log.error("Failed to publish payment.completed event for counter payment: {}", orderId, e);
+            }
+
+            return mapToPaymentResponse(paymentOrder);
+
+        } catch (PaymentException e) {
+            log.error("Counter payment confirmation failed: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error confirming counter payment for order {}", orderId, e);
+            throw new PaymentException(
+                "Failed to confirm counter payment: " + e.getMessage(),
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "COUNTER_PAYMENT_CONFIRMATION_FAILED",
+                e
+            );
+        }
+    }
+
+    /**
+     * Get all pending counter payments
+     * Used by receptionist dashboard to see payments waiting for confirmation
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getPendingCounterPayments(Pageable pageable) {
+        log.debug("Fetching pending counter payments");
+
+        // Find all pending payment orders with counter payment methods only
+        List<PaymentMethod> counterPaymentMethods = List.of(
+                PaymentMethod.CASH,
+                PaymentMethod.BANK_TRANSFER,
+                PaymentMethod.CARD_AT_COUNTER
+        );
+
+        Page<PaymentOrder> paymentOrders = paymentOrderRepository
+                .findByStatusAndPaymentMethodInOrderByCreatedAtAsc(
+                        PaymentStatus.PENDING,
+                        counterPaymentMethods,
+                        pageable
+                );
+
+        return paymentOrders.map(this::mapToPaymentResponse);
+    }
+
+
     private void validatePaymentAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.valueOf(1000)) < 0) {
             throw new PaymentException(
@@ -579,7 +699,7 @@ public class PaymentService implements IPaymentService {
         }
     }
 
-    
+
     private PaymentResponse mapToPaymentResponse(PaymentOrder paymentOrder) {
         PaymentTransaction transaction = paymentTransactionRepository
                 .findByPaymentOrderId(paymentOrder.getId())
@@ -587,14 +707,19 @@ public class PaymentService implements IPaymentService {
 
         return PaymentResponse.builder()
                 .orderId(paymentOrder.getOrderId())
+                .patientId(paymentOrder.getPatientId())
                 .payUrl(transaction != null ? transaction.getPayUrl() : null)
                 .deeplink(transaction != null ? transaction.getDeeplink() : null)
                 .qrCodeUrl(transaction != null ? transaction.getQrCodeUrl() : null)
                 .amount(paymentOrder.getAmount())
                 .status(paymentOrder.getStatus().toString())
                 .currency(paymentOrder.getCurrency())
+                .paymentMethod(paymentOrder.getPaymentMethod().name())
                 .expiresAt(paymentOrder.getExpiredAt())
                 .transactionId(transaction != null ? transaction.getTransId() != null ? transaction.getTransId().toString() : null : null)
+                .confirmedByUserId(paymentOrder.getConfirmedByUserId())
+                .confirmedAt(paymentOrder.getConfirmedAt())
+                .confirmationNote(paymentOrder.getConfirmationNote())
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package com.clinicbooking.paymentservice.controller;
 
+import com.clinicbooking.paymentservice.dto.request.ConfirmCounterPaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.CreatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.RefundPaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.UpdatePaymentRequest;
@@ -7,13 +8,13 @@ import com.clinicbooking.paymentservice.dto.response.PaymentResponse;
 import com.clinicbooking.paymentservice.dto.response.PaymentStatusResponse;
 import com.clinicbooking.paymentservice.security.CustomUserDetails;
 import com.clinicbooking.paymentservice.service.IPaymentService;
-import org.springframework.http.HttpStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -346,7 +348,7 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(refundResponse);
     }
 
-    
+
     @GetMapping("/{orderId}/refunds")
     @Operation(
             summary = "Get refund history for a payment",
@@ -372,5 +374,98 @@ public class PaymentController {
         PaymentResponse response = paymentService.getPaymentByOrderId(orderId);
 
         return ResponseEntity.ok(response);
+    }
+
+    // ========== COUNTER PAYMENT ENDPOINTS (Receptionist Only) ==========
+
+    @PostMapping("/{orderId}/confirm-counter-payment")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    @Operation(
+            summary = "Confirm counter payment (Receptionist only)",
+            description = "Confirm that patient has paid cash/bank transfer/card at clinic counter. " +
+                         "This endpoint is only accessible by receptionist and admin users.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Counter payment confirmed successfully",
+                    content = @Content(schema = @Schema(implementation = PaymentResponse.class))
+            ),
+            @ApiResponse(responseCode = "400", description = "Invalid payment status or method"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires RECEPTIONIST or ADMIN role"),
+            @ApiResponse(responseCode = "404", description = "Payment order not found")
+    })
+    public ResponseEntity<PaymentResponse> confirmCounterPayment(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "Order ID", example = "ORD202401081234567890")
+            @PathVariable String orderId,
+            @Valid @RequestBody ConfirmCounterPaymentRequest request) {
+
+        Long receptionistId = userDetails.getUserId();
+        String receptionistName = userDetails.getUsername();
+
+        log.info(
+                "Confirming counter payment - ReceptionistId: {}, OrderId: {}, PaymentMethod: {}",
+                receptionistId,
+                orderId,
+                request.getPaymentMethod()
+        );
+
+        // Set receptionist details
+        request.setConfirmedByUserId(receptionistId);
+        request.setReceptionistName(receptionistName);
+
+        PaymentResponse response = paymentService.confirmCounterPayment(orderId, request);
+
+        log.info(
+                "Counter payment confirmed - ReceptionistId: {}, OrderId: {}, PaymentMethod: {}",
+                receptionistId,
+                orderId,
+                request.getPaymentMethod()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/pending-counter-payments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    @Operation(
+            summary = "Get pending counter payments (Receptionist only)",
+            description = "Retrieve all payment orders waiting for counter payment confirmation. " +
+                         "Used by receptionist dashboard to see patients who need to pay at counter.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Pending counter payments retrieved",
+                    content = @Content(schema = @Schema(implementation = PaymentResponse.class))
+            ),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Requires RECEPTIONIST or ADMIN role")
+    })
+    public ResponseEntity<Page<PaymentResponse>> getPendingCounterPayments(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PageableDefault(size = 20, page = 0, sort = "createdAt", direction = Sort.Direction.ASC)
+            Pageable pageable) {
+
+        Long receptionistId = userDetails.getUserId();
+
+        log.info(
+                "Fetching pending counter payments - ReceptionistId: {}, Page: {}, Size: {}",
+                receptionistId,
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
+
+        Page<PaymentResponse> pendingPayments = paymentService.getPendingCounterPayments(pageable);
+
+        log.debug(
+                "Pending counter payments retrieved - ReceptionistId: {}, TotalElements: {}",
+                receptionistId,
+                pendingPayments.getTotalElements()
+        );
+
+        return ResponseEntity.ok(pendingPayments);
     }
 }

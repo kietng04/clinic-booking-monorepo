@@ -71,15 +71,15 @@ const PaymentHistory = () => {
 
     // Filter by method
     if (methodFilter) {
-      filtered = filtered.filter((p) => p.method === methodFilter)
+      filtered = filtered.filter((p) => p.paymentMethod === methodFilter)
     }
 
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(
         (p) =>
-          p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())
+          (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.invoiceNumber || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
@@ -94,13 +94,13 @@ const PaymentHistory = () => {
     setFilteredPayments(filtered)
   }
 
-  const handleDownloadReceipt = async (paymentId) => {
+  const handleDownloadReceipt = async (orderId) => {
     try {
-      const blob = await paymentApi.downloadReceipt(paymentId)
+      const blob = await paymentApi.downloadReceipt(orderId)
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `receipt-${paymentId}.pdf`
+      a.download = `receipt-${orderId}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -149,14 +149,17 @@ const PaymentHistory = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Success':
+      case 'COMPLETED':
         return 'bg-green-100 text-green-800 border-green-200'
-      case 'Pending':
+      case 'PENDING':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'Failed':
+      case 'FAILED':
         return 'bg-red-100 text-red-800 border-red-200'
-      case 'Refunded':
+      case 'REFUNDED':
+      case 'PARTIALLY_REFUNDED':
         return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'EXPIRED':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -164,16 +167,49 @@ const PaymentHistory = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Success':
+      case 'COMPLETED':
         return <CheckCircle2 className="w-4 h-4" />
-      case 'Pending':
+      case 'PENDING':
         return <Clock className="w-4 h-4" />
-      case 'Failed':
+      case 'FAILED':
         return <XCircle className="w-4 h-4" />
-      case 'Refunded':
+      case 'REFUNDED':
+      case 'PARTIALLY_REFUNDED':
         return <CheckCircle2 className="w-4 h-4" />
+      case 'EXPIRED':
+        return <XCircle className="w-4 h-4" />
       default:
         return null
+    }
+  }
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'Thành công'
+      case 'PENDING':
+        return 'Đang xử lý'
+      case 'FAILED':
+        return 'Thất bại'
+      case 'REFUNDED':
+        return 'Đã hoàn tiền'
+      case 'PARTIALLY_REFUNDED':
+        return 'Hoàn tiền một phần'
+      case 'EXPIRED':
+        return 'Hết hạn'
+      default:
+        return status || 'Không xác định'
+    }
+  }
+
+  const getMethodLabel = (method) => {
+    switch (method) {
+      case 'MOMO_WALLET':
+        return 'Momo'
+      case 'CASH':
+        return 'Tiền mặt'
+      default:
+        return method || 'Không xác định'
     }
   }
 
@@ -216,10 +252,12 @@ const PaymentHistory = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               options={[
                 { value: '', label: 'Tất cả trạng thái' },
-                { value: 'Success', label: 'Thành công' },
-                { value: 'Pending', label: 'Đang xử lý' },
-                { value: 'Failed', label: 'Thất bại' },
-                { value: 'Refunded', label: 'Đã hoàn tiền' },
+                { value: 'COMPLETED', label: 'Thành công' },
+                { value: 'PENDING', label: 'Đang xử lý' },
+                { value: 'FAILED', label: 'Thất bại' },
+                { value: 'REFUNDED', label: 'Đã hoàn tiền' },
+                { value: 'PARTIALLY_REFUNDED', label: 'Hoàn tiền một phần' },
+                { value: 'EXPIRED', label: 'Hết hạn' },
               ]}
             />
 
@@ -228,10 +266,8 @@ const PaymentHistory = () => {
               onChange={(e) => setMethodFilter(e.target.value)}
               options={[
                 { value: '', label: 'Tất cả phương thức' },
-                { value: 'Momo', label: 'Momo' },
-                { value: 'VNPay', label: 'VNPay' },
-                { value: 'ZaloPay', label: 'ZaloPay' },
-                { value: 'Cash', label: 'Tiền mặt' },
+                { value: 'MOMO_WALLET', label: 'Momo' },
+                { value: 'CASH', label: 'Tiền mặt' },
               ]}
             />
 
@@ -300,7 +336,7 @@ const PaymentHistory = () => {
           <AnimatePresence>
             {filteredPayments.map((payment, index) => (
               <motion.div
-                key={payment.id}
+                key={payment.orderId || payment.invoiceNumber || index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -327,7 +363,7 @@ const PaymentHistory = () => {
                                   <Calendar className="w-4 h-4" />
                                   {formatDate(payment.createdAt)}
                                 </span>
-                                <span>Phương thức: {payment.method}</span>
+                                <span>Phương thức: {getMethodLabel(payment.paymentMethod)}</span>
                               </div>
                             </div>
                           </div>
@@ -363,16 +399,14 @@ const PaymentHistory = () => {
                         <div className="flex items-center gap-2">
                           <Badge className={`${getStatusColor(payment.status)} flex items-center gap-1`}>
                             {getStatusIcon(payment.status)}
-                            {payment.status === 'Success' ? 'Thành công' :
-                             payment.status === 'Pending' ? 'Đang xử lý' :
-                             payment.status === 'Failed' ? 'Thất bại' : 'Đã hoàn tiền'}
+                            {getStatusLabel(payment.status)}
                           </Badge>
 
-                          {payment.status === 'Success' && (
+                          {payment.status === 'COMPLETED' && (
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDownloadReceipt(payment.id)}
+                              onClick={() => handleDownloadReceipt(payment.orderId)}
                               leftIcon={<FileText className="w-4 h-4" />}
                             >
                               Tải hóa đơn
@@ -380,9 +414,9 @@ const PaymentHistory = () => {
                           )}
                         </div>
 
-                        {payment.failureReason && (
+                        {(payment.failureReason || payment.errorMessage) && (
                           <p className="text-sm text-red-600">
-                            Lý do: {payment.failureReason}
+                            Lý do: {payment.failureReason || payment.errorMessage}
                           </p>
                         )}
                       </div>

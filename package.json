@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
+    "test:contracts": "vitest --run src/api/contracts/gatewayCoverage.test.js src/api/endpointRegistry.test.js",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
   },

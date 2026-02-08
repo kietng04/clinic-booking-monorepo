@@ -25,7 +25,7 @@ const PaymentResult = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [paymentResult, setPaymentResult] = useState(null)
 
-  const paymentId = searchParams.get('paymentId')
+  const paymentId = searchParams.get('paymentId') || searchParams.get('orderId')
   const status = searchParams.get('status')
 
   useEffect(() => {
@@ -86,7 +86,18 @@ const PaymentResult = () => {
     )
   }
 
-  const isSuccess = paymentResult?.status === 'Success'
+  const isSuccess = paymentResult?.status === 'COMPLETED'
+
+  const getMethodLabel = (method) => {
+    switch (method) {
+      case 'MOMO_WALLET':
+        return 'Momo'
+      case 'CASH':
+        return 'Tiền mặt'
+      default:
+        return method || 'Không xác định'
+    }
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -146,13 +157,15 @@ const PaymentResult = () => {
 
                   <div className="flex justify-between">
                     <span className="text-sage-600">Phương thức:</span>
-                    <span className="font-medium text-sage-900">{paymentResult.method}</span>
+                  <span className="font-medium text-sage-900">
+                    {getMethodLabel(paymentResult.paymentMethod)}
+                  </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-sage-600">Thời gian:</span>
                     <span className="font-medium text-sage-900">
-                      {formatDate(paymentResult.paidAt || new Date().toISOString())}
+                    {formatDate(paymentResult.completedAt || paymentResult.createdAt || new Date().toISOString())}
                     </span>
                   </div>
 

@@ -7,6 +7,7 @@ const api = USE_MOCK_BACKEND ? mockHealthMetricsApi : realHealthMetricsApi
 
 export const healthMetricsApi = USE_MOCK_BACKEND
   ? {
+      getMetrics: (patientId, params = {}) => api.getMetrics(patientId, params),
       getMetricsByPatient: (patientId) => api.getMetricsByPatient(patientId),
       getMetricsByType: (patientId, type, params = {}) =>
         api.getMetrics(patientId, { type, ...params }),
@@ -15,6 +16,7 @@ export const healthMetricsApi = USE_MOCK_BACKEND
       deleteMetric: (metricId) => api.deleteMetric(metricId),
     }
   : {
+      getMetrics: (patientId, params = {}) => api.getMetrics(patientId, params),
       getMetricsByPatient: (patientId, params = {}) => api.getMetrics(patientId, params),
       getMetricsByType: (patientId, type, params = {}) => api.getMetricsByType(patientId, type, params),
       logMetric: (metricData) => api.logMetric(metricData),

@@ -104,6 +104,15 @@ public class Appointment {
     @Column(name = "service_fee", precision = 10, scale = 2)
     private BigDecimal serviceFee;
 
+    @Column(name = "patient_rating", precision = 2, scale = 1)
+    private BigDecimal patientRating;
+
+    @Column(name = "patient_review", columnDefinition = "TEXT")
+    private String patientReview;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

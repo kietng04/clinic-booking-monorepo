@@ -80,6 +80,16 @@ export const medicalRecordApi = {
   },
 
   /**
+   * Backward-compatible alias used by dashboards
+   * @param {string} patientId - Patient ID
+   * @param {Object} params - { page?, size? }
+   * @returns {Promise} Medical records array/page content
+   */
+  getRecords: async (patientId, params = {}) => {
+    return medicalRecordApi.getByPatientId(patientId, params)
+  },
+
+  /**
    * Get medical records by doctor ID
    * @param {string} doctorId - Doctor ID
    * @param {Object} params - { page?, size? }

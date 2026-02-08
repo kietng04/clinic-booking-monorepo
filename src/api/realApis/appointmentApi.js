@@ -154,6 +154,10 @@ export const appointmentApi = {
       patientId: data.patientId,
       doctorId: data.doctorId,
       familyMemberId: data.familyMemberId || null,
+      clinicId: data.clinicId ?? null,
+      serviceId: data.serviceId ?? null,
+      roomId: data.roomId ?? null,
+      serviceFee: data.serviceFee ?? null,
       appointmentDate: data.date, // YYYY-MM-DD
       appointmentTime: data.time, // HH:MM
       durationMinutes: data.durationMinutes || 30,

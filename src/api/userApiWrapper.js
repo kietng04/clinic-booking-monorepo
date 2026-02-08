@@ -26,6 +26,8 @@ export const userApi = USE_MOCK_BACKEND
         }
         return api.getProfile(userId)
       },
+      searchDoctors: (params = {}) => api.searchDoctors ? api.searchDoctors(params) : Promise.resolve({ content: [], totalPages: 0, totalElements: 0 }),
+      getSpecializations: () => api.getSpecializations ? api.getSpecializations() : Promise.resolve([]),
     }
   : api
 

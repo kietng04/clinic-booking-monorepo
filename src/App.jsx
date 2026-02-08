@@ -50,6 +50,7 @@ import SecuritySettings from './pages/profile/SecuritySettings'
 import NotificationSettings from './pages/profile/NotificationSettings'
 import MedicationPickerDemo from './pages/demo/MedicationPickerDemo'
 import MedicationPickerE2EDemo from './pages/demo/MedicationPickerE2EDemo'
+import DoctorSearch from './pages/patient/DoctorSearch'
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
@@ -95,6 +96,17 @@ function App() {
         />
 
         {/* Patient routes */}
+        <Route
+          path="/find-doctors"
+          element={
+            <ProtectedRoute allowedRoles={['PATIENT']}>
+              <DashboardLayout>
+                <DoctorSearch />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/appointments/book"
           element={

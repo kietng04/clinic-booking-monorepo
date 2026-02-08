@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -51,6 +52,13 @@ public class ProfileController {
         Long userId = extractUserId();
         String avatarUrl = request.get("avatarUrl");
         String url = profileService.uploadAvatar(userId, avatarUrl);
+        return ResponseEntity.ok(Map.of("avatarUrl", url));
+    }
+
+    @PostMapping("/avatar/upload")
+    public ResponseEntity<Map<String, String>> uploadAvatarFile(@RequestParam("file") MultipartFile file) {
+        Long userId = extractUserId();
+        String url = profileService.uploadAvatar(userId, file);
         return ResponseEntity.ok(Map.of("avatarUrl", url));
     }
 }

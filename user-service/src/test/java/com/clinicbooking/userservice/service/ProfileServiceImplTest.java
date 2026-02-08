@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
@@ -34,6 +35,9 @@ class ProfileServiceImplTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private AvatarStorageService avatarStorageService;
 
     @InjectMocks
     private ProfileServiceImpl profileService;
@@ -241,6 +245,49 @@ class ProfileServiceImplTest {
 
         // Act & Assert
         assertThatThrownBy(() -> profileService.uploadAvatar(999L, "https://example.com/avatar.jpg"))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Người dùng không tìm thấy");
+    }
+
+    @Test
+    void uploadAvatar_withValidFile_uploadsToStorageAndPersistsUrl() {
+        testUser.setAvatarPublicId("healthflow/avatars/1/old_avatar");
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.jpg",
+                "image/jpeg",
+                new byte[]{1, 2, 3}
+        );
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        when(avatarStorageService.uploadAvatar(eq(1L), any(MockMultipartFile.class)))
+                .thenReturn(java.util.Map.of(
+                        "url", "https://res.cloudinary.com/demo/image/upload/v1/avatar.jpg",
+                        "publicId", "healthflow/avatars/1/avatar_1"
+                ));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        String result = profileService.uploadAvatar(1L, file);
+
+        assertThat(result).isEqualTo("https://res.cloudinary.com/demo/image/upload/v1/avatar.jpg");
+        assertThat(testUser.getAvatarUrl()).isEqualTo("https://res.cloudinary.com/demo/image/upload/v1/avatar.jpg");
+        assertThat(testUser.getAvatarPublicId()).isEqualTo("healthflow/avatars/1/avatar_1");
+        verify(avatarStorageService).uploadAvatar(eq(1L), any(MockMultipartFile.class));
+        verify(avatarStorageService).deleteAvatar("healthflow/avatars/1/old_avatar");
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void uploadAvatar_withFileAndInvalidUserId_throwsException() {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "avatar.jpg",
+                "image/jpeg",
+                new byte[]{1, 2, 3}
+        );
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> profileService.uploadAvatar(999L, file))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Người dùng không tìm thấy");
     }

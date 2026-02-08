@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockPost = vi.hoisted(() => vi.fn())
+const mockPut = vi.hoisted(() => vi.fn())
 
 vi.mock('axios', () => ({
   default: {
     create: vi.fn(() => ({
       get: vi.fn(),
       post: mockPost,
-      put: vi.fn(),
+      put: mockPut,
       delete: vi.fn(),
       interceptors: {
         request: { use: vi.fn() },
@@ -23,6 +24,7 @@ import { appointmentApi } from './appointmentApi'
 describe('appointmentApi create payload', () => {
   beforeEach(() => {
     mockPost.mockReset()
+    mockPut.mockReset()
   })
 
   it('sends clinic/service/room fields when creating appointment', async () => {
@@ -44,5 +46,19 @@ describe('appointmentApi create payload', () => {
       serviceId: 2,
       roomId: 3,
     }))
+  })
+
+  it('calls feedback endpoint when submitting appointment feedback', async () => {
+    mockPut.mockResolvedValue({ data: { id: 11, patientRating: 5, patientReview: 'Good' } })
+
+    await appointmentApi.submitFeedback(11, {
+      rating: 5,
+      review: 'Good',
+    })
+
+    expect(mockPut).toHaveBeenCalledWith('/api/appointments/11/feedback', {
+      rating: 5,
+      review: 'Good',
+    })
   })
 })

@@ -15,8 +15,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/statistics/aggregate")
@@ -188,10 +192,53 @@ public class AggregateStatisticsController {
                     description = "Internal server error while fetching analytics"
             )
     })
-    public ResponseEntity<DoctorAnalyticsDashboardDto> getDoctorAnalyticsDashboard(@PathVariable Long doctorId) {
+    public ResponseEntity<DoctorAnalyticsDashboardDto> getDoctorAnalyticsDashboard(
+            @PathVariable Long doctorId,
+            @RequestHeader(value = "X-User-Id", required = false) String currentUserId,
+            @RequestHeader(value = "X-User-Role", required = false) String currentUserRole) {
         log.debug("Received request for doctor analytics dashboard: {}", doctorId);
-        // TODO: Add security check to ensure doctors can only access their own data
+        validateDoctorAnalyticsAccess(doctorId, currentUserId, currentUserRole);
         DoctorAnalyticsDashboardDto dashboard = aggregateStatisticsService.getDoctorAnalyticsDashboard(doctorId);
         return ResponseEntity.ok(dashboard);
+    }
+
+    private void validateDoctorAnalyticsAccess(Long doctorId, String currentUserId, String currentUserRole) {
+        String normalizedRole = normalizeRole(currentUserRole);
+
+        if ("ADMIN".equals(normalizedRole)) {
+            return;
+        }
+
+        if (!"DOCTOR".equals(normalizedRole)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Access denied - DOCTOR or ADMIN role required");
+        }
+
+        if (currentUserId == null || currentUserId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Missing user identity");
+        }
+
+        Long requesterId;
+        try {
+            requesterId = Long.valueOf(currentUserId);
+        } catch (NumberFormatException ex) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid user identity");
+        }
+
+        if (!doctorId.equals(requesterId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Doctors can only access their own analytics");
+        }
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        String normalized = role.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("ROLE_")) {
+            return normalized.substring(5);
+        }
+        return normalized;
     }
 }

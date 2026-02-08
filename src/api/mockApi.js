@@ -280,6 +280,27 @@ export const appointmentApi = {
     await delay(500)
     return appointmentApi.updateAppointment(id, { status: 'COMPLETED' })
   },
+
+  submitFeedback: async (id, payload) => {
+    await delay(500)
+    const index = appointments.findIndex(a => a.id === id || a.id === String(id))
+    if (index === -1) throw new Error('Appointment not found')
+    if (appointments[index].status !== 'COMPLETED') {
+      throw new Error('Only completed appointments can be reviewed')
+    }
+    if (appointments[index].patientRating != null) {
+      throw new Error('Feedback already submitted')
+    }
+
+    appointments[index] = {
+      ...appointments[index],
+      patientRating: payload?.rating,
+      patientReview: payload?.review || '',
+      reviewedAt: new Date().toISOString(),
+    }
+
+    return appointments[index]
+  },
 }
 
 // Doctor Schedule API

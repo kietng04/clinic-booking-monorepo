@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Inbox
+  Inbox,
+  Star
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -37,6 +38,10 @@ const Appointments = () => {
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [cancelReason, setCancelReason] = useState('')
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
+  const [feedbackRating, setFeedbackRating] = useState(5)
+  const [feedbackReview, setFeedbackReview] = useState('')
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
 
   useEffect(() => {
     fetchAppointments()
@@ -106,6 +111,47 @@ const Appointments = () => {
         type: 'error',
         message: 'Không thể hủy lịch hẹn',
       })
+    }
+  }
+
+  const openFeedbackModal = (appointment) => {
+    setSelectedAppointment(appointment)
+    setFeedbackRating(appointment.patientRating ? Math.round(Number(appointment.patientRating)) : 5)
+    setFeedbackReview(appointment.patientReview || '')
+    setFeedbackModalOpen(true)
+  }
+
+  const closeFeedbackModal = () => {
+    setFeedbackModalOpen(false)
+    setSelectedAppointment(null)
+    setFeedbackRating(5)
+    setFeedbackReview('')
+  }
+
+  const submitFeedback = async () => {
+    if (!selectedAppointment || !feedbackRating) {
+      return
+    }
+
+    setIsSubmittingFeedback(true)
+    try {
+      await appointmentApi.submitFeedback(selectedAppointment.id, {
+        rating: feedbackRating,
+        review: feedbackReview,
+      })
+      showToast({
+        type: 'success',
+        message: 'Đánh giá bác sĩ thành công',
+      })
+      closeFeedbackModal()
+      fetchAppointments()
+    } catch (error) {
+      showToast({
+        type: 'error',
+        message: error?.response?.data?.message || 'Không thể gửi đánh giá',
+      })
+    } finally {
+      setIsSubmittingFeedback(false)
     }
   }
 
@@ -299,6 +345,29 @@ const Appointments = () => {
                               <span className="font-medium">Lý do:</span> {appointment.reason}
                             </p>
                           )}
+
+                          {appointment.status === 'COMPLETED' && appointment.patientRating && (
+                            <div className="mt-3 rounded-lg bg-amber-50 border border-amber-100 p-3">
+                              <div className="flex items-center gap-1 text-amber-700 mb-1">
+                                {Array.from({ length: 5 }).map((_, idx) => (
+                                  <Star
+                                    key={idx}
+                                    className={`w-4 h-4 ${
+                                      idx < Math.round(Number(appointment.patientRating))
+                                        ? 'fill-amber-400 text-amber-500'
+                                        : 'text-amber-200'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="ml-1 text-xs font-medium">
+                                  {Number(appointment.patientRating).toFixed(1)}/5
+                                </span>
+                              </div>
+                              {appointment.patientReview && (
+                                <p className="text-sm text-sage-700">{appointment.patientReview}</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -323,6 +392,16 @@ const Appointments = () => {
                               onClick={() => handleCancelAppointment(appointment)}
                             >
                               {vi.appointments.actions.cancel}
+                            </Button>
+                          )}
+
+                          {appointment.status === 'COMPLETED' && !appointment.patientRating && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openFeedbackModal(appointment)}
+                            >
+                              Đánh giá bác sĩ
                             </Button>
                           )}
 
@@ -394,6 +473,81 @@ const Appointments = () => {
             </Button>
             <Button variant="danger" onClick={confirmCancel}>
               Xác nhận hủy
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={feedbackModalOpen}
+        onClose={closeFeedbackModal}
+        title="Đánh giá bác sĩ"
+      >
+        <div className="space-y-4">
+          {selectedAppointment && (
+            <div className="bg-sage-50 p-4 rounded-lg">
+              <p className="font-medium text-sage-900 mb-1">
+                {selectedAppointment.doctorName}
+              </p>
+              <p className="text-sm text-sage-600">
+                {formatDate(selectedAppointment.date)} • {formatTime(selectedAppointment.time)}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-sage-900 mb-2">
+              Chấm điểm
+            </label>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: 5 }).map((_, idx) => {
+                const starValue = idx + 1
+                const active = starValue <= feedbackRating
+                return (
+                  <button
+                    key={starValue}
+                    type="button"
+                    onClick={() => setFeedbackRating(starValue)}
+                    className="p-1 rounded-md hover:bg-amber-50 transition-colors"
+                  >
+                    <Star
+                      className={`w-6 h-6 ${active ? 'fill-amber-400 text-amber-500' : 'text-amber-200'}`}
+                    />
+                  </button>
+                )
+              })}
+              <span className="text-sm text-sage-700">{feedbackRating}/5</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-sage-900 mb-2">
+              Nhận xét (tuỳ chọn)
+            </label>
+            <Input
+              as="textarea"
+              rows={4}
+              maxLength={1000}
+              value={feedbackReview}
+              onChange={(e) => setFeedbackReview(e.target.value)}
+              placeholder="Chia sẻ trải nghiệm khám của bạn..."
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="ghost"
+              onClick={closeFeedbackModal}
+              disabled={isSubmittingFeedback}
+            >
+              {vi.common.cancel}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={submitFeedback}
+              disabled={isSubmittingFeedback || !feedbackRating}
+            >
+              {isSubmittingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
             </Button>
           </div>
         </div>

@@ -12,6 +12,7 @@ export const endpointRegistry = [
   { method: 'POST', path: '/api/appointments/${id}/check-in', feature: 'appointment', source: 'realApis/appointmentApi.js' },
   { method: 'PUT', path: '/api/appointments/${id}/complete', feature: 'appointment', source: 'realApis/appointmentApi.js' },
   { method: 'PUT', path: '/api/appointments/${id}/confirm', feature: 'appointment', source: 'realApis/appointmentApi.js' },
+  { method: 'PUT', path: '/api/appointments/${id}/feedback', feature: 'appointment', source: 'realApis/appointmentApi.js' },
   { method: 'POST', path: '/api/appointments/${id}/reschedule', feature: 'appointment', source: 'realApis/appointmentApi.js' },
   { method: 'GET', path: '/api/appointments/doctor/${doctorId}', feature: 'appointment', source: 'realApis/appointmentApi.js' },
   { method: 'GET', path: '/api/appointments/doctor/${doctorId}', feature: 'user', source: 'realApis/userApi.js' },

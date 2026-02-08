@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -12,7 +13,9 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DoctorAnalyticsDashboardDto {
+public class DoctorAnalyticsDashboardDto implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private List<MonthlyAppointmentDto> appointments;
     private List<AppointmentTypeBreakdownDto> appointmentTypes;
     private List<TimeSlotStatsDto> timeSlots;

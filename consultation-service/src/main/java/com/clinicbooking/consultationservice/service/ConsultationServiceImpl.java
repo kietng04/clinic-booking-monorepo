@@ -47,7 +47,7 @@ public class ConsultationServiceImpl implements ConsultationService {
         UserInfoDto patient = userServiceClient.getUserById(patientId);
         UserInfoDto doctor = userServiceClient.getDoctorById(request.getDoctorId());
 
-        if (!doctor.getIsActive()) {
+        if (doctor == null || !Boolean.TRUE.equals(doctor.getIsActive())) {
             throw new IllegalArgumentException("Doctor is not active");
         }
 

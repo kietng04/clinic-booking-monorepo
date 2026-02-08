@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -23,6 +24,10 @@ public class AppointmentCreateDto {
     private Long doctorId;
 
     private Long familyMemberId;
+    private Long clinicId;
+    private Long roomId;
+    private Long serviceId;
+    private BigDecimal serviceFee;
 
     @NotNull(message = "Ngày khám không được để trống")
     @Future(message = "Ngày khám phải là ngày trong tương lai")

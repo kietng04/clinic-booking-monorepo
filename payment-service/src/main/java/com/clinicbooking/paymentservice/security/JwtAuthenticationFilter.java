@@ -45,7 +45,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String userEmail = request.getHeader(HEADER_USER_EMAIL);
             String authenticated = request.getHeader(HEADER_AUTHENTICATED);
 
-            if ("true".equalsIgnoreCase(authenticated) && userId != null && !userId.isBlank()) {
+            boolean hasUserId = userId != null && !userId.isBlank();
+            boolean hasUserRole = userRole != null && !userRole.isBlank();
+            boolean hasGatewayIdentity = hasUserId && hasUserRole;
+            boolean hasExplicitAuthenticatedHeader = "true".equalsIgnoreCase(authenticated);
+
+            // Backward-compatible support:
+            // - old contract: X-Authenticated=true
+            // - gateway-forwarded identity contract: X-User-Id + X-User-Role
+            if (hasGatewayIdentity || (hasExplicitAuthenticatedHeader && hasUserId)) {
 
                 CustomUserDetails userDetails = CustomUserDetails.builder()
                         .userId(Long.parseLong(userId))

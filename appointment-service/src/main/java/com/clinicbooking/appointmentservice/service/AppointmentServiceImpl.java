@@ -5,9 +5,11 @@ import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
+import com.clinicbooking.appointmentservice.dto.NotificationCreateDto;
 import com.clinicbooking.appointmentservice.dto.UserDto;
 import com.clinicbooking.appointmentservice.entity.Appointment;
 import com.clinicbooking.appointmentservice.entity.DoctorSchedule;
+import com.clinicbooking.appointmentservice.entity.Notification;
 import com.clinicbooking.appointmentservice.event.AppointmentEventPublisher;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.exception.ValidationException;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -37,10 +40,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final AppointmentMapper appointmentMapper;
     private final AppointmentEventPublisher eventPublisher;
     private final UserServiceClient userServiceClient;
+    private final NotificationService notificationService;
 
     private static final int DEFAULT_DURATION_MINUTES = 30;
     private static final int MIN_DURATION_MINUTES = 15;
     private static final int MAX_DURATION_MINUTES = 180;
+    private static final LocalTime DEFAULT_SCHEDULE_START = LocalTime.of(8, 0);
+    private static final LocalTime DEFAULT_SCHEDULE_END = LocalTime.of(17, 0);
 
     @Override
     @Transactional
@@ -65,7 +71,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Validate doctor's schedule
-        validateDoctorSchedule(dto.getDoctorId(), dto.getAppointmentDate(), dto.getAppointmentTime(), durationMinutes);
+        validateDoctorSchedule(dto.getDoctorId(), null, dto.getAppointmentDate(), dto.getAppointmentTime(), durationMinutes);
 
         // Check for overlapping appointments (considering duration)
         LocalTime endTime = dto.getAppointmentTime().plusMinutes(durationMinutes);
@@ -168,7 +174,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                     appointment.getDurationMinutes().equals(durationMinutes);
 
             if (!isSameDateTime) {
-                validateDoctorSchedule(appointment.getDoctorId(), appointmentDate, appointmentTime, durationMinutes);
+                validateDoctorSchedule(
+                        appointment.getDoctorId(),
+                        appointment.getDoctorName(),
+                        appointmentDate,
+                        appointmentTime,
+                        durationMinutes
+                );
 
                 // Check for overlapping appointments
                 LocalTime endTime = appointmentTime.plusMinutes(durationMinutes);
@@ -275,6 +287,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = appointmentRepository.save(appointment);
 
         eventPublisher.publishAppointmentUpdated(appointment);
+        createPatientNotification(
+                appointment,
+                "Lịch hẹn đã được xác nhận",
+                "Lịch hẹn #" + appointment.getId() + " đã được bác sĩ xác nhận.",
+                Notification.NotificationType.APPOINTMENT_CONFIRMED
+        );
 
         return appointmentMapper.toDto(appointment);
     }
@@ -294,6 +312,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = appointmentRepository.save(appointment);
 
         eventPublisher.publishAppointmentCancelled(appointment);
+        createPatientNotification(
+                appointment,
+                "Lịch hẹn đã bị hủy",
+                "Lịch hẹn #" + appointment.getId() + " đã bị hủy." +
+                        (reason != null && !reason.isBlank() ? " Lý do: " + reason : ""),
+                Notification.NotificationType.APPOINTMENT_CANCELLED
+        );
 
         return appointmentMapper.toDto(appointment);
     }
@@ -312,6 +337,19 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = appointmentRepository.save(appointment);
 
         eventPublisher.publishAppointmentUpdated(appointment);
+        eventPublisher.publishAppointmentCompleted(appointment);
+        createPatientNotification(
+                appointment,
+                "Lịch hẹn đã hoàn thành",
+                "Lịch hẹn #" + appointment.getId() + " đã hoàn thành.",
+                Notification.NotificationType.APPOINTMENT_COMPLETED
+        );
+        createPatientNotification(
+                appointment,
+                "Bạn có thể đánh giá bác sĩ",
+                "Lịch hẹn #" + appointment.getId() + " đã hoàn thành. Hãy để lại đánh giá cho bác sĩ.",
+                Notification.NotificationType.FEEDBACK_AVAILABLE
+        );
 
         return appointmentMapper.toDto(appointment);
     }
@@ -373,7 +411,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .map(appointmentMapper::toDto);
     }
 
-    private void validateDoctorSchedule(Long doctorId, LocalDate date, LocalTime startTime, int durationMinutes) {
+    private void validateDoctorSchedule(Long doctorId, String doctorName, LocalDate date, LocalTime startTime, int durationMinutes) {
         // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
         int dayOfWeek = date.getDayOfWeek().getValue() % 7;
 
@@ -381,7 +419,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<DoctorSchedule> schedules = doctorScheduleRepository.findByDoctorIdAndDayOfWeek(doctorId, dayOfWeek);
 
         if (schedules.isEmpty()) {
-            throw new ValidationException("Bác sĩ không làm việc vào ngày này");
+            ensureDefaultDoctorScheduleIfMissing(doctorId, doctorName);
+            schedules = doctorScheduleRepository.findByDoctorIdAndDayOfWeek(doctorId, dayOfWeek);
+        }
+
+        if (schedules.isEmpty()) {
+            throw new ValidationException("Bác sĩ chưa thiết lập lịch làm việc cho ngày này");
         }
 
         LocalTime endTime = startTime.plusMinutes(durationMinutes);
@@ -396,6 +439,62 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         if (!withinSchedule) {
             throw new ValidationException("Thời gian khám nằm ngoài giờ làm việc của bác sĩ");
+        }
+    }
+
+    private void ensureDefaultDoctorScheduleIfMissing(Long doctorId, String doctorName) {
+        List<DoctorSchedule> existingSchedules = doctorScheduleRepository.findByDoctorId(doctorId);
+        if (existingSchedules != null && !existingSchedules.isEmpty()) {
+            return;
+        }
+
+        String resolvedDoctorName = doctorName;
+        if (resolvedDoctorName == null || resolvedDoctorName.isBlank()) {
+            try {
+                UserDto doctor = userServiceClient.getUserById(doctorId);
+                resolvedDoctorName = doctor.getFullName();
+            } catch (RuntimeException ex) {
+                log.warn("Could not resolve doctor name for default schedule seed: doctorId={}, error={}", doctorId, ex.getMessage());
+            }
+        }
+
+        if (resolvedDoctorName == null || resolvedDoctorName.isBlank()) {
+            resolvedDoctorName = "Doctor " + doctorId;
+        }
+
+        List<DoctorSchedule> defaultSchedules = new ArrayList<>();
+        for (int day = 0; day <= 6; day++) {
+            defaultSchedules.add(DoctorSchedule.builder()
+                    .doctorId(doctorId)
+                    .doctorName(resolvedDoctorName)
+                    .dayOfWeek(day)
+                    .startTime(DEFAULT_SCHEDULE_START)
+                    .endTime(DEFAULT_SCHEDULE_END)
+                    .isAvailable(day != 0)
+                    .build());
+        }
+
+        doctorScheduleRepository.saveAll(defaultSchedules);
+        log.info("Auto-seeded default schedules for doctorId={}", doctorId);
+    }
+
+    private void createPatientNotification(
+            Appointment appointment,
+            String title,
+            String message,
+            Notification.NotificationType type
+    ) {
+        try {
+            notificationService.createNotification(NotificationCreateDto.builder()
+                    .userId(appointment.getPatientId())
+                    .title(title)
+                    .message(message)
+                    .type(type)
+                    .relatedId(appointment.getId())
+                    .relatedType("APPOINTMENT")
+                    .build());
+        } catch (RuntimeException ex) {
+            log.warn("Failed to create notification for appointmentId={}: {}", appointment.getId(), ex.getMessage());
         }
     }
 }

@@ -51,6 +51,9 @@ class AppointmentServiceTest {
     @Mock
     private UserServiceClient userServiceClient;
 
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
 
@@ -208,6 +211,33 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void testCreateAppointment_AutoSeedScheduleWhenMissing() {
+        // Given: first lookup has no schedule, service should create defaults and retry.
+        when(doctorScheduleRepository.findByDoctorIdAndDayOfWeek(anyLong(), anyInt()))
+                .thenReturn(Collections.emptyList())
+                .thenReturn(List.of(doctorSchedule));
+        when(doctorScheduleRepository.findByDoctorId(2L))
+                .thenReturn(Collections.emptyList());
+        when(doctorScheduleRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(appointmentRepository.hasOverlappingAppointmentNative(anyLong(), any(), any(), any()))
+                .thenReturn(false);
+        when(userServiceClient.getUserById(1L)).thenReturn(patientDto);
+        when(userServiceClient.getUserById(2L)).thenReturn(doctorDto);
+        when(appointmentMapper.toEntity(any())).thenReturn(appointment);
+        when(appointmentRepository.save(any())).thenReturn(appointment);
+        when(appointmentMapper.toDto(any())).thenReturn(responseDto);
+
+        // When
+        AppointmentResponseDto result = appointmentService.createAppointment(createDto);
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(doctorScheduleRepository).saveAll(anyList());
+        verify(appointmentRepository).save(any());
+    }
+
+    @Test
     void testGetAppointmentById_Success() {
         // Given
         when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
@@ -281,6 +311,7 @@ class AppointmentServiceTest {
         assertThat(result).isNotNull();
         verify(appointmentRepository).save(any());
         verify(eventPublisher).publishAppointmentUpdated(any());
+        verify(notificationService).createNotification(any());
     }
 
     @Test
@@ -298,6 +329,7 @@ class AppointmentServiceTest {
         assertThat(result).isNotNull();
         verify(appointmentRepository).save(any());
         verify(eventPublisher).publishAppointmentCancelled(any());
+        verify(notificationService).createNotification(any());
     }
 
     @Test
@@ -327,6 +359,8 @@ class AppointmentServiceTest {
         assertThat(result).isNotNull();
         verify(appointmentRepository).save(any());
         verify(eventPublisher).publishAppointmentUpdated(any());
+        verify(eventPublisher).publishAppointmentCompleted(any());
+        verify(notificationService, times(2)).createNotification(any());
     }
 
     @Test
@@ -371,12 +405,14 @@ class AppointmentServiceTest {
     void testDeleteAppointment_Success() {
         // Given
         when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(any())).thenReturn(appointment);
 
         // When
         appointmentService.deleteAppointment(1L);
 
         // Then
-        verify(appointmentRepository).deleteById(1L);
+        verify(appointmentRepository).save(any());
+        verify(eventPublisher).publishAppointmentCancelled(any());
     }
 
     @Test

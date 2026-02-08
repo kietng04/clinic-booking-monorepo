@@ -33,16 +33,7 @@ export function RescheduleModal({
       if (slots && slots.length > 0) {
         setAvailableSlots(slots.filter((slot) => slot.available))
       } else {
-        // Generate default slots if no schedule exists
-        const defaultSlots = [
-          '09:00',
-          '10:00',
-          '11:00',
-          '14:00',
-          '15:00',
-          '16:00',
-        ].map((time) => ({ time, available: true }))
-        setAvailableSlots(defaultSlots)
+        setAvailableSlots([])
       }
     } catch (error) {
       console.error('Failed to load available slots:', error)

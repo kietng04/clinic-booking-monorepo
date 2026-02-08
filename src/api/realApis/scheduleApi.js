@@ -89,11 +89,11 @@ export const scheduleApi = {
    * Get schedule for specific doctor and day
    * @param {string} doctorId - Doctor ID
    * @param {number} dayOfWeek - Day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
-   * @returns {Promise} Schedule for that day
+   * @returns {Promise} Array of schedule windows for that day
    */
   getDoctorScheduleByDay: async (doctorId, dayOfWeek) => {
     const response = await appointmentServiceClient.get(`/api/schedules/doctor/${doctorId}/day/${dayOfWeek}`)
-    return response.data
+    return normalizeScheduleList(response.data)
   },
 
   /**
@@ -110,14 +110,19 @@ export const scheduleApi = {
 
     try {
       // Get doctor's schedule for this day
-      const schedule = await scheduleApi.getDoctorScheduleByDay(doctorId, dayOfWeek)
+      const schedules = await scheduleApi.getDoctorScheduleByDay(doctorId, dayOfWeek)
+      const availableSchedules = schedules.filter((schedule) => schedule?.isAvailable !== false)
 
-      if (!schedule || !schedule.isAvailable) {
+      if (availableSchedules.length === 0) {
         return [] // Doctor not available on this day
       }
 
-      // Generate time slots from schedule
-      const slots = generateTimeSlots(schedule.startTime, schedule.endTime, 30) // 30-minute slots
+      // Generate unique time slots from all available schedule windows in that day.
+      const slots = [...new Set(
+        availableSchedules.flatMap((schedule) =>
+          generateTimeSlots(schedule.startTime, schedule.endTime, 30)
+        )
+      )].sort()
 
       // Get doctor's appointments for the specific date to filter out booked slots
       try {
@@ -134,7 +139,7 @@ export const scheduleApi = {
             apt.status !== 'CANCELLED' &&
             apt.status !== 'COMPLETED'
           )
-          .map(apt => apt.appointmentTime || apt.time)
+          .map(apt => normalizeTime(apt.appointmentTime || apt.time))
           .filter(Boolean)
 
         // Mark slots as available/unavailable based on bookings
@@ -211,10 +216,16 @@ export const scheduleApi = {
  */
 function generateTimeSlots(startTime, endTime, intervalMinutes = 30) {
   const slots = []
+  const normalizedStartTime = normalizeTime(startTime)
+  const normalizedEndTime = normalizeTime(endTime)
+
+  if (!normalizedStartTime || !normalizedEndTime) {
+    return slots
+  }
 
   // Parse start time
-  const [startHour, startMinute] = startTime.split(':').map(Number)
-  const [endHour, endMinute] = endTime.split(':').map(Number)
+  const [startHour, startMinute] = normalizedStartTime.split(':').map(Number)
+  const [endHour, endMinute] = normalizedEndTime.split(':').map(Number)
 
   let currentHour = startHour
   let currentMinute = startMinute
@@ -236,6 +247,23 @@ function generateTimeSlots(startTime, endTime, intervalMinutes = 30) {
   }
 
   return slots
+}
+
+function normalizeScheduleList(data) {
+  if (Array.isArray(data)) {
+    return data
+  }
+  if (data && typeof data === 'object') {
+    return [data]
+  }
+  return []
+}
+
+function normalizeTime(value) {
+  if (!value || typeof value !== 'string') {
+    return null
+  }
+  return value.length >= 5 ? value.slice(0, 5) : value
 }
 
 export default scheduleApi

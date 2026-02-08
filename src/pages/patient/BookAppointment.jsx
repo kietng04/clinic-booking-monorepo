@@ -18,6 +18,7 @@ import { userApi } from '@/api/userApiWrapper'
 import { scheduleApi } from '@/api/scheduleApiWrapper'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { adminApi } from '@/api/adminApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -98,7 +99,7 @@ export function BookAppointment() {
         setCurrentStep(2)
       }
     } catch (error) {
-      showToast('Không tìm thấy bác sĩ, vui lòng chọn bác sĩ khác', 'error')
+      showToast(extractApiErrorMessage(error, 'Không tìm thấy bác sĩ, vui lòng chọn bác sĩ khác'), 'error')
       loadDoctors()
     } finally {
       setLoading(false)
@@ -117,7 +118,7 @@ export function BookAppointment() {
       setDoctors(normalizedDoctors)
       setFilteredDoctors(normalizedDoctors)
     } catch (error) {
-      showToast('Failed to load doctors', 'error')
+      showToast(extractApiErrorMessage(error, 'Không thể tải danh sách bác sĩ'), 'error')
     } finally {
       setLoading(false)
     }
@@ -135,7 +136,10 @@ export function BookAppointment() {
       setServices((Array.isArray(servicesData) ? servicesData : []).filter(s => s?.active !== false))
       setRooms((Array.isArray(roomsData) ? roomsData : []).filter(r => r?.active !== false))
     } catch (error) {
-      showToast('Không thể tải cấu hình phòng khám/dịch vụ/phòng. Vui lòng thử lại.', 'error')
+      showToast(extractApiErrorMessage(
+        error,
+        'Không thể tải cấu hình phòng khám/dịch vụ/phòng. Vui lòng thử lại.'
+      ), 'error')
     }
   }
 
@@ -146,8 +150,8 @@ export function BookAppointment() {
     if (searchTerm) {
       filtered = filtered.filter(
         (doctor) =>
-          doctor.name.toLowerCase().includes(loweredSearchTerm) ||
-          doctor.specialization.toLowerCase().includes(loweredSearchTerm)
+          (doctor.name || '').toLowerCase().includes(loweredSearchTerm) ||
+          (doctor.specialization || '').toLowerCase().includes(loweredSearchTerm)
       )
     }
 
@@ -171,19 +175,10 @@ export function BookAppointment() {
       if (slots && slots.length > 0) {
         setAvailableSlots(slots.filter((slot) => slot.available))
       } else {
-        // Generate default slots if no schedule exists
-        const defaultSlots = [
-          '09:00',
-          '10:00',
-          '11:00',
-          '14:00',
-          '15:00',
-          '16:00',
-        ].map((time) => ({ time, available: true }))
-        setAvailableSlots(defaultSlots)
+        setAvailableSlots([])
       }
     } catch (error) {
-      showToast('Failed to load available slots', 'error')
+      showToast(extractApiErrorMessage(error, 'Không thể tải khung giờ khả dụng'), 'error')
     } finally {
       setLoading(false)
     }
@@ -246,7 +241,7 @@ export function BookAppointment() {
       showToast('Appointment booked successfully!', 'success')
       navigate('/appointments')
     } catch (error) {
-      showToast('Failed to book appointment', 'error')
+      showToast(extractApiErrorMessage(error, 'Không thể đặt lịch hẹn'), 'error')
     } finally {
       setLoading(false)
     }
@@ -464,6 +459,10 @@ export function BookAppointment() {
                     </h4>
                     {loading ? (
                       <Loading />
+                    ) : availableSlots.length === 0 ? (
+                      <p className="text-sm text-sage-600 dark:text-sage-400 py-6 text-center">
+                        Bác sĩ chưa có lịch khả dụng cho ngày này. Vui lòng chọn ngày khác.
+                      </p>
                     ) : (
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                         {availableSlots.map((slot) => (

@@ -562,6 +562,27 @@ class PaymentServiceTest {
     }
 
     @Test
+    @DisplayName("Should map frontend-required fields in payment response")
+    void testGetPaymentByOrderId_IncludesFrontendFields() {
+        LocalDateTime createdAt = LocalDateTime.of(2024, 1, 2, 10, 30);
+        paymentOrder.setCreatedAt(createdAt);
+
+        when(paymentOrderRepository.findByOrderId("ORDER123456789"))
+                .thenReturn(Optional.of(paymentOrder));
+        when(paymentTransactionRepository.findByPaymentOrderId(1L))
+                .thenReturn(Optional.of(paymentTransaction));
+
+        PaymentResponse result = paymentService.getPaymentByOrderId("ORDER123456789");
+
+        assertFieldEquals(result, "description", "Appointment payment");
+        assertFieldEquals(result, "invoiceNumber", "ORDER123456789");
+        assertFieldEquals(result, "createdAt", createdAt);
+        assertFieldEquals(result, "appointmentId", 1L);
+        assertFieldEquals(result, "finalAmount", new BigDecimal("50000.00"));
+        assertFieldEquals(result, "discount", BigDecimal.ZERO);
+    }
+
+    @Test
     @DisplayName("Should throw exception when payment not found")
     void testGetPaymentByOrderId_NotFound() {
         when(paymentOrderRepository.findByOrderId("NOTFOUND"))
@@ -615,5 +636,21 @@ class PaymentServiceTest {
         assertThat(result).isNotNull();
         verify(momoPaymentService).queryTransactionStatus(anyString(), anyString());
         verify(paymentOrderRepository).save(any());
+    }
+
+    private void assertFieldEquals(PaymentResponse response, String fieldName, Object expected) {
+        try {
+            var field = PaymentResponse.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object actual = field.get(response);
+
+            if (expected instanceof BigDecimal expectedAmount && actual instanceof BigDecimal actualAmount) {
+                assertThat(actualAmount).isEqualByComparingTo(expectedAmount);
+            } else {
+                assertThat(actual).isEqualTo(expected);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new AssertionError("Missing or inaccessible field: " + fieldName, e);
+        }
     }
 }

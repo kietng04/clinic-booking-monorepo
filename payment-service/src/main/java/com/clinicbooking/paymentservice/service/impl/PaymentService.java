@@ -131,9 +131,17 @@ public class PaymentService implements IPaymentService {
 
                 return PaymentResponse.builder()
                         .orderId(orderId)
+                        .invoiceNumber(orderId)
+                        .appointmentId(request.getAppointmentId())
+                        .patientId(patientId)
+                        .description(request.getDescription())
                         .amount(request.getAmount())
+                        .finalAmount(request.getAmount())
+                        .discount(BigDecimal.ZERO)
                         .status(PaymentStatus.PENDING.toString())
                         .currency("VND")
+                        .paymentMethod(paymentMethod.name())
+                        .createdAt(paymentOrder.getCreatedAt())
                         .expiresAt(null)  // No expiration for counter payments
                         .build();
             }
@@ -169,12 +177,20 @@ public class PaymentService implements IPaymentService {
 
             return PaymentResponse.builder()
                     .orderId(orderId)
+                    .invoiceNumber(orderId)
+                    .appointmentId(request.getAppointmentId())
+                    .patientId(patientId)
                     .payUrl(momoResponse.getPayUrl())
                     .deeplink(momoResponse.getDeeplink())
                     .qrCodeUrl(momoResponse.getQrCodeUrl())
                     .amount(request.getAmount())
+                    .finalAmount(request.getAmount())
+                    .discount(BigDecimal.ZERO)
+                    .description(request.getDescription())
                     .status(PaymentStatus.PENDING.toString())
                     .currency("VND")
+                    .paymentMethod(paymentMethod.name())
+                    .createdAt(paymentOrder.getCreatedAt())
                     .expiresAt(LocalDateTime.now().plusMinutes(15))
                     .build();
 
@@ -586,6 +602,40 @@ public class PaymentService implements IPaymentService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportPatientPaymentsCsv(Long patientId, LocalDateTime fromDate, LocalDateTime toDate) {
+        List<PaymentOrder> orders;
+        if (fromDate != null && toDate != null) {
+            orders = paymentOrderRepository
+                    .findByPatientIdAndCreatedAtBetween(patientId, fromDate, toDate, Pageable.unpaged())
+                    .getContent();
+        } else {
+            orders = paymentOrderRepository
+                    .findByPatientId(patientId, Pageable.unpaged())
+                    .getContent();
+        }
+
+        StringBuilder csv = new StringBuilder();
+        csv.append("orderId,appointmentId,amount,finalAmount,discount,currency,status,paymentMethod,createdAt,description\n");
+        for (PaymentOrder order : orders) {
+            csv.append(escapeCsv(order.getOrderId())).append(',')
+                    .append(order.getAppointmentId()).append(',')
+                    .append(order.getAmount()).append(',')
+                    .append(order.getAmount()).append(',')
+                    .append(BigDecimal.ZERO).append(',')
+                    .append(escapeCsv(order.getCurrency())).append(',')
+                    .append(escapeCsv(order.getStatus().toString())).append(',')
+                    .append(escapeCsv(order.getPaymentMethod().name())).append(',')
+                    .append(escapeCsv(order.getCreatedAt() != null ? order.getCreatedAt().toString() : ""))
+                    .append(',')
+                    .append(escapeCsv(order.getDescription()))
+                    .append('\n');
+        }
+
+        return csv.toString().getBytes();
+    }
+
     /**
      * Confirm counter payment by receptionist
      * Used when patient pays cash/bank transfer/card at clinic counter
@@ -708,13 +758,19 @@ public class PaymentService implements IPaymentService {
         return PaymentResponse.builder()
                 .orderId(paymentOrder.getOrderId())
                 .patientId(paymentOrder.getPatientId())
+                .invoiceNumber(paymentOrder.getOrderId())
+                .appointmentId(paymentOrder.getAppointmentId())
                 .payUrl(transaction != null ? transaction.getPayUrl() : null)
                 .deeplink(transaction != null ? transaction.getDeeplink() : null)
                 .qrCodeUrl(transaction != null ? transaction.getQrCodeUrl() : null)
                 .amount(paymentOrder.getAmount())
+                .finalAmount(paymentOrder.getAmount())
+                .discount(BigDecimal.ZERO)
+                .description(paymentOrder.getDescription())
                 .status(paymentOrder.getStatus().toString())
                 .currency(paymentOrder.getCurrency())
                 .paymentMethod(paymentOrder.getPaymentMethod().name())
+                .createdAt(paymentOrder.getCreatedAt())
                 .expiresAt(paymentOrder.getExpiredAt())
                 .transactionId(transaction != null ? transaction.getTransId() != null ? transaction.getTransId().toString() : null : null)
                 .confirmedByUserId(paymentOrder.getConfirmedByUserId())
@@ -736,6 +792,17 @@ public class PaymentService implements IPaymentService {
         );
         eventPublisher.publishPaymentCreated(event);
         log.debug("Published payment.created event for order {}", paymentOrder.getOrderId());
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) {
+            return "";
+        }
+        boolean shouldQuote = value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r");
+        if (!shouldQuote) {
+            return value;
+        }
+        return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
     

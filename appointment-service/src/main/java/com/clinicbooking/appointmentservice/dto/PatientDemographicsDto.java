@@ -5,13 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PatientDemographicsDto {
+public class PatientDemographicsDto implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private List<AgeDistributionItem> ageDistribution;
     private List<GenderRatioItem> genderRatio;
 
@@ -19,7 +22,9 @@ public class PatientDemographicsDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class AgeDistributionItem {
+    public static class AgeDistributionItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String range;
         private Integer count;
     }
@@ -28,7 +33,9 @@ public class PatientDemographicsDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class GenderRatioItem {
+    public static class GenderRatioItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private String gender;
         private Integer count;
         private Integer percentage;

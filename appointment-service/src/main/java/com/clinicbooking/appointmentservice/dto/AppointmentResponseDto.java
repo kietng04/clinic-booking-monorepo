@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -22,6 +23,10 @@ public class AppointmentResponseDto {
     private String patientPhone;
     private Long familyMemberId;
     private String familyMemberName;
+    private Long clinicId;
+    private Long roomId;
+    private Long serviceId;
+    private BigDecimal serviceFee;
     private LocalDate appointmentDate;
     private LocalTime appointmentTime;
     private Integer durationMinutes;

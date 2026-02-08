@@ -23,12 +23,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -58,9 +64,10 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> createPayment(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Valid @RequestBody CreatePaymentRequest request) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info(
                 "Creating payment - PatientId: {}, AppointmentId: {}, Amount: {}, PaymentMethod: {}",
@@ -100,10 +107,11 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> getPaymentByOrderId(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Unique order ID", example = "ORD202401081234567890")
             @PathVariable String orderId) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info("Fetching payment - PatientId: {}, OrderId: {}", patientId, orderId);
 
@@ -136,10 +144,11 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> updatePayment(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Unique order ID") @PathVariable String orderId,
             @Valid @RequestBody UpdatePaymentRequest request) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info("Updating payment - PatientId: {}, OrderId: {}", patientId, orderId);
 
@@ -171,9 +180,10 @@ public class PaymentController {
     })
     public ResponseEntity<Void> cancelPayment(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Unique order ID") @PathVariable String orderId) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info("Cancelling payment - PatientId: {}, OrderId: {}", patientId, orderId);
 
@@ -209,10 +219,11 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> getPaymentByAppointmentId(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Appointment ID", example = "123")
             @PathVariable Long appointmentId) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info("Fetching payment by appointment - PatientId: {}, AppointmentId: {}", patientId, appointmentId);
 
@@ -242,10 +253,11 @@ public class PaymentController {
     })
     public ResponseEntity<Page<PaymentResponse>> getMyPayments(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info(
                 "Fetching payment history - PatientId: {}, Page: {}, Size: {}",
@@ -259,6 +271,29 @@ public class PaymentController {
         log.debug("Payment history retrieved - PatientId: {}, TotalElements: {}", patientId, payments.getTotalElements());
 
         return ResponseEntity.ok(payments);
+    }
+
+    @GetMapping("/my-payments/export")
+    @Operation(
+            summary = "Export patient's payment history as CSV",
+            description = "Export payments for authenticated patient with optional date range"
+    )
+    public ResponseEntity<byte[]> exportMyPayments(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+            @RequestParam(value = "from", required = false) String from,
+            @RequestParam(value = "to", required = false) String to) {
+
+        Long patientId = resolveUserId(userDetails, userIdHeader);
+        LocalDateTime fromDate = parseStartDate(from);
+        LocalDateTime toDate = parseEndDate(to, fromDate);
+
+        byte[] csvData = paymentService.exportPatientPaymentsCsv(patientId, fromDate, toDate);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=payment-history.csv")
+                .contentType(MediaType.valueOf("text/csv"))
+                .body(csvData);
     }
 
     
@@ -279,10 +314,11 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> getPaymentStatus(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Order ID", example = "ORD202401081234567890")
             @PathVariable String orderId) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info("Querying payment status from Momo - PatientId: {}, OrderId: {}", patientId, orderId);
 
@@ -318,9 +354,10 @@ public class PaymentController {
     })
     public ResponseEntity<IPaymentService.RefundResponse> requestRefund(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Valid @RequestBody RefundPaymentRequest request) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info(
                 "Requesting refund - PatientId: {}, OrderId: {}, RefundAmount: {}, Reason: {}",
@@ -364,10 +401,11 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> getRefundHistory(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Order ID", example = "ORD202401081234567890")
             @PathVariable String orderId) {
 
-        Long patientId = userDetails.getUserId();
+        Long patientId = resolveUserId(userDetails, userIdHeader);
 
         log.info("Fetching refund history - PatientId: {}, OrderId: {}", patientId, orderId);
 
@@ -398,12 +436,13 @@ public class PaymentController {
     })
     public ResponseEntity<PaymentResponse> confirmCounterPayment(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @Parameter(description = "Order ID", example = "ORD202401081234567890")
             @PathVariable String orderId,
             @Valid @RequestBody ConfirmCounterPaymentRequest request) {
 
-        Long receptionistId = userDetails.getUserId();
-        String receptionistName = userDetails.getUsername();
+        Long receptionistId = resolveUserId(userDetails, userIdHeader);
+        String receptionistName = userDetails != null ? userDetails.getUsername() : "Receptionist";
 
         log.info(
                 "Confirming counter payment - ReceptionistId: {}, OrderId: {}, PaymentMethod: {}",
@@ -446,10 +485,11 @@ public class PaymentController {
     })
     public ResponseEntity<Page<PaymentResponse>> getPendingCounterPayments(
             @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
             @PageableDefault(size = 20, page = 0, sort = "createdAt", direction = Sort.Direction.ASC)
             Pageable pageable) {
 
-        Long receptionistId = userDetails.getUserId();
+        Long receptionistId = resolveUserId(userDetails, userIdHeader);
 
         log.info(
                 "Fetching pending counter payments - ReceptionistId: {}, Page: {}, Size: {}",
@@ -467,5 +507,32 @@ public class PaymentController {
         );
 
         return ResponseEntity.ok(pendingPayments);
+    }
+
+    private Long resolveUserId(CustomUserDetails userDetails, Long userIdHeader) {
+        if (userDetails != null && userDetails.getUserId() != null) {
+            return userDetails.getUserId();
+        }
+        if (userIdHeader != null) {
+            return userIdHeader;
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing user context");
+    }
+
+    private LocalDateTime parseStartDate(String from) {
+        if (from == null || from.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(from).atStartOfDay();
+    }
+
+    private LocalDateTime parseEndDate(String to, LocalDateTime fromDate) {
+        if (to == null || to.isBlank()) {
+            if (fromDate == null) {
+                return null;
+            }
+            return LocalDate.now().atTime(23, 59, 59);
+        }
+        return LocalDate.parse(to).atTime(23, 59, 59);
     }
 }

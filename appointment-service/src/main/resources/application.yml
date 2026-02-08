@@ -34,6 +34,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
 
   data:
     redis:
@@ -73,6 +75,7 @@ kafka:
     appointment-created: appointment.created
     appointment-updated: appointment.updated
     appointment-cancelled: appointment.cancelled
+    appointment-completed: appointment.completed
     user-created: user.created
     user-updated: user.updated
     user-deleted: user.deleted

@@ -12,6 +12,7 @@ export default function ProfileSettings() {
   const { showToast } = useUIStore()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -53,13 +54,43 @@ export default function ProfileSettings() {
   const handleAvatarUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const url = reader.result
-      setFormData({ ...formData, avatarUrl: url })
-      profileApi.uploadAvatar(url).catch(() => {})
+    const maxSizeBytes = 5 * 1024 * 1024
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      showToast({ type: 'error', message: 'Chỉ hỗ trợ ảnh JPG, PNG, WEBP' })
+      return
     }
-    reader.readAsDataURL(file)
+    if (file.size > maxSizeBytes) {
+      showToast({ type: 'error', message: 'Ảnh vượt quá 5MB' })
+      return
+    }
+
+    const previousAvatar = formData.avatarUrl
+    const previewUrl = URL.createObjectURL(file)
+    setFormData((prev) => ({ ...prev, avatarUrl: previewUrl }))
+    setUploadingAvatar(true)
+
+    profileApi.uploadAvatarFile(file)
+      .then((result) => {
+        const uploadedUrl = result?.avatarUrl || ''
+        if (!uploadedUrl) {
+          throw new Error('Không nhận được URL ảnh')
+        }
+        setFormData((prev) => ({ ...prev, avatarUrl: uploadedUrl }))
+        updateUser({ avatar: uploadedUrl })
+        showToast({ type: 'success', message: 'Tải ảnh đại diện thành công' })
+      })
+      .catch((error) => {
+        setFormData((prev) => ({ ...prev, avatarUrl: previousAvatar }))
+        showToast({ type: 'error', message: error.response?.data?.message || 'Tải ảnh thất bại' })
+      })
+      .finally(() => {
+        setUploadingAvatar(false)
+        URL.revokeObjectURL(previewUrl)
+        if (e.target) {
+          e.target.value = ''
+        }
+      })
   }
 
   if (loading) {
@@ -86,11 +117,17 @@ export default function ProfileSettings() {
               className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-sage-700 shadow-lg"
             />
             <label className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="w-6 h-6 text-white" />
+              {uploadingAvatar ? (
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              ) : (
+                <Camera className="w-6 h-6 text-white" />
+              )}
               <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </label>
           </div>
-          <p className="text-sm text-sage-500 mt-2">Hover để thay đổi</p>
+          <p className="text-sm text-sage-500 mt-2">
+            {uploadingAvatar ? 'Đang tải ảnh lên...' : 'Hover để thay đổi'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -24,6 +24,17 @@ export const profileApi = {
     return response.data
   },
 
+  uploadAvatarFile: async (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post('/api/profile/avatar/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
   updateNotifications: async (preferences) => {
     // TODO: Backend endpoint for notification preferences
     console.log('Notification preferences:', preferences)

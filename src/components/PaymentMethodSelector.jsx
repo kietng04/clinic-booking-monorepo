@@ -1,4 +1,4 @@
-import { CreditCard, Wallet, QrCode, Banknote } from 'lucide-react'
+import { Wallet, Banknote } from 'lucide-react'
 
 const paymentMethods = [
   {
@@ -7,22 +7,6 @@ const paymentMethods = [
     description: 'Ví điện tử Momo',
     icon: Wallet,
     color: 'bg-pink-100 text-pink-600',
-    minAmount: 0,
-  },
-  {
-    id: 'vnpay',
-    name: 'VNPay',
-    description: 'Cổng thanh toán VNPay',
-    icon: CreditCard,
-    color: 'bg-blue-100 text-blue-600',
-    minAmount: 0,
-  },
-  {
-    id: 'zalopay',
-    name: 'ZaloPay',
-    description: 'Ví điện tử ZaloPay',
-    icon: QrCode,
-    color: 'bg-cyan-100 text-cyan-600',
     minAmount: 0,
   },
   {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -17,6 +17,7 @@ import { useUIStore } from '@/store/uiStore'
 import { userApi } from '@/api/userApiWrapper'
 import { scheduleApi } from '@/api/scheduleApiWrapper'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { adminApi } from '@/api/adminApiWrapper'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -32,8 +33,19 @@ const STEPS = [
   { id: 4, name: 'Xác nhận', description: 'Xem lại và xác nhận đặt lịch' },
 ]
 
+const normalizeDoctor = (doctor) => ({
+  ...doctor,
+  name: doctor?.name || doctor?.fullName || '',
+  specialization: doctor?.specialization || '',
+  avatar: doctor?.avatar || doctor?.avatarUrl || '',
+  rating: doctor?.rating ?? 0,
+  consultationFee: doctor?.consultationFee ?? 0,
+  yearsOfExperience: doctor?.yearsOfExperience ?? doctor?.experienceYears ?? 0,
+})
+
 export function BookAppointment() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
   const { showToast } = useUIStore()
 
@@ -43,12 +55,18 @@ export function BookAppointment() {
   const [filteredDoctors, setFilteredDoctors] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSpecialization, setSelectedSpecialization] = useState('')
+  const [clinics, setClinics] = useState([])
+  const [services, setServices] = useState([])
+  const [rooms, setRooms] = useState([])
 
   const [bookingData, setBookingData] = useState({
     doctorId: null,
     doctor: null,
     date: '',
     time: '',
+    clinicId: '',
+    serviceId: '',
+    roomId: '',
     type: 'IN_PERSON',
     reason: '',
     notes: '',
@@ -58,8 +76,34 @@ export function BookAppointment() {
   const [selectedDate, setSelectedDate] = useState('')
 
   useEffect(() => {
-    loadDoctors()
+    const preselectedDoctorId = searchParams.get('doctorId')
+    if (preselectedDoctorId) {
+      loadPreselectedDoctor(preselectedDoctorId)
+    } else {
+      loadDoctors()
+    }
+    loadBookingConfigs()
   }, [])
+
+  const loadPreselectedDoctor = async (doctorId) => {
+    try {
+      setLoading(true)
+      const doctor = normalizeDoctor(await userApi.getUser(doctorId))
+      if (doctor && doctor.id) {
+        setBookingData((prev) => ({
+          ...prev,
+          doctorId: doctor.id,
+          doctor,
+        }))
+        setCurrentStep(2)
+      }
+    } catch (error) {
+      showToast('Không tìm thấy bác sĩ, vui lòng chọn bác sĩ khác', 'error')
+      loadDoctors()
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     filterDoctors()
@@ -69,8 +113,9 @@ export function BookAppointment() {
     try {
       setLoading(true)
       const data = await userApi.getDoctors()
-      setDoctors(data)
-      setFilteredDoctors(data)
+      const normalizedDoctors = (Array.isArray(data) ? data : []).map(normalizeDoctor)
+      setDoctors(normalizedDoctors)
+      setFilteredDoctors(normalizedDoctors)
     } catch (error) {
       showToast('Failed to load doctors', 'error')
     } finally {
@@ -78,14 +123,31 @@ export function BookAppointment() {
     }
   }
 
+  const loadBookingConfigs = async () => {
+    try {
+      const [clinicsData, servicesData, roomsData] = await Promise.all([
+        adminApi.getClinics(),
+        adminApi.getServices(),
+        adminApi.getAllRooms(),
+      ])
+
+      setClinics((Array.isArray(clinicsData) ? clinicsData : []).filter(c => c?.active !== false))
+      setServices((Array.isArray(servicesData) ? servicesData : []).filter(s => s?.active !== false))
+      setRooms((Array.isArray(roomsData) ? roomsData : []).filter(r => r?.active !== false))
+    } catch (error) {
+      showToast('Không thể tải cấu hình phòng khám/dịch vụ/phòng. Vui lòng thử lại.', 'error')
+    }
+  }
+
   const filterDoctors = () => {
     let filtered = [...doctors]
+    const loweredSearchTerm = searchTerm.toLowerCase()
 
     if (searchTerm) {
       filtered = filtered.filter(
         (doctor) =>
-          doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+          doctor.name.toLowerCase().includes(loweredSearchTerm) ||
+          doctor.specialization.toLowerCase().includes(loweredSearchTerm)
       )
     }
 
@@ -97,7 +159,7 @@ export function BookAppointment() {
   }
 
   const selectDoctor = (doctor) => {
-    setBookingData({ ...bookingData, doctorId: doctor.id, doctor })
+    setBookingData((prev) => ({ ...prev, doctorId: doctor.id, doctor }))
     setCurrentStep(2)
   }
 
@@ -142,7 +204,7 @@ export function BookAppointment() {
       return
     }
 
-    setBookingData({ ...bookingData, date, time })
+    setBookingData((prev) => ({ ...prev, date, time }))
     setCurrentStep(3)
   }
 
@@ -153,15 +215,27 @@ export function BookAppointment() {
         showToast('Ngày khám phải là ngày trong tương lai', 'error')
         return
       }
+      if (!bookingData.clinicId || !bookingData.serviceId) {
+        showToast('Vui lòng chọn phòng khám và dịch vụ', 'error')
+        return
+      }
+      if (bookingData.type === 'IN_PERSON' && !bookingData.roomId) {
+        showToast('Vui lòng chọn phòng khám cụ thể cho lịch hẹn trực tiếp', 'error')
+        return
+      }
 
       const appointmentData = {
         patientId: user.id,
-        patientName: user.name,
+        patientName: user.name || user.fullName,
         doctorId: bookingData.doctorId,
-        doctorName: bookingData.doctor.name,
-        doctorSpecialization: bookingData.doctor.specialization,
+        doctorName: bookingData.doctor?.name,
+        doctorSpecialization: bookingData.doctor?.specialization,
         date: bookingData.date,
         time: bookingData.time,
+        clinicId: Number(bookingData.clinicId),
+        serviceId: Number(bookingData.serviceId),
+        roomId: bookingData.type === 'IN_PERSON' ? Number(bookingData.roomId) : null,
+        serviceFee: selectedService?.basePrice ?? selectedService?.price ?? null,
         type: bookingData.type,
         priority: 'NORMAL',
         reason: bookingData.reason,
@@ -178,7 +252,22 @@ export function BookAppointment() {
     }
   }
 
-  const specializations = [...new Set(doctors.map((d) => d.specialization))]
+  const specializations = [...new Set(doctors.map((d) => d.specialization).filter(Boolean))]
+  const filteredServices = services.filter(
+    (service) => String(service?.clinicId) === String(bookingData.clinicId)
+  )
+  const filteredRooms = rooms.filter(
+    (room) => String(room?.clinicId) === String(bookingData.clinicId)
+  )
+  const selectedClinic = clinics.find(
+    (clinic) => String(clinic?.id) === String(bookingData.clinicId)
+  )
+  const selectedService = services.find(
+    (service) => String(service?.id) === String(bookingData.serviceId)
+  )
+  const selectedRoom = rooms.find(
+    (room) => String(room?.id) === String(bookingData.roomId)
+  )
 
   // Get next 7 days for date selection
   const getNextDays = () => {
@@ -428,7 +517,7 @@ export function BookAppointment() {
                     </label>
                     <div className="grid grid-cols-2 gap-4">
                       <button
-                        onClick={() => setBookingData({ ...bookingData, type: 'IN_PERSON' })}
+                        onClick={() => setBookingData((prev) => ({ ...prev, type: 'IN_PERSON' }))}
                         className={`p-4 rounded-soft border-2 transition-all ${
                           bookingData.type === 'IN_PERSON'
                             ? 'border-sage-600 bg-sage-50 dark:bg-sage-900'
@@ -441,7 +530,7 @@ export function BookAppointment() {
                         </div>
                       </button>
                       <button
-                        onClick={() => setBookingData({ ...bookingData, type: 'ONLINE' })}
+                        onClick={() => setBookingData((prev) => ({ ...prev, type: 'ONLINE', roomId: '' }))}
                         className={`p-4 rounded-soft border-2 transition-all ${
                           bookingData.type === 'ONLINE'
                             ? 'border-sage-600 bg-sage-50 dark:bg-sage-900'
@@ -456,13 +545,67 @@ export function BookAppointment() {
                     </div>
                   </div>
 
+                  <Select
+                    label="Phòng khám *"
+                    value={bookingData.clinicId}
+                    onChange={(e) =>
+                      setBookingData((prev) => ({
+                        ...prev,
+                        clinicId: e.target.value,
+                        serviceId: '',
+                        roomId: '',
+                      }))
+                    }
+                    options={[
+                      { value: '', label: 'Chọn phòng khám' },
+                      ...clinics.map((clinic) => ({
+                        value: String(clinic.id),
+                        label: clinic.name,
+                      })),
+                    ]}
+                  />
+
+                  <Select
+                    label="Dịch vụ *"
+                    value={bookingData.serviceId}
+                    onChange={(e) =>
+                      setBookingData((prev) => ({ ...prev, serviceId: e.target.value }))
+                    }
+                    disabled={!bookingData.clinicId}
+                    options={[
+                      { value: '', label: 'Chọn dịch vụ' },
+                      ...filteredServices.map((service) => ({
+                        value: String(service.id),
+                        label: service.name,
+                      })),
+                    ]}
+                  />
+
+                  {bookingData.type === 'IN_PERSON' && (
+                    <Select
+                      label="Phòng khám cụ thể *"
+                      value={bookingData.roomId}
+                      onChange={(e) =>
+                        setBookingData((prev) => ({ ...prev, roomId: e.target.value }))
+                      }
+                      disabled={!bookingData.clinicId}
+                      options={[
+                        { value: '', label: 'Chọn phòng' },
+                        ...filteredRooms.map((room) => ({
+                          value: String(room.id),
+                          label: `${room.name}${room.roomNumber ? ` - #${room.roomNumber}` : ''}`,
+                        })),
+                      ]}
+                    />
+                  )}
+
                   {/* Reason */}
                   <Input
                     label="Lý do khám bệnh"
                     placeholder="E.g., Regular checkup, Follow-up, etc."
                     value={bookingData.reason}
                     onChange={(e) =>
-                      setBookingData({ ...bookingData, reason: e.target.value })
+                      setBookingData((prev) => ({ ...prev, reason: e.target.value }))
                     }
                     required
                   />
@@ -478,7 +621,7 @@ export function BookAppointment() {
                       placeholder="Any additional information for your doctor..."
                       value={bookingData.notes}
                       onChange={(e) =>
-                        setBookingData({ ...bookingData, notes: e.target.value })
+                        setBookingData((prev) => ({ ...prev, notes: e.target.value }))
                       }
                     />
                   </div>
@@ -491,7 +634,12 @@ export function BookAppointment() {
                   </Button>
                   <Button
                     onClick={() => setCurrentStep(4)}
-                    disabled={!bookingData.reason}
+                    disabled={
+                      !bookingData.reason ||
+                      !bookingData.clinicId ||
+                      !bookingData.serviceId ||
+                      (bookingData.type === 'IN_PERSON' && !bookingData.roomId)
+                    }
                     rightIcon={<ChevronRight className="w-4 h-4" />}
                   >
                     Tiếp tục
@@ -565,6 +713,26 @@ export function BookAppointment() {
                         ${bookingData.doctor?.consultationFee}
                       </div>
                     </div>
+                    <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">
+                      <div className="text-sm text-sage-600 dark:text-sage-400 mb-1">Phòng khám</div>
+                      <div className="font-semibold text-sage-900 dark:text-cream-100">
+                        {selectedClinic?.name || 'Chưa chọn'}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">
+                      <div className="text-sm text-sage-600 dark:text-sage-400 mb-1">Dịch vụ</div>
+                      <div className="font-semibold text-sage-900 dark:text-cream-100">
+                        {selectedService?.name || 'Chưa chọn'}
+                      </div>
+                    </div>
+                    {bookingData.type === 'IN_PERSON' && (
+                      <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">
+                        <div className="text-sm text-sage-600 dark:text-sage-400 mb-1">Phòng</div>
+                        <div className="font-semibold text-sage-900 dark:text-cream-100">
+                          {selectedRoom?.name || 'Chưa chọn'}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">

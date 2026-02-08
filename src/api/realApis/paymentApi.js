@@ -13,6 +13,23 @@ const paymentServiceClient = axios.create({
   },
 })
 
+export const normalizePaymentMethod = (method) => {
+  if (!method) {
+    return undefined
+  }
+
+  const normalized = method.toString().trim().toUpperCase()
+  const mapping = {
+    MOMO: 'MOMO_WALLET',
+    MOMO_WALLET: 'MOMO_WALLET',
+    CASH: 'CASH',
+    BANK_TRANSFER: 'BANK_TRANSFER',
+    CARD_AT_COUNTER: 'CARD_AT_COUNTER',
+  }
+
+  return mapping[normalized] || normalized
+}
+
 // Add JWT token to requests
 paymentServiceClient.interceptors.request.use(
   (config) => {
@@ -70,7 +87,13 @@ export const paymentApi = {
    * @returns {Promise} Payment details with redirect URL
    */
   createPayment: async (data) => {
-    const response = await paymentServiceClient.post('/api/payments/create', data)
+    const { method, paymentMethod, ...rest } = data || {}
+    const normalizedMethod = normalizePaymentMethod(paymentMethod || method)
+    const payload = {
+      ...rest,
+      ...(normalizedMethod ? { paymentMethod: normalizedMethod } : {}),
+    }
+    const response = await paymentServiceClient.post('/api/payments', payload)
     return response.data
   },
 
@@ -82,7 +105,7 @@ export const paymentApi = {
    */
   getPaymentHistory: async (patientId, filters = {}) => {
     const { page = 0, size = 20, ...params } = filters
-    const response = await paymentServiceClient.get(`/api/payments/patient/${patientId}`, {
+    const response = await paymentServiceClient.get('/api/payments/my-payments', {
       params: { page, size, ...params },
     })
     return response.data.content || response.data
@@ -145,7 +168,7 @@ export const paymentApi = {
    * @returns {Promise} Blob for CSV download
    */
   exportHistory: async (patientId, filters = {}) => {
-    const response = await paymentServiceClient.get(`/api/payments/patient/${patientId}/export`, {
+    const response = await paymentServiceClient.get('/api/payments/my-payments/export', {
       params: filters,
       responseType: 'blob',
     })

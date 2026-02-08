@@ -53,24 +53,28 @@ const DoctorDashboard = () => {
 
   const statsCards = [
     {
+      id: 'today-appointments',
       label: vi.doctor.dashboard.todayAppointments,
       value: stats?.todayAppointments || 0,
       icon: Calendar,
       color: 'sage',
     },
     {
+      id: 'weekly-appointments',
       label: vi.doctor.dashboard.weeklyAppointments,
       value: stats?.weeklyAppointments || 0,
       icon: Activity,
       color: 'terra',
     },
     {
+      id: 'total-patients',
       label: vi.doctor.dashboard.totalPatients,
       value: stats?.totalPatients || 0,
       icon: Users,
       color: 'blue',
     },
     {
+      id: 'avg-rating',
       label: vi.doctor.dashboard.avgRating,
       value: stats?.avgRating ? stats.avgRating.toFixed(1) : '0.0',
       icon: Star,
@@ -113,7 +117,7 @@ const DoctorDashboard = () => {
           const Icon = stat.icon
           return (
             <motion.div
-              key={stat.label}
+              key={stat.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -156,7 +160,7 @@ const DoctorDashboard = () => {
             <div className="space-y-3">
               {todayAppointments.map((appointment) => (
                 <div
-                  key={appointment.id}
+                  key={`${appointment.id ?? 'apt'}-${appointment.patientId ?? 'unknown'}-${appointment.time ?? 'time'}`}
                   className="flex items-center justify-between p-4 bg-sage-50 rounded-lg hover:bg-sage-100 transition-colors"
                 >
                   <div className="flex items-center gap-4">

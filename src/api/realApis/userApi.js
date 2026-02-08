@@ -178,6 +178,38 @@ export const userApi = {
   },
 
   /**
+   * Search doctors with filters (server-side)
+   * @param {Object} params - Search parameters
+   * @param {string} params.keyword - Search by name or specialization
+   * @param {string} params.specialization - Filter by exact specialization
+   * @param {number} params.minRating - Minimum rating filter
+   * @param {number} params.maxFee - Maximum consultation fee filter
+   * @param {number} params.page - Page number (0-indexed)
+   * @param {number} params.size - Page size
+   * @param {string} params.sort - Sort field and direction
+   * @returns {Promise} Paginated doctor results
+   */
+  searchDoctors: async (params = {}) => {
+    const { keyword, specialization, minRating, maxFee, page = 0, size = 12, sort = 'rating,desc' } = params
+    const queryParams = { page, size, sort }
+    if (keyword) queryParams.keyword = keyword
+    if (specialization) queryParams.specialization = specialization
+    if (minRating != null) queryParams.minRating = minRating
+    if (maxFee != null) queryParams.maxFee = maxFee
+    const response = await userServiceClient.get('/api/users/doctors/search', { params: queryParams })
+    return response.data
+  },
+
+  /**
+   * Get all distinct specializations
+   * @returns {Promise} Array of specialization strings
+   */
+  getSpecializations: async () => {
+    const response = await userServiceClient.get('/api/users/doctors/specializations')
+    return response.data
+  },
+
+  /**
    * Get patients for a specific doctor
    * Fetches appointments for the doctor and extracts unique patients
    * @param {number} doctorId - Doctor ID

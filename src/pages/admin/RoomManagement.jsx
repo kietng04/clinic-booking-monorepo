@@ -55,7 +55,9 @@ const RoomManagement = () => {
 
   useEffect(() => {
     let filtered = [...rooms]
-    if (clinicFilter !== 'all') filtered = filtered.filter(r => r.clinicId === clinicFilter)
+    if (clinicFilter !== 'all') {
+      filtered = filtered.filter(r => String(r.clinicId) === String(clinicFilter))
+    }
     if (searchQuery) {
       filtered = filtered.filter(r =>
         r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -84,6 +86,10 @@ const RoomManagement = () => {
   const handleSave = async () => {
     if (!formData.name.trim()) {
       showToast({ type: 'error', message: 'Tên phòng là bắt buộc' })
+      return
+    }
+    if (!formData.clinicId) {
+      showToast({ type: 'error', message: 'Phòng khám là bắt buộc' })
       return
     }
 

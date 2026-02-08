@@ -7,6 +7,62 @@ const adminServiceClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+const ROOM_TYPE_TO_BACKEND = {
+  Consultation: 'CONSULTATION',
+  Lab: 'LAB',
+  Imaging: 'IMAGING',
+  Procedure: 'PROCEDURE',
+}
+
+const ROOM_TYPE_TO_FRONTEND = {
+  CONSULTATION: 'Consultation',
+  LAB: 'Lab',
+  IMAGING: 'Imaging',
+  PROCEDURE: 'Procedure',
+}
+
+const mapRoomTypeToBackend = (type) => {
+  if (!type) return type
+  return ROOM_TYPE_TO_BACKEND[type] || type
+}
+
+const mapRoomTypeToFrontend = (type) => {
+  if (!type) return type
+  return ROOM_TYPE_TO_FRONTEND[type] || type
+}
+
+const toNullableNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+const toLocalDateTime = (value, endOfDay = false) => {
+  if (!value) return null
+  if (typeof value !== 'string') return value
+  if (value.includes('T')) return value
+  return `${value}${endOfDay ? 'T23:59:59' : 'T00:00:00'}`
+}
+
+const toDateInputValue = (value) => {
+  if (!value || typeof value !== 'string') return value
+  return value.split('T')[0]
+}
+
+const normalizeRoomPayload = (data = {}) => {
+  const payload = { ...data }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'clinicId')) {
+    payload.clinicId = toNullableNumber(payload.clinicId)
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'type')) {
+    payload.type = mapRoomTypeToBackend(payload.type)
+  }
+
+  return payload
+}
+
 adminServiceClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken')
@@ -95,18 +151,26 @@ export const adminApi = {
   // Rooms
   getAllRooms: async (filters = {}) => {
     const response = await adminServiceClient.get('/api/rooms', { params: filters })
-    return response.data.content || response.data
+    const rooms = response.data.content || response.data
+    return rooms.map(room => ({
+      ...room,
+      type: mapRoomTypeToFrontend(room.type),
+    }))
   },
   getRooms: async (clinicId) => {
     const response = await adminServiceClient.get(`/api/clinics/${clinicId}/rooms`)
-    return response.data.content || response.data
+    const rooms = response.data.content || response.data
+    return rooms.map(room => ({
+      ...room,
+      type: mapRoomTypeToFrontend(room.type),
+    }))
   },
   createRoom: async (data) => {
-    const response = await adminServiceClient.post('/api/rooms', data)
+    const response = await adminServiceClient.post('/api/rooms', normalizeRoomPayload(data))
     return response.data
   },
   updateRoom: async (id, data) => {
-    const response = await adminServiceClient.put(`/api/rooms/${id}`, data)
+    const response = await adminServiceClient.put(`/api/rooms/${id}`, normalizeRoomPayload(data))
     return response.data
   },
 
@@ -144,6 +208,8 @@ export const adminApi = {
       value: v.discountPercentage || 0,
       active: v.isActive ?? true,
       minOrderAmount: v.minPurchaseAmount || 0,
+      validFrom: toDateInputValue(v.validFrom),
+      validTo: toDateInputValue(v.validTo),
     }))
   },
   createVoucher: async (data) => {
@@ -154,8 +220,8 @@ export const adminApi = {
       discountPercentage: data.value || data.discountPercentage,
       maxDiscount: data.maxDiscount || 0,
       minPurchaseAmount: data.minOrderAmount || data.minPurchaseAmount || 0,
-      validFrom: data.validFrom,
-      validTo: data.validTo,
+      validFrom: toLocalDateTime(data.validFrom),
+      validTo: toLocalDateTime(data.validTo, true),
       usageLimit: data.usageLimit || -1,
       isActive: data.active ?? data.isActive ?? true,
     }
@@ -169,8 +235,8 @@ export const adminApi = {
       discountPercentage: data.value || data.discountPercentage,
       maxDiscount: data.maxDiscount,
       minPurchaseAmount: data.minOrderAmount || data.minPurchaseAmount,
-      validFrom: data.validFrom,
-      validTo: data.validTo,
+      validFrom: toLocalDateTime(data.validFrom),
+      validTo: toLocalDateTime(data.validTo, true),
       usageLimit: data.usageLimit,
       isActive: data.active ?? data.isActive,
     }

@@ -12,6 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final AvatarStorageService avatarStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -76,9 +80,38 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public String uploadAvatar(Long userId, String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            throw new ValidationException("URL ảnh đại diện không hợp lệ");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ValidationException("Người dùng không tìm thấy"));
         user.setAvatarUrl(avatarUrl);
+        user.setAvatarPublicId(null);
+        userRepository.save(user);
+        return avatarUrl;
+    }
+
+    @Override
+    @Transactional
+    public String uploadAvatar(Long userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ValidationException("Người dùng không tìm thấy"));
+
+        Map<String, String> uploadResult = avatarStorageService.uploadAvatar(userId, file);
+        String avatarUrl = uploadResult.get("url");
+        String newPublicId = uploadResult.get("publicId");
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            throw new ValidationException("Upload ảnh thất bại");
+        }
+
+        String oldPublicId = user.getAvatarPublicId();
+        if (oldPublicId != null && !oldPublicId.isBlank() && !oldPublicId.equals(newPublicId)) {
+            avatarStorageService.deleteAvatar(oldPublicId);
+        }
+
+        user.setAvatarUrl(avatarUrl);
+        user.setAvatarPublicId(newPublicId);
         userRepository.save(user);
         return avatarUrl;
     }

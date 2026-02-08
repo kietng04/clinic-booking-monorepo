@@ -237,6 +237,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      AVATAR_MAX_FILE_SIZE_BYTES: ${AVATAR_MAX_FILE_SIZE_BYTES:-5242880}
+      AVATAR_FOLDER: ${AVATAR_FOLDER:-healthflow/avatars}
     depends_on:
       postgres-user:
         condition: service_healthy

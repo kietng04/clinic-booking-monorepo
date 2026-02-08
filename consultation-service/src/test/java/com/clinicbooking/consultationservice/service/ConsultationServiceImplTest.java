@@ -139,6 +139,19 @@ class ConsultationServiceImplTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when doctor info is missing")
+    void shouldThrowExceptionWhenDoctorMissing() {
+        // Given
+        when(userServiceClient.getUserById(1L)).thenReturn(patientInfo);
+        when(userServiceClient.getDoctorById(10L)).thenReturn(null);
+
+        // When & Then
+        assertThatThrownBy(() -> consultationService.createConsultation(requestDto, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Doctor is not active");
+    }
+
+    @Test
     @DisplayName("Should use default fee when not provided")
     void shouldUseDefaultFeeWhenNotProvided() {
         // Given

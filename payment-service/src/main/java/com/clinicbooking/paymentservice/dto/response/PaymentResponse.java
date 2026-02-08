@@ -25,6 +25,10 @@ public class PaymentResponse implements Serializable {
     
     private String orderId;
 
+    private String invoiceNumber;
+
+    private Long appointmentId;
+
     
     private String payUrl;
 
@@ -36,6 +40,12 @@ public class PaymentResponse implements Serializable {
 
     
     private BigDecimal amount;
+
+    private BigDecimal finalAmount;
+
+    private BigDecimal discount;
+
+    private String description;
 
 
     private String status;
@@ -51,6 +61,8 @@ public class PaymentResponse implements Serializable {
 
     // Payment method (CASH, MOMO_WALLET, etc.)
     private String paymentMethod;
+
+    private LocalDateTime createdAt;
 
     // Counter payment confirmation metadata
     private Long confirmedByUserId;

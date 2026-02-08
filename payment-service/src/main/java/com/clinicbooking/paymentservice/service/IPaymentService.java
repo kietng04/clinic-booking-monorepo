@@ -9,6 +9,8 @@ import com.clinicbooking.paymentservice.dto.response.PaymentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
+
 public interface IPaymentService {
 
     PaymentResponse createPayment(CreatePaymentRequest request, Long patientId);
@@ -28,6 +30,8 @@ public interface IPaymentService {
     RefundResponse refundPayment(RefundPaymentRequest request);
 
     PaymentResponse queryPaymentStatus(String orderId);
+
+    byte[] exportPatientPaymentsCsv(Long patientId, LocalDateTime fromDate, LocalDateTime toDate);
 
     /**
      * Confirm counter payment by receptionist

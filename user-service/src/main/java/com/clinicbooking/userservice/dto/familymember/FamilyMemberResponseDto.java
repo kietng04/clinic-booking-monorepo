@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,7 +16,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Schema(description = "DTO phản hồi cho thành viên gia đình")
-public class FamilyMemberResponseDto {
+public class FamilyMemberResponseDto implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "ID của thành viên gia đình", example = "1")
     private Long id;

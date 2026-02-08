@@ -1,71 +1,11 @@
-import axios from 'axios'
+import { createApiClient } from '../core/createApiClient'
 
 /**
  * Family Members API - Real backend integration
  * Manages family member records for patients
  */
 
-// API base URL - Gateway URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-
-// Create axios instance for family members service
-const familyMemberServiceClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add JWT token to requests
-familyMemberServiceClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Auto token refresh on 401
-familyMemberServiceClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        if (refreshToken) {
-          // Refresh via gateway
-          const response = await axios.post(
-            `${API_BASE_URL}/api/auth/refresh`,
-            null,
-            { params: { refreshToken } }
-          )
-
-          const { token, refreshToken: newRefreshToken } = response.data
-          localStorage.setItem('accessToken', token)
-          localStorage.setItem('refreshToken', newRefreshToken)
-
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return familyMemberServiceClient(originalRequest)
-        }
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('auth-storage')
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
-      }
-    }
-
-    return Promise.reject(error)
-  }
-)
+const familyMemberServiceClient = createApiClient()
 
 export const familyMemberApi = {
   /**

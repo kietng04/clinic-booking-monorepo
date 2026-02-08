@@ -22,6 +22,7 @@ import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { statsApi } from '@/api/realApis/statsApi'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { mockDoctorAnalytics } from '@/api/mockData'
 import { vi } from '@/lib/translations'
 
@@ -50,7 +51,7 @@ const DoctorAnalytics = () => {
       setAnalytics(transformDataByDateRange(analyticsData, dateRange))
     } catch (error) {
       console.error('Failed to load doctor analytics:', error)
-      showToast({ type: 'error', message: 'Không thể tải dữ liệu phân tích' })
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải dữ liệu phân tích') })
       setAnalytics(mockDoctorAnalytics)
     } finally {
       setIsLoading(false)

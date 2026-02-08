@@ -21,6 +21,7 @@ import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { notificationApi } from '@/api/notificationApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { formatDate } from '@/lib/utils'
 
 const NOTIFICATION_TYPES = {
@@ -42,7 +43,7 @@ const TYPE_LABELS = {
 const getTypeCategory = (type) => {
   if (!type) return NOTIFICATION_TYPES.SYSTEM
   const upper = type.toUpperCase()
-  if (upper.includes('APPOINTMENT')) return NOTIFICATION_TYPES.APPOINTMENT
+  if (upper.includes('APPOINTMENT') || upper.includes('FEEDBACK')) return NOTIFICATION_TYPES.APPOINTMENT
   if (upper.includes('MEDICAL') || upper.includes('LAB') || upper.includes('PRESCRIPTION')) return NOTIFICATION_TYPES.MEDICAL_RECORD
   if (upper.includes('PAYMENT')) return NOTIFICATION_TYPES.PAYMENT
   return NOTIFICATION_TYPES.SYSTEM
@@ -65,9 +66,9 @@ const getNotificationIcon = (type) => {
 const getNavigationPath = (notification) => {
   if (!notification.relatedId) return null
   const category = getTypeCategory(notification.type)
-  switch (category) {
-    case NOTIFICATION_TYPES.APPOINTMENT:
-      return `/appointments`
+    switch (category) {
+      case NOTIFICATION_TYPES.APPOINTMENT:
+        return `/appointments`
     case NOTIFICATION_TYPES.MEDICAL_RECORD:
       return `/medical-records`
     default:
@@ -127,7 +128,7 @@ const NotificationCenter = () => {
       setHasMore(items.length === 20)
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
-      showToast({ type: 'error', message: 'Không thể tải thông báo' })
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải thông báo') })
     } finally {
       setIsLoading(false)
       setIsFetchingMore(false)
@@ -143,8 +144,8 @@ const NotificationCenter = () => {
       await notificationApi.markAllAsRead(user.id)
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
       showToast({ type: 'success', message: 'Đã đánh dấu tất cả đã đọc' })
-    } catch {
-      showToast({ type: 'error', message: 'Không thể đánh dấu đã đọc' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc') })
     }
   }
 
@@ -154,8 +155,8 @@ const NotificationCenter = () => {
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, isRead: true } : n)
       )
-    } catch {
-      console.error('Failed to mark as read')
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc') })
     }
   }
 
@@ -165,8 +166,8 @@ const NotificationCenter = () => {
       setNotifications(prev => prev.filter(n => n.id !== id))
       setSelectedIds(prev => prev.filter(sid => sid !== id))
       showToast({ type: 'success', message: 'Đã xóa thông báo' })
-    } catch {
-      showToast({ type: 'error', message: 'Không thể xóa thông báo' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể xóa thông báo') })
     }
   }
 
@@ -177,8 +178,8 @@ const NotificationCenter = () => {
       setNotifications(prev => prev.filter(n => !selectedIds.includes(n.id)))
       showToast({ type: 'success', message: `Đã xóa ${selectedIds.length} thông báo` })
       setSelectedIds([])
-    } catch {
-      showToast({ type: 'error', message: 'Không thể xóa thông báo' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể xóa thông báo') })
     }
   }
 

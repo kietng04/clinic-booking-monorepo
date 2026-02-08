@@ -19,6 +19,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { adminApi } from '@/api/adminApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 
 const ROOM_TYPES = [
   { value: 'Consultation', label: 'Tư vấn' },
@@ -76,8 +77,8 @@ const RoomManagement = () => {
       ])
       setClinics(clinicsData || [])
       setRooms(roomsData || [])
-    } catch {
-      showToast({ type: 'error', message: 'Không thể tải dữ liệu' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải dữ liệu') })
     } finally {
       setIsLoading(false)
     }
@@ -106,8 +107,8 @@ const RoomManagement = () => {
       setEditingRoom(null)
       setFormData(defaultForm)
       fetchData()
-    } catch {
-      showToast({ type: 'error', message: 'Không thể lưu phòng' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể lưu phòng') })
     } finally {
       setIsSubmitting(false)
     }
@@ -118,8 +119,8 @@ const RoomManagement = () => {
       await adminApi.updateRoom(room.id, { active: !room.active })
       setRooms(prev => prev.map(r => r.id === room.id ? { ...r, active: !r.active } : r))
       showToast({ type: 'success', message: room.active ? 'Đã vô hiệu hóa phòng' : 'Đã kích hoạt phòng' })
-    } catch {
-      showToast({ type: 'error', message: 'Không thể thay đổi trạng thái' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể thay đổi trạng thái') })
     }
   }
 

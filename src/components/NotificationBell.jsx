@@ -5,6 +5,7 @@ import { Bell, Check, CheckCheck, Trash2, Calendar, FileText, X, ExternalLink } 
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { notificationApi } from '@/api/notificationApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { formatDate } from '@/lib/utils'
 
 const NotificationBell = () => {
@@ -55,7 +56,7 @@ const NotificationBell = () => {
             const data = await notificationApi.getNotifications(user.id, { size: 10 })
             setNotifications(data || [])
         } catch (error) {
-            console.error('Failed to fetch notifications:', error)
+            showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải thông báo') })
         } finally {
             setIsLoading(false)
         }
@@ -76,7 +77,7 @@ const NotificationBell = () => {
             )
             setUnreadCount((prev) => Math.max(0, prev - 1))
         } catch (error) {
-            console.error('Failed to mark as read:', error)
+            showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc') })
         }
     }
 
@@ -87,7 +88,7 @@ const NotificationBell = () => {
             setUnreadCount(0)
             showToast({ type: 'success', message: 'Đã đánh dấu tất cả đã đọc' })
         } catch (error) {
-            showToast({ type: 'error', message: 'Không thể đánh dấu đã đọc' })
+            showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc') })
         }
     }
 
@@ -97,6 +98,8 @@ const NotificationBell = () => {
             case 'APPOINTMENT_CONFIRMED':
             case 'APPOINTMENT_CANCELLED':
             case 'APPOINTMENT_REMINDER':
+            case 'APPOINTMENT_COMPLETED':
+            case 'FEEDBACK_AVAILABLE':
                 return <Calendar className="w-4 h-4" />
             case 'NEW_MEDICAL_RECORD':
                 return <FileText className="w-4 h-4" />

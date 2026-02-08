@@ -12,6 +12,7 @@ import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { familyMemberApi } from '@/api/familyMemberApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { vi } from '@/lib/translations'
 
 const FamilyMembers = () => {
@@ -48,7 +49,7 @@ const FamilyMembers = () => {
       const data = await familyMemberApi.getMembers(user.id)
       setMembers((data || []).map(normalizeMember))
     } catch (error) {
-      showToast({ type: 'error', message: 'Không thể tải danh sách thành viên' })
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải danh sách thành viên') })
     } finally {
       setIsLoading(false)
     }
@@ -111,7 +112,7 @@ const FamilyMembers = () => {
       })
       fetchMembers()
     } catch (error) {
-      showToast({ type: 'error', message: 'Không thể lưu thông tin' })
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể lưu thông tin') })
     }
   }
 
@@ -135,7 +136,7 @@ const FamilyMembers = () => {
       showToast({ type: 'success', message: vi.family.memberDeleted })
       fetchMembers()
     } catch (error) {
-      showToast({ type: 'error', message: 'Không thể xóa thành viên' })
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể xóa thành viên') })
     }
   }
 

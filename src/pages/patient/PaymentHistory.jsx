@@ -23,6 +23,7 @@ import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { paymentApi } from '@/api/paymentApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { formatDate } from '@/lib/utils'
 
 const PaymentHistory = () => {
@@ -54,7 +55,7 @@ const PaymentHistory = () => {
     } catch (error) {
       showToast({
         type: 'error',
-        message: 'Không thể tải lịch sử thanh toán',
+        message: extractApiErrorMessage(error, 'Không thể tải lịch sử thanh toán'),
       })
     } finally {
       setIsLoading(false)
@@ -112,7 +113,7 @@ const PaymentHistory = () => {
     } catch (error) {
       showToast({
         type: 'error',
-        message: 'Không thể tải hóa đơn',
+        message: extractApiErrorMessage(error, 'Không thể tải hóa đơn'),
       })
     }
   }
@@ -135,7 +136,7 @@ const PaymentHistory = () => {
     } catch (error) {
       showToast({
         type: 'error',
-        message: 'Không thể xuất dữ liệu',
+        message: extractApiErrorMessage(error, 'Không thể xuất dữ liệu'),
       })
     }
   }

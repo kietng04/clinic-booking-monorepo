@@ -1,11 +1,9 @@
-import axios from 'axios'
+import { createApiClient } from '../core/createApiClient'
 
 /**
  * Appointment API - Real backend integration
  * Routes through API Gateway (port 8080) for centralized request handling
  */
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const normalizeAppointment = (appointment) => {
   if (!appointment || typeof appointment !== 'object') return appointment
@@ -32,62 +30,7 @@ const normalizeAppointmentList = (data) =>
   Array.isArray(data) ? data.map(normalizeAppointment) : data
 
 // Create dedicated axios client for API Gateway (port 8080)
-const appointmentServiceClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add JWT token to requests
-appointmentServiceClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Auto token refresh on 401
-appointmentServiceClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        if (refreshToken) {
-          const response = await axios.post(
-            `${API_BASE_URL}/api/auth/refresh`,
-            null,
-            { params: { refreshToken } }
-          )
-
-          const { token, refreshToken: newRefreshToken } = response.data
-          localStorage.setItem('accessToken', token)
-          localStorage.setItem('refreshToken', newRefreshToken)
-
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return appointmentServiceClient(originalRequest)
-        }
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('auth-storage')
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
-      }
-    }
-
-    return Promise.reject(error)
-  }
-)
+const appointmentServiceClient = createApiClient()
 export const appointmentApi = {
   /**
    * Get appointments with filters

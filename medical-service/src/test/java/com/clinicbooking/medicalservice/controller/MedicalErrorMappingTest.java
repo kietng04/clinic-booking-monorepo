@@ -1,0 +1,80 @@
+package com.clinicbooking.medicalservice.controller;
+
+import com.clinicbooking.medicalservice.exception.AccessDeniedException;
+import com.clinicbooking.medicalservice.exception.ApiErrorResponse;
+import com.clinicbooking.medicalservice.exception.GlobalExceptionHandler;
+import com.clinicbooking.medicalservice.exception.ValidationException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@DisplayName("Medical Error Mapping Tests")
+class MedicalErrorMappingTest {
+
+    private GlobalExceptionHandler handler;
+    private HttpServletRequest request;
+
+    @BeforeEach
+    void setUp() {
+        handler = new GlobalExceptionHandler();
+        request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/medical-records/100");
+        when(request.getHeader("X-Correlation-Id")).thenReturn("corr-medical-100");
+    }
+
+    @Test
+    @DisplayName("Should map ValidationException to 400 contract")
+    void shouldMapValidationExceptionToBadRequest() {
+        ResponseEntity<ApiErrorResponse> response = handler.handleValidationException(
+                new ValidationException("Dữ liệu bệnh án không hợp lệ"),
+                request
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(400, response.getBody().status());
+        assertEquals("Dữ liệu bệnh án không hợp lệ", response.getBody().message());
+        assertEquals("VALIDATION_ERROR", response.getBody().errorCode());
+        assertEquals("corr-medical-100", response.getBody().correlationId());
+    }
+
+    @Test
+    @DisplayName("Should map AccessDeniedException to 403 contract")
+    void shouldMapAccessDeniedExceptionToForbidden() {
+        ResponseEntity<ApiErrorResponse> response = handler.handleAccessDeniedException(
+                new AccessDeniedException("Không có quyền truy cập bệnh án này"),
+                request
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(403, response.getBody().status());
+        assertEquals("FORBIDDEN", response.getBody().errorCode());
+        assertEquals("Không có quyền truy cập bệnh án này", response.getBody().message());
+        assertEquals("/api/medical-records/100", response.getBody().path());
+    }
+
+    @Test
+    @DisplayName("Should map unexpected exceptions to 500 contract")
+    void shouldMapGenericExceptionToInternalServerError() {
+        ResponseEntity<ApiErrorResponse> response = handler.handleGenericException(
+                new RuntimeException("boom"),
+                request
+        );
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(500, response.getBody().status());
+        assertEquals("INTERNAL_SERVER_ERROR", response.getBody().errorCode());
+        assertEquals("An unexpected error occurred. Please try again later.", response.getBody().message());
+        assertEquals("corr-medical-100", response.getBody().correlationId());
+    }
+}

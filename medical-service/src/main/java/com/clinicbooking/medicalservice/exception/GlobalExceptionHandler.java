@@ -1,4 +1,4 @@
-package com.clinicbooking.consultationservice.exception;
+package com.clinicbooking.medicalservice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Global exception handler for the consultation service
- */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -24,36 +21,25 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleResourceNotFoundException(
             ResourceNotFoundException ex,
             HttpServletRequest request) {
-        log.error("Resource not found: {}", ex.getMessage());
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "RESOURCE_NOT_FOUND", request, null);
     }
 
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiErrorResponse> handleUnauthorizedException(
-            UnauthorizedException ex,
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiErrorResponse> handleValidationException(
+            ValidationException ex,
             HttpServletRequest request) {
-        log.error("Unauthorized access: {}", ex.getMessage());
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "VALIDATION_ERROR", request, null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDeniedException(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
         return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), "FORBIDDEN", request, null);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(
-            IllegalArgumentException ex,
-            HttpServletRequest request) {
-        log.error("Invalid argument: {}", ex.getMessage());
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "VALIDATION_ERROR", request, null);
-    }
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ApiErrorResponse> handleIllegalStateException(
-            IllegalStateException ex,
-            HttpServletRequest request) {
-        log.error("Invalid state: {}", ex.getMessage());
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "VALIDATION_ERROR", request, null);
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiErrorResponse> handleValidationExceptions(
+    public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
         Map<String, Object> details = new HashMap<>();
@@ -65,15 +51,20 @@ public class GlobalExceptionHandler {
                 .map(Object::toString)
                 .orElse("Validation failed for request body");
 
-        log.error("Validation failed: {}", details);
-        return buildError(HttpStatus.BAD_REQUEST, message, "METHOD_ARGUMENT_NOT_VALID", request, details);
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                message,
+                "METHOD_ARGUMENT_NOT_VALID",
+                request,
+                details
+        );
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGenericException(
             Exception ex,
             HttpServletRequest request) {
-        log.error("Unexpected error occurred", ex);
+        log.error("Unexpected error in medical-service", ex);
         return buildError(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred. Please try again later.",

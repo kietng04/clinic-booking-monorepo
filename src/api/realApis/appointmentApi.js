@@ -216,6 +216,21 @@ export const appointmentApi = {
   },
 
   /**
+   * Submit feedback for completed appointment
+   * @param {string|number} id - Appointment ID
+   * @param {Object} data - { rating, review? }
+   * @returns {Promise} Updated appointment with feedback
+   */
+  submitFeedback: async (id, data) => {
+    const payload = {
+      rating: data?.rating,
+      review: data?.review ?? '',
+    }
+    const response = await appointmentServiceClient.put(`/api/appointments/${id}/feedback`, payload)
+    return normalizeAppointment(response.data)
+  },
+
+  /**
    * Delete appointment
    * @param {string} id - Appointment ID
    * @returns {Promise} Deletion confirmation

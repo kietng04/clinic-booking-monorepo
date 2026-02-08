@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.service;
 
 import com.clinicbooking.appointmentservice.client.UserServiceClient;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.dto.UserDto;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -311,6 +313,50 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         eventPublisher.publishAppointmentUpdated(appointment);
 
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponseDto submitFeedback(Long appointmentId, Long patientId, AppointmentFeedbackDto dto) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        if (dto == null || dto.getRating() == null) {
+            throw new ValidationException("Điểm đánh giá không được để trống");
+        }
+
+        if (patientId == null || !appointment.getPatientId().equals(patientId)) {
+            throw new ValidationException("Bạn không có quyền đánh giá lịch hẹn này");
+        }
+
+        if (appointment.getStatus() != Appointment.AppointmentStatus.COMPLETED) {
+            throw new ValidationException("Chỉ có thể đánh giá lịch hẹn đã hoàn thành");
+        }
+
+        if (appointment.getPatientRating() != null) {
+            throw new ValidationException("Lịch hẹn này đã được đánh giá");
+        }
+
+        BigDecimal rating = dto.getRating();
+        if (rating.compareTo(BigDecimal.ONE) < 0 || rating.compareTo(BigDecimal.valueOf(5)) > 0) {
+            throw new ValidationException("Điểm đánh giá phải từ 1 đến 5");
+        }
+
+        String review = dto.getReview();
+        if (review != null) {
+            review = review.trim();
+            if (review.isEmpty()) {
+                review = null;
+            }
+        }
+
+        appointment.setPatientRating(rating);
+        appointment.setPatientReview(review);
+        appointment.setReviewedAt(LocalDateTime.now());
+        appointment = appointmentRepository.save(appointment);
+
+        eventPublisher.publishAppointmentUpdated(appointment);
         return appointmentMapper.toDto(appointment);
     }
 

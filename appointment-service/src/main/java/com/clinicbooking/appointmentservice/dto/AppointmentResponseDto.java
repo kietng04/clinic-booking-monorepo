@@ -27,6 +27,9 @@ public class AppointmentResponseDto {
     private Long roomId;
     private Long serviceId;
     private BigDecimal serviceFee;
+    private BigDecimal patientRating;
+    private String patientReview;
+    private LocalDateTime reviewedAt;
     private LocalDate appointmentDate;
     private LocalTime appointmentTime;
     private Integer durationMinutes;

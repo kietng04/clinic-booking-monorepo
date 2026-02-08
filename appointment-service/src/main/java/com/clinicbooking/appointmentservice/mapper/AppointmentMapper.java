@@ -16,6 +16,9 @@ public interface AppointmentMapper {
     @Mapping(target = "familyMemberName", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "cancelReason", ignore = true)
+    @Mapping(target = "patientRating", ignore = true)
+    @Mapping(target = "patientReview", ignore = true)
+    @Mapping(target = "reviewedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Appointment toEntity(AppointmentCreateDto dto);

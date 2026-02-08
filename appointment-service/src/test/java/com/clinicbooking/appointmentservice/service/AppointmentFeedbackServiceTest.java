@@ -47,6 +47,9 @@ class AppointmentFeedbackServiceTest {
     @Mock
     private UserServiceClient userServiceClient;
 
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private AppointmentServiceImpl appointmentService;
 

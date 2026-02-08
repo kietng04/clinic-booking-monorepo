@@ -19,75 +19,61 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("JWT Forwarding Filter Tests")
-class JwtForwardingFilterTest {
+@DisplayName("Authentication Filter Tests")
+class AuthenticationFilterTest {
 
     private static final String JWT_SECRET = "dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=";
 
-    private JwtForwardingFilter jwtForwardingFilter;
+    private AuthenticationFilter authenticationFilter;
     private String validToken;
 
     @BeforeEach
     void setUp() throws Exception {
         JwtService jwtService = new JwtService(JWT_SECRET);
-        jwtForwardingFilter = new JwtForwardingFilter();
+        authenticationFilter = new AuthenticationFilter();
 
-        var field = JwtForwardingFilter.class.getDeclaredField("jwtService");
+        var field = AuthenticationFilter.class.getDeclaredField("jwtService");
         field.setAccessible(true);
-        field.set(jwtForwardingFilter, jwtService);
+        field.set(authenticationFilter, jwtService);
 
-        validToken = createTestToken(123L, "user@example.com", "PATIENT");
+        validToken = createTestToken(100L, "patient@clinic.local", "PATIENT");
     }
 
     @Test
-    @DisplayName("Should forward request with valid JWT token")
-    void shouldForwardValidToken() {
-        MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("/api/appointments")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
-                        .build()
-        );
-        AtomicBoolean chainCalled = new AtomicBoolean(false);
-        GatewayFilterChain chain = e -> {
-            chainCalled.set(true);
-            return Mono.empty();
-        };
-
-        Mono<Void> result = jwtForwardingFilter.filter(exchange, chain);
-
-        StepVerifier.create(result).verifyComplete();
-        assertTrue(chainCalled.get());
-        assertNull(exchange.getResponse().getStatusCode());
-    }
-
-    @Test
-    @DisplayName("Should continue chain when authorization header is missing")
-    void shouldContinueWhenAuthorizationHeaderMissing() {
+    @DisplayName("Should return structured 401 JSON when authorization header is missing")
+    void shouldReturnStructuredUnauthorizedWhenHeaderMissing() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/appointments").build()
         );
-        AtomicBoolean chainCalled = new AtomicBoolean(false);
-        GatewayFilterChain chain = e -> {
-            chainCalled.set(true);
-            return Mono.empty();
-        };
+        GatewayFilterChain chain = e -> Mono.empty();
 
-        Mono<Void> result = jwtForwardingFilter.filter(exchange, chain);
+        Mono<Void> result = authenticationFilter.apply(new AuthenticationFilter.Config())
+                .filter(exchange, chain);
 
         StepVerifier.create(result).verifyComplete();
-        assertTrue(chainCalled.get());
-        assertNull(exchange.getResponse().getStatusCode());
+
+        assertTrue(exchange.getResponse().getStatusCode() == HttpStatus.UNAUTHORIZED);
+        String body = exchange.getResponse().getBodyAsString().block();
+        assertNotNull(body);
+        assertTrue(body.contains("\"status\":401"));
+        assertTrue(body.contains("\"message\":\"Missing authorization header\""));
+        assertTrue(body.contains("\"errorCode\":\"UNAUTHORIZED\""));
+        assertTrue(body.contains("\"correlationId\""));
+        assertTrue(body.contains("\"path\":\"/api/appointments\""));
     }
 
     @Test
-    @DisplayName("Should continue chain for invalid JWT token without throwing")
-    void shouldContinueForInvalidToken() {
+    @DisplayName("Should continue filter chain for valid bearer token")
+    void shouldContinueChainForValidToken() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/appointments")
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid.token.here")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
+                        .header("X-Correlation-Id", "corr-auth-valid-123")
                         .build()
         );
         AtomicBoolean chainCalled = new AtomicBoolean(false);
@@ -96,18 +82,22 @@ class JwtForwardingFilterTest {
             return Mono.empty();
         };
 
-        Mono<Void> result = jwtForwardingFilter.filter(exchange, chain);
+        Mono<Void> result = authenticationFilter.apply(new AuthenticationFilter.Config())
+                .filter(exchange, chain);
 
         StepVerifier.create(result).verifyComplete();
+
         assertTrue(chainCalled.get());
         assertNull(exchange.getResponse().getStatusCode());
     }
 
     @Test
-    @DisplayName("Should bypass JWT processing for auth endpoints")
-    void shouldBypassForAuthEndpoints() {
+    @DisplayName("Should return structured 401 JSON for invalid bearer format")
+    void shouldReturnStructuredUnauthorizedForInvalidFormat() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.post("/api/auth/login").build()
+                MockServerHttpRequest.get("/api/appointments")
+                        .header(HttpHeaders.AUTHORIZATION, "Token " + validToken)
+                        .build()
         );
         AtomicBoolean chainCalled = new AtomicBoolean(false);
         GatewayFilterChain chain = e -> {
@@ -115,11 +105,17 @@ class JwtForwardingFilterTest {
             return Mono.empty();
         };
 
-        Mono<Void> result = jwtForwardingFilter.filter(exchange, chain);
+        Mono<Void> result = authenticationFilter.apply(new AuthenticationFilter.Config())
+                .filter(exchange, chain);
 
         StepVerifier.create(result).verifyComplete();
-        assertTrue(chainCalled.get());
-        assertNull(exchange.getResponse().getStatusCode());
+
+        assertFalse(chainCalled.get());
+        assertTrue(exchange.getResponse().getStatusCode() == HttpStatus.UNAUTHORIZED);
+        String body = exchange.getResponse().getBodyAsString().block();
+        assertNotNull(body);
+        assertTrue(body.contains("\"message\":\"Invalid authorization header format\""));
+        assertTrue(body.contains("\"errorCode\":\"UNAUTHORIZED\""));
     }
 
     private String createTestToken(Long userId, String email, String role) {

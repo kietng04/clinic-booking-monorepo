@@ -25,6 +25,9 @@ public class AppointmentEventPublisher {
     @Value("${kafka.topics.appointment-cancelled}")
     private String appointmentCancelledTopic;
 
+    @Value("${kafka.topics.appointment-completed}")
+    private String appointmentCompletedTopic;
+
     public void publishAppointmentCreated(Appointment appointment) {
         AppointmentEvent event = buildAppointmentEvent(appointment, "CREATED");
         kafkaTemplate.send(appointmentCreatedTopic, appointment.getId().toString(), event);
@@ -41,6 +44,12 @@ public class AppointmentEventPublisher {
         AppointmentEvent event = buildAppointmentEvent(appointment, "CANCELLED");
         kafkaTemplate.send(appointmentCancelledTopic, appointment.getId().toString(), event);
         log.info("Published appointment cancelled event: appointmentId={}", appointment.getId());
+    }
+
+    public void publishAppointmentCompleted(Appointment appointment) {
+        AppointmentEvent event = buildAppointmentEvent(appointment, "COMPLETED");
+        kafkaTemplate.send(appointmentCompletedTopic, appointment.getId().toString(), event);
+        log.info("Published appointment completed event: appointmentId={}", appointment.getId());
     }
 
     private AppointmentEvent buildAppointmentEvent(Appointment appointment, String eventType) {

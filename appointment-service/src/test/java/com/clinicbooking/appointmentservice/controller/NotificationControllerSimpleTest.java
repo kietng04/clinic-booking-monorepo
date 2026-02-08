@@ -178,6 +178,7 @@ class NotificationControllerSimpleTest {
     @DisplayName("Should update notification successfully")
     void testUpdateNotification_Success() throws Exception {
         // Given
+        when(notificationService.getNotificationById(1L)).thenReturn(responseDto);
         when(notificationService.updateNotification(eq(1L), any(NotificationUpdateDto.class))).thenReturn(responseDto);
 
         // When & Then
@@ -205,6 +206,7 @@ class NotificationControllerSimpleTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        when(notificationService.getNotificationById(1L)).thenReturn(responseDto);
         when(notificationService.markAsRead(1L)).thenReturn(readDto);
 
         // When & Then
@@ -233,6 +235,7 @@ class NotificationControllerSimpleTest {
     @DisplayName("Should delete notification successfully")
     void testDeleteNotification_Success() throws Exception {
         // Given
+        when(notificationService.getNotificationById(1L)).thenReturn(responseDto);
         doNothing().when(notificationService).deleteNotification(1L);
 
         // When & Then

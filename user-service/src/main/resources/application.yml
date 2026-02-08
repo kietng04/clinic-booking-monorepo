@@ -67,6 +67,13 @@ spring:
 server:
   port: 8081
 
+cloudinary:
+  url: ${CLOUDINARY_URL:}
+
+avatar:
+  max-file-size-bytes: ${AVATAR_MAX_FILE_SIZE_BYTES:5242880}
+  folder: ${AVATAR_FOLDER:healthflow/avatars}
+
 eureka:
   client:
     service-url:

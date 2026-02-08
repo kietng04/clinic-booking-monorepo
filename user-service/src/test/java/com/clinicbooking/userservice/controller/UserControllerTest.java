@@ -32,10 +32,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UserController.class,
-        excludeFilters = @ComponentScan.Filter(
-                type = FilterType.ASSIGNABLE_TYPE,
-                classes = WebSecurityConfigurer.class
-        ),
+        excludeFilters = {
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = WebSecurityConfigurer.class
+                ),
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = com.clinicbooking.userservice.security.JwtAuthenticationFilter.class
+                )
+        },
         excludeAutoConfiguration = {
                 org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class
         })
@@ -133,7 +139,9 @@ class UserControllerTest {
     void searchDoctors_withKeywordOnly_returns200() throws Exception {
         // Arrange
         Page<UserResponseDto> singleDoctorPage = new PageImpl<>(
-                Collections.singletonList(doctor1)
+                Collections.singletonList(doctor1),
+                PageRequest.of(0, 12),
+                1
         );
         when(userService.searchDoctors(
                 anyString(),
@@ -289,7 +297,9 @@ class UserControllerTest {
     void searchDoctors_withSpecializationFilter_returns200() throws Exception {
         // Arrange
         Page<UserResponseDto> cardiologyPage = new PageImpl<>(
-                Collections.singletonList(doctor1)
+                Collections.singletonList(doctor1),
+                PageRequest.of(0, 12),
+                1
         );
         when(userService.searchDoctors(
                 isNull(),
@@ -339,7 +349,9 @@ class UserControllerTest {
     void searchDoctors_withMaxFeeFilter_returns200() throws Exception {
         // Arrange
         Page<UserResponseDto> affordableDoctors = new PageImpl<>(
-                Collections.singletonList(doctor1)
+                Collections.singletonList(doctor1),
+                PageRequest.of(0, 12),
+                1
         );
         when(userService.searchDoctors(
                 isNull(),

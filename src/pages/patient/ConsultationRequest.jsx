@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { consultationApi } from '@/api/realApis/consultationApi'
 import { userApi } from '@/api/userApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 
 const ConsultationRequest = () => {
   const navigate = useNavigate()
@@ -39,7 +40,7 @@ const ConsultationRequest = () => {
       setDoctors(doctorsList)
     } catch (error) {
       console.error('Failed to load doctors:', error)
-      showToast({ type: 'error', message: 'Không thể tải danh sách bác sĩ' })
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải danh sách bác sĩ') })
     } finally {
       setIsLoadingDoctors(false)
     }
@@ -82,7 +83,7 @@ const ConsultationRequest = () => {
       console.error('Failed to create consultation:', error)
       showToast({
         type: 'error',
-        message: error.response?.data?.message || 'Không thể tạo yêu cầu tư vấn',
+        message: extractApiErrorMessage(error, 'Không thể tạo yêu cầu tư vấn'),
       })
     } finally {
       setIsLoading(false)

@@ -22,6 +22,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { adminApi } from '@/api/adminApiWrapper'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 
 const defaultForm = {
   code: '',
@@ -76,8 +77,8 @@ const VoucherManagement = () => {
     try {
       const data = await adminApi.getVouchers()
       setVouchers(data || [])
-    } catch {
-      showToast({ type: 'error', message: 'Không thể tải danh sách voucher' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải danh sách voucher') })
     } finally {
       setIsLoading(false)
     }
@@ -106,8 +107,8 @@ const VoucherManagement = () => {
       setEditingVoucher(null)
       setFormData(defaultForm)
       fetchVouchers()
-    } catch {
-      showToast({ type: 'error', message: 'Không thể lưu voucher' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể lưu voucher') })
     } finally {
       setIsSubmitting(false)
     }
@@ -120,8 +121,8 @@ const VoucherManagement = () => {
         prev.map(v => v.id === voucher.id ? { ...v, active: !v.active } : v)
       )
       showToast({ type: 'success', message: voucher.active ? 'Đã vô hiệu hóa voucher' : 'Đã kích hoạt voucher' })
-    } catch {
-      showToast({ type: 'error', message: 'Không thể thay đổi trạng thái' })
+    } catch (error) {
+      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể thay đổi trạng thái') })
     }
   }
 

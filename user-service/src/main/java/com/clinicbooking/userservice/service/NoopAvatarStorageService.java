@@ -1,14 +1,10 @@
 package com.clinicbooking.userservice.service;
 
 import com.clinicbooking.userservice.exception.ValidationException;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
-@Service
-@ConditionalOnMissingBean(AvatarStorageService.class)
 public class NoopAvatarStorageService implements AvatarStorageService {
 
     @Override
@@ -21,4 +17,3 @@ public class NoopAvatarStorageService implements AvatarStorageService {
         // No-op intentionally.
     }
 }
-

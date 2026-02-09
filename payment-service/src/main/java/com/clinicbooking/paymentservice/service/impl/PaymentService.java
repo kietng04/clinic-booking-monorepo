@@ -137,7 +137,6 @@ public class PaymentService implements IPaymentService {
                         .description(request.getDescription())
                         .amount(request.getAmount())
                         .finalAmount(request.getAmount())
-                        .discount(BigDecimal.ZERO)
                         .status(PaymentStatus.PENDING.toString())
                         .currency("VND")
                         .paymentMethod(paymentMethod.name())
@@ -185,7 +184,6 @@ public class PaymentService implements IPaymentService {
                     .qrCodeUrl(momoResponse.getQrCodeUrl())
                     .amount(request.getAmount())
                     .finalAmount(request.getAmount())
-                    .discount(BigDecimal.ZERO)
                     .description(request.getDescription())
                     .status(PaymentStatus.PENDING.toString())
                     .currency("VND")
@@ -617,13 +615,12 @@ public class PaymentService implements IPaymentService {
         }
 
         StringBuilder csv = new StringBuilder();
-        csv.append("orderId,appointmentId,amount,finalAmount,discount,currency,status,paymentMethod,createdAt,description\n");
+        csv.append("orderId,appointmentId,amount,finalAmount,currency,status,paymentMethod,createdAt,description\n");
         for (PaymentOrder order : orders) {
             csv.append(escapeCsv(order.getOrderId())).append(',')
                     .append(order.getAppointmentId()).append(',')
                     .append(order.getAmount()).append(',')
                     .append(order.getAmount()).append(',')
-                    .append(BigDecimal.ZERO).append(',')
                     .append(escapeCsv(order.getCurrency())).append(',')
                     .append(escapeCsv(order.getStatus().toString())).append(',')
                     .append(escapeCsv(order.getPaymentMethod().name())).append(',')
@@ -765,7 +762,6 @@ public class PaymentService implements IPaymentService {
                 .qrCodeUrl(transaction != null ? transaction.getQrCodeUrl() : null)
                 .amount(paymentOrder.getAmount())
                 .finalAmount(paymentOrder.getAmount())
-                .discount(BigDecimal.ZERO)
                 .description(paymentOrder.getDescription())
                 .status(paymentOrder.getStatus().toString())
                 .currency(paymentOrder.getCurrency())

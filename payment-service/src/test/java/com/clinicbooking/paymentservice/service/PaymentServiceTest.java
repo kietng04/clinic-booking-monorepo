@@ -579,7 +579,6 @@ class PaymentServiceTest {
         assertFieldEquals(result, "createdAt", createdAt);
         assertFieldEquals(result, "appointmentId", 1L);
         assertFieldEquals(result, "finalAmount", new BigDecimal("50000.00"));
-        assertFieldEquals(result, "discount", BigDecimal.ZERO);
     }
 
     @Test

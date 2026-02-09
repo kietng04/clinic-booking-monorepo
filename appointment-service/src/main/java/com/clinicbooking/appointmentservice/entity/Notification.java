@@ -63,6 +63,8 @@ public class Notification {
     private LocalDateTime createdAt;
 
     public enum NotificationType {
+        // Backward compatibility with seeded/legacy data and common domain events.
+        APPOINTMENT_CREATED,
         APPOINTMENT_REMINDER,
         APPOINTMENT_CONFIRMED,
         APPOINTMENT_CANCELLED,

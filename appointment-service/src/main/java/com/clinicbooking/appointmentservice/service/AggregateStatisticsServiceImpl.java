@@ -16,12 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -317,8 +322,8 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                         List<TimeSlotStatsDto> timeSlots = buildTimeSlotStats(
                                         appointmentRepository.getTimeSlotStats(doctorId));
 
-                        // 4. Get patient demographics from UserService
-                        PatientDemographicsDto patientDemographics = userServiceClient.getPatientDemographics(doctorId);
+                        // 4. Build patient demographics from appointment data + user-service basic profile data
+                        PatientDemographicsDto patientDemographics = buildPatientDemographicsForDoctor(doctorId);
 
                         return DoctorAnalyticsDashboardDto.builder()
                                         .appointments(appointments)
@@ -332,6 +337,117 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                         log.error("Error fetching doctor analytics dashboard for doctorId: {}, error: {}", doctorId, e.getMessage());
                         throw new RuntimeException("Failed to fetch doctor analytics dashboard", e);
                 }
+        }
+
+        private PatientDemographicsDto buildPatientDemographicsForDoctor(Long doctorId) {
+                List<Long> patientIds = appointmentRepository.getDistinctPatientIdsForDoctor(doctorId);
+                if (patientIds == null || patientIds.isEmpty()) {
+                        return emptyPatientDemographics();
+                }
+
+                // De-duplicate while preserving order to keep payload stable.
+                Set<Long> uniquePatientIds = new LinkedHashSet<>(patientIds);
+
+                // Fetch basic user info in small batches (keeps payload size and memory bounded).
+                final int batchSize = 200;
+                List<UserBasicInfoDto> users = new ArrayList<>();
+                List<Long> uniqueList = new ArrayList<>(uniquePatientIds);
+                for (int i = 0; i < uniqueList.size(); i += batchSize) {
+                        List<Long> batch = uniqueList.subList(i, Math.min(i + batchSize, uniqueList.size()));
+                        List<UserBasicInfoDto> batchUsers = userServiceClient.getBasicUsersByIds(batch);
+                        if (batchUsers != null) users.addAll(batchUsers);
+                }
+
+                // Stable bucket order for the UI.
+                Map<String, Integer> ageBuckets = new LinkedHashMap<>();
+                ageBuckets.put("0-17", 0);
+                ageBuckets.put("18-30", 0);
+                ageBuckets.put("31-50", 0);
+                ageBuckets.put("51-70", 0);
+                ageBuckets.put("70+", 0);
+
+                Map<String, Integer> genderCounts = new LinkedHashMap<>();
+                genderCounts.put("Nam", 0);
+                genderCounts.put("Nữ", 0);
+                genderCounts.put("Khác", 0);
+
+                LocalDate now = LocalDate.now();
+                for (UserBasicInfoDto u : users) {
+                        if (u == null) continue;
+
+                        if (u.getDateOfBirth() != null) {
+                                int age = Period.between(u.getDateOfBirth(), now).getYears();
+                                String bucket = age < 18 ? "0-17"
+                                                : age <= 30 ? "18-30"
+                                                : age <= 50 ? "31-50"
+                                                : age <= 70 ? "51-70"
+                                                : "70+";
+                                ageBuckets.put(bucket, ageBuckets.getOrDefault(bucket, 0) + 1);
+                        }
+
+                        // The UI expects Vietnamese labels for gender ratio items.
+                        String g = u.getGender();
+                        String label = "Khác";
+                        if ("MALE".equalsIgnoreCase(g)) label = "Nam";
+                        else if ("FEMALE".equalsIgnoreCase(g)) label = "Nữ";
+                        genderCounts.put(label, genderCounts.getOrDefault(label, 0) + 1);
+                }
+
+                List<PatientDemographicsDto.AgeDistributionItem> ageDistribution = ageBuckets.entrySet().stream()
+                                .map(e -> PatientDemographicsDto.AgeDistributionItem.builder()
+                                                .range(e.getKey())
+                                                .count(e.getValue())
+                                                .build())
+                                .collect(Collectors.toList());
+
+                int genderTotal = genderCounts.values().stream()
+                                .filter(Objects::nonNull)
+                                .mapToInt(Integer::intValue)
+                                .sum();
+
+                List<PatientDemographicsDto.GenderRatioItem> genderRatio = genderCounts.entrySet().stream()
+                                .map(e -> {
+                                        int count = e.getValue() == null ? 0 : e.getValue();
+                                        int percentage = genderTotal > 0 ? (int) Math.round((count * 100.0) / genderTotal) : 0;
+                                        return PatientDemographicsDto.GenderRatioItem.builder()
+                                                        .gender(e.getKey())
+                                                        .count(count)
+                                                        .percentage(percentage)
+                                                        .build();
+                                })
+                                .collect(Collectors.toList());
+
+                return PatientDemographicsDto.builder()
+                                .ageDistribution(ageDistribution)
+                                .genderRatio(genderRatio)
+                                .build();
+        }
+
+        private PatientDemographicsDto emptyPatientDemographics() {
+                Map<String, Integer> ageBuckets = new LinkedHashMap<>();
+                ageBuckets.put("0-17", 0);
+                ageBuckets.put("18-30", 0);
+                ageBuckets.put("31-50", 0);
+                ageBuckets.put("51-70", 0);
+                ageBuckets.put("70+", 0);
+
+                List<PatientDemographicsDto.AgeDistributionItem> ageDistribution = ageBuckets.entrySet().stream()
+                                .map(e -> PatientDemographicsDto.AgeDistributionItem.builder()
+                                                .range(e.getKey())
+                                                .count(e.getValue())
+                                                .build())
+                                .collect(Collectors.toList());
+
+                List<PatientDemographicsDto.GenderRatioItem> genderRatio = List.of(
+                                PatientDemographicsDto.GenderRatioItem.builder().gender("Nam").count(0).percentage(0).build(),
+                                PatientDemographicsDto.GenderRatioItem.builder().gender("Nữ").count(0).percentage(0).build(),
+                                PatientDemographicsDto.GenderRatioItem.builder().gender("Khác").count(0).percentage(0).build()
+                );
+
+                return PatientDemographicsDto.builder()
+                                .ageDistribution(ageDistribution)
+                                .genderRatio(genderRatio)
+                                .build();
         }
 
         /**

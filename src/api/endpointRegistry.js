@@ -127,12 +127,6 @@ export const endpointRegistry = [
   { method: 'GET', path: '/api/users/doctors/search', feature: 'user', source: 'realApis/userApi.js' },
   { method: 'GET', path: '/api/users/doctors/specializations', feature: 'user', source: 'realApis/userApi.js' },
   { method: 'GET', path: '/api/users/role/${role}', feature: 'user', source: 'realApis/userApi.js' },
-  { method: 'GET', path: '/api/vouchers', feature: 'admin', source: 'realApis/adminApi.js' },
-  { method: 'POST', path: '/api/vouchers', feature: 'admin', source: 'realApis/adminApi.js' },
-  { method: 'PUT', path: '/api/vouchers/${id}', feature: 'admin', source: 'realApis/adminApi.js' },
-  { method: 'GET', path: '/api/vouchers/${id}/stats', feature: 'admin', source: 'realApis/adminApi.js' },
-  { method: 'POST', path: '/api/vouchers/apply', feature: 'payment', source: 'realApis/paymentApi.js' },
-  { method: 'POST', path: '/api/vouchers/validate', feature: 'payment', source: 'realApis/paymentApi.js' },
 ]
 
 export default endpointRegistry

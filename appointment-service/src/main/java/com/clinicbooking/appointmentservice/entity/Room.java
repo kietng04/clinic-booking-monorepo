@@ -48,6 +48,9 @@ public class Room {
     private LocalDateTime createdAt;
 
     public enum RoomType {
-        CONSULTATION, LAB, IMAGING, PROCEDURE
+        // Existing room types used by the application.
+        CONSULTATION, LAB, IMAGING, PROCEDURE,
+        // Backward compatibility with seeded/legacy data.
+        EXAMINATION
     }
 }

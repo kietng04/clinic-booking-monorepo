@@ -1,6 +1,7 @@
 package com.clinicbooking.appointmentservice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
@@ -79,6 +81,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleGenericException(
             Exception ex,
             HttpServletRequest request) {
+        // Ensure unexpected 5xx errors are diagnosable from logs.
+        String correlationId = resolveCorrelationId(request);
+        log.error("Unhandled exception (correlationId={}, path={})", correlationId, request.getRequestURI(), ex);
         return buildError(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred. Please try again later.",

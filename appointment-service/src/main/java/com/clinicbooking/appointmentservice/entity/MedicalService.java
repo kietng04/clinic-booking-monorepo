@@ -53,6 +53,9 @@ public class MedicalService {
     private LocalDateTime updatedAt;
 
     public enum ServiceCategory {
-        GENERAL, SPECIALIST, LAB, IMAGING
+        // Existing categories used by the application.
+        GENERAL, SPECIALIST, LAB, IMAGING,
+        // Backward compatibility with seeded/legacy data.
+        CARDIO, DERMATOLOGY, ENDOCRINE, PEDIATRICS
     }
 }

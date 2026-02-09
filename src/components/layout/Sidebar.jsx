@@ -16,7 +16,6 @@ import {
   Bell,
   Building2,
   Wrench,
-  Tag,
   BarChart2,
   CreditCard,
 } from 'lucide-react'
@@ -56,7 +55,6 @@ const adminNav = [
   { name: 'Phòng khám', path: '/admin/clinics', icon: Building2 },
   { name: 'Dịch vụ', path: '/admin/services', icon: Wrench },
   { name: 'Phòng', path: '/admin/rooms', icon: UserCog },
-  { name: 'Voucher', path: '/admin/vouchers', icon: Tag },
   { name: 'Báo cáo', path: '/admin/reports', icon: BarChart2 },
   { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]

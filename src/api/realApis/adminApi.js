@@ -32,18 +32,6 @@ const toNullableNumber = (value) => {
   return Number.isNaN(parsed) ? null : parsed
 }
 
-const toLocalDateTime = (value, endOfDay = false) => {
-  if (!value) return null
-  if (typeof value !== 'string') return value
-  if (value.includes('T')) return value
-  return `${value}${endOfDay ? 'T23:59:59' : 'T00:00:00'}`
-}
-
-const toDateInputValue = (value) => {
-  if (!value || typeof value !== 'string') return value
-  return value.split('T')[0]
-}
-
 const normalizeRoomPayload = (data = {}) => {
   const payload = { ...data }
 
@@ -147,58 +135,6 @@ export const adminApi = {
       params,
       responseType: 'blob',
     })
-    return response.data
-  },
-
-  // Vouchers
-  getVouchers: async (filters = {}) => {
-    const response = await adminServiceClient.get('/api/vouchers', { params: filters })
-    const vouchers = response.data.content || response.data
-
-    // Transform backend fields to frontend expected format
-    return vouchers.map(v => ({
-      ...v,
-      type: 'Percentage', // Backend only supports percentage discounts
-      value: v.discountPercentage || 0,
-      active: v.isActive ?? true,
-      minOrderAmount: v.minPurchaseAmount || 0,
-      validFrom: toDateInputValue(v.validFrom),
-      validTo: toDateInputValue(v.validTo),
-    }))
-  },
-  createVoucher: async (data) => {
-    // Transform frontend format to backend expected format
-    const backendData = {
-      code: data.code,
-      description: data.description,
-      discountPercentage: data.value || data.discountPercentage,
-      maxDiscount: data.maxDiscount || 0,
-      minPurchaseAmount: data.minOrderAmount || data.minPurchaseAmount || 0,
-      validFrom: toLocalDateTime(data.validFrom),
-      validTo: toLocalDateTime(data.validTo, true),
-      usageLimit: data.usageLimit || -1,
-      isActive: data.active ?? data.isActive ?? true,
-    }
-    const response = await adminServiceClient.post('/api/vouchers', backendData)
-    return response.data
-  },
-  updateVoucher: async (id, data) => {
-    // Transform frontend format to backend expected format
-    const backendData = {
-      description: data.description,
-      discountPercentage: data.value || data.discountPercentage,
-      maxDiscount: data.maxDiscount,
-      minPurchaseAmount: data.minOrderAmount || data.minPurchaseAmount,
-      validFrom: toLocalDateTime(data.validFrom),
-      validTo: toLocalDateTime(data.validTo, true),
-      usageLimit: data.usageLimit,
-      isActive: data.active ?? data.isActive,
-    }
-    const response = await adminServiceClient.put(`/api/vouchers/${id}`, backendData)
-    return response.data
-  },
-  getVoucherStats: async (id) => {
-    const response = await adminServiceClient.get(`/api/vouchers/${id}/stats`)
     return response.data
   },
 }

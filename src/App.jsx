@@ -35,7 +35,6 @@ import ClinicManagement from './pages/admin/ClinicManagement'
 import ServiceManagement from './pages/admin/ServiceManagement'
 import RoomManagement from './pages/admin/RoomManagement'
 import Reports from './pages/admin/Reports'
-import VoucherManagement from './pages/admin/VoucherManagement'
 import NotificationCenter from './pages/patient/NotificationCenter'
 import PrescriptionDetail from './pages/patient/PrescriptionDetail'
 import AppointmentDetail from './pages/patient/AppointmentDetail'
@@ -415,17 +414,6 @@ function App() {
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <DashboardLayout>
                 <Reports />
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/vouchers"
-          element={
-            <ProtectedRoute allowedRoles={['ADMIN']}>
-              <DashboardLayout>
-                <VoucherManagement />
               </DashboardLayout>
             </ProtectedRoute>
           }

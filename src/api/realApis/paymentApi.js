@@ -27,7 +27,7 @@ export const normalizePaymentMethod = (method) => {
 export const paymentApi = {
   /**
    * Create payment for an appointment
-   * @param {Object} data - { appointmentId, amount, method, voucherCode? }
+   * @param {Object} data - { appointmentId, amount, method }
    * @returns {Promise} Payment details with redirect URL
    */
   createPayment: async (data) => {
@@ -62,34 +62,6 @@ export const paymentApi = {
    */
   getPaymentResult: async (paymentId) => {
     const response = await paymentServiceClient.get(`/api/payments/${paymentId}`)
-    return response.data
-  },
-
-  /**
-   * Validate voucher code
-   * @param {string} code - Voucher code
-   * @param {number} amount - Order amount
-   * @returns {Promise} Voucher validation result
-   */
-  validateVoucher: async (code, amount) => {
-    const response = await paymentServiceClient.post('/api/vouchers/validate', {
-      code,
-      amount,
-    })
-    return response.data
-  },
-
-  /**
-   * Apply voucher to order
-   * @param {string} appointmentId - Appointment/Order ID
-   * @param {string} code - Voucher code
-   * @returns {Promise} Applied voucher details with discount
-   */
-  applyVoucher: async (appointmentId, code) => {
-    const response = await paymentServiceClient.post('/api/vouchers/apply', {
-      appointmentId,
-      code,
-    })
     return response.data
   },
 

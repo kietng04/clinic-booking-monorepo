@@ -23,4 +23,11 @@ describe('endpointRegistry', () => {
       seen.add(key)
     }
   })
+
+  it('does not contain voucher/promo endpoints', () => {
+    const voucherEndpoints = endpointRegistry.filter((endpoint) =>
+      /\/api\/vouchers(\/|$)/.test(endpoint.path)
+    )
+    expect(voucherEndpoints).toEqual([])
+  })
 })

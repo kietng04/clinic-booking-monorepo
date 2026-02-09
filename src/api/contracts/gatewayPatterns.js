@@ -23,8 +23,6 @@ export const gatewayPatterns = [
   '/api/rooms/**',
   '/api/services',
   '/api/services/**',
-  '/api/vouchers',
-  '/api/vouchers/**',
   '/api/reports/**',
   '/api/medical-records/**',
   '/api/prescriptions/**',

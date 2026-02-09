@@ -21,4 +21,11 @@ describe('gateway coverage contract', () => {
 
     expect(uncovered).toEqual([])
   })
+
+  it('does not expose voucher route patterns in gateway contract', () => {
+    const voucherPatterns = gatewayPatterns.filter((pattern) =>
+      /\/api\/vouchers(\/|$)/.test(pattern)
+    )
+    expect(voucherPatterns).toEqual([])
+  })
 })

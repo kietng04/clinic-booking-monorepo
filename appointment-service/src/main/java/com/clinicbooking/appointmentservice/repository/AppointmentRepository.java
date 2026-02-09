@@ -158,6 +158,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                         "ORDER BY timeSlot")
         List<Map<String, Object>> getTimeSlotStats(@Param("doctorId") Long doctorId);
 
+        @Query("SELECT DISTINCT a.patientId FROM Appointment a WHERE a.doctorId = :doctorId")
+        List<Long> getDistinctPatientIdsForDoctor(@Param("doctorId") Long doctorId);
+
         // Top doctors by appointment count
         @Query("SELECT new map(a.doctorId as doctorId, a.doctorName as doctorName, " +
                         "COUNT(a) as totalAppointments, " +

@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.client;
 import com.clinicbooking.appointmentservice.dto.PatientDemographicsDto;
 import com.clinicbooking.appointmentservice.dto.SpecializationDistributionDto;
 import com.clinicbooking.appointmentservice.dto.UserDto;
+import com.clinicbooking.appointmentservice.dto.UserBasicInfoDto;
 import com.clinicbooking.appointmentservice.dto.UserGrowthDto;
 import com.clinicbooking.appointmentservice.dto.UserStatisticsDto;
 import lombok.extern.slf4j.Slf4j;
@@ -64,5 +65,11 @@ public class UserServiceClientFallback implements UserServiceClient {
                 .ageDistribution(new ArrayList<>())
                 .genderRatio(new ArrayList<>())
                 .build();
+    }
+
+    @Override
+    public List<UserBasicInfoDto> getBasicUsersByIds(List<Long> ids) {
+        log.warn("Fallback: User service is unavailable. Returning empty basic user list for ids size={}", ids == null ? 0 : ids.size());
+        return new ArrayList<>();
     }
 }

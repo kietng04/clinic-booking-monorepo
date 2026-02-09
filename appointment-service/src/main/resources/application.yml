@@ -88,6 +88,33 @@ feign:
         connectTimeout: 5000
         readTimeout: 5000
         loggerLevel: basic
+      # Longer timeout for user-service analytics queries (they aggregate lots of data)
+      user-service:
+        connectTimeout: 10000
+        readTimeout: 15000
+        loggerLevel: basic
+      # Longer timeout for medical-service queries
+      medical-service:
+        connectTimeout: 10000
+        readTimeout: 15000
+        loggerLevel: basic
 
 # Enable circuit breaker for Feign fallbacks
 spring.cloud.openfeign.circuitbreaker.enabled: true
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 10s
+    instances:
+      user-service:
+        baseConfig: default
+      medical-service:
+        baseConfig: default

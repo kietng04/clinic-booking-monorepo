@@ -39,7 +39,8 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
         private final UserServiceClient userServiceClient;
         private final MedicalServiceClient medicalServiceClient;
 
-        private static final int CACHE_DURATION_MINUTES = 5;
+        // Increased cache duration to reduce load and improve stability for heavy analytics queries
+        private static final int CACHE_DURATION_MINUTES = 10;
 
         @Override
         @Cacheable(value = "dashboardStatistics", unless = "#result == null")

@@ -169,27 +169,10 @@ const PaymentResult = () => {
                     </span>
                   </div>
 
-                  {paymentResult.discount > 0 && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sage-600">Tổng tiền:</span>
-                        <span className="text-sage-700">
-                          {formatAmount(paymentResult.amount, paymentResult.currency)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sage-600">Giảm giá:</span>
-                        <span className="text-green-600">
-                          -{formatAmount(paymentResult.discount, paymentResult.currency)}
-                        </span>
-                      </div>
-                    </>
-                  )}
-
                   <div className="flex justify-between pt-3 border-t border-sage-200">
                     <span className="font-semibold text-sage-900">Đã thanh toán:</span>
                     <span className="font-bold text-xl text-sage-900">
-                      {formatAmount(paymentResult.finalAmount, paymentResult.currency)}
+                      {formatAmount(paymentResult.finalAmount ?? paymentResult.amount, paymentResult.currency)}
                     </span>
                   </div>
                 </div>

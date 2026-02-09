@@ -209,17 +209,6 @@ const mockAdminApi = {
     return pdfBlob
   },
 
-  getVouchers: async () => {
-    await new Promise(r => setTimeout(r, 500))
-    return [
-      { id: '1', code: 'SUMMER20', description: 'Giảm 20% hè 2024', type: 'Percentage', value: 20, minOrderAmount: 100000, maxDiscount: 200000, usageLimit: 500, usedCount: 123, validFrom: '2024-06-01', validTo: '2024-09-01', active: true },
-      { id: '2', code: 'NEW50K', description: 'Giảm 50K cho khách mới', type: 'Fixed', value: 50000, minOrderAmount: 150000, maxDiscount: 0, usageLimit: 1000, usedCount: 456, validFrom: '2024-01-01', validTo: '2024-12-31', active: true },
-      { id: '3', code: 'PROMO10', description: 'Khuyến mãi 10% mới nhất', type: 'Percentage', value: 10, minOrderAmount: 0, maxDiscount: 100000, usageLimit: 200, usedCount: 89, validFrom: '2024-03-01', validTo: '2024-06-30', active: false },
-    ]
-  },
-  createVoucher: async (data) => { await new Promise(r => setTimeout(r, 800)); return { id: Date.now().toString(), ...data, usedCount: 0, active: true } },
-  updateVoucher: async (id, data) => { await new Promise(r => setTimeout(r, 800)); return { id, ...data } },
-  getVoucherStats: async () => { await new Promise(r => setTimeout(r, 500)); return { totalUsed: 668, totalDiscount: 45000000 } },
 }
 
 const api = USE_MOCK_BACKEND ? mockAdminApi : realAdminApi
@@ -244,10 +233,6 @@ export const adminApi = {
   getPatientReport: (params) => api.getPatientReport(params),
   exportReport: (type, params) => api.exportReport(type, params),
 
-  getVouchers: (filters) => api.getVouchers(filters),
-  createVoucher: (data) => api.createVoucher(data),
-  updateVoucher: (id, data) => api.updateVoucher(id, data),
-  getVoucherStats: (id) => api.getVoucherStats(id),
 }
 
 console.log(`🏥 Admin Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`)

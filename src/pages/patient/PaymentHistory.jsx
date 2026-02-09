@@ -369,32 +369,15 @@ const PaymentHistory = () => {
                             </div>
                           </div>
 
-                          {payment.voucherCode && (
-                            <div className="mt-2">
-                              <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-                                Voucher: {payment.voucherCode}
-                              </Badge>
-                            </div>
-                          )}
                         </div>
                       </div>
 
                       {/* Right: Amount & Actions */}
                       <div className="flex flex-col items-start lg:items-end gap-3">
                         <div className="text-right">
-                          {payment.discount > 0 && (
-                            <p className="text-sm text-sage-500 line-through">
-                              {formatAmount(payment.amount, payment.currency)}
-                            </p>
-                          )}
                           <p className="text-2xl font-bold text-sage-900">
-                            {formatAmount(payment.finalAmount, payment.currency)}
+                            {formatAmount(payment.finalAmount ?? payment.amount, payment.currency)}
                           </p>
-                          {payment.discount > 0 && (
-                            <p className="text-sm text-green-600">
-                              Giảm {formatAmount(payment.discount, payment.currency)}
-                            </p>
-                          )}
                         </div>
 
                         <div className="flex items-center gap-2">

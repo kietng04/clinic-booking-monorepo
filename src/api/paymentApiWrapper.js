@@ -9,7 +9,6 @@ const mockPayments = [
     appointmentId: 'APT001',
     patientId: '1',
     amount: 500000,
-    discount: 0,
     finalAmount: 500000,
     currency: 'VND',
     method: 'Momo',
@@ -24,8 +23,7 @@ const mockPayments = [
     appointmentId: 'APT002',
     patientId: '1',
     amount: 200000,
-    discount: 20000,
-    finalAmount: 180000,
+    finalAmount: 200000,
     currency: 'VND',
     method: 'VNPay',
     status: 'Success',
@@ -33,14 +31,12 @@ const mockPayments = [
     createdAt: '2026-01-20T14:00:00',
     paidAt: '2026-01-20T14:01:30',
     invoiceNumber: 'INV-2026-002',
-    voucherCode: 'HEALTH20',
   },
   {
     id: '3',
     appointmentId: 'APT003',
     patientId: '1',
     amount: 350000,
-    discount: 0,
     finalAmount: 350000,
     currency: 'VND',
     method: 'Cash',
@@ -55,7 +51,6 @@ const mockPayments = [
     appointmentId: 'APT004',
     patientId: '1',
     amount: 450000,
-    discount: 0,
     finalAmount: 450000,
     currency: 'VND',
     method: 'ZaloPay',
@@ -69,54 +64,14 @@ const mockPayments = [
     appointmentId: 'APT005',
     patientId: '1',
     amount: 600000,
-    discount: 60000,
-    finalAmount: 540000,
+    finalAmount: 600000,
     currency: 'VND',
     method: 'Momo',
     status: 'Failed',
     description: 'Khám tim mạch chuyên sâu - BS. Phạm Thị D',
     createdAt: '2026-01-10T11:00:00',
     invoiceNumber: 'INV-2026-005',
-    voucherCode: 'SAVE10',
     failureReason: 'Insufficient balance',
-  },
-]
-
-const mockVouchers = [
-  {
-    code: 'HEALTH20',
-    type: 'Percentage',
-    value: 10,
-    minOrderAmount: 150000,
-    maxDiscount: 50000,
-    validFrom: '2026-01-01',
-    validTo: '2026-12-31',
-    usageLimit: 100,
-    usageCount: 15,
-    active: true,
-  },
-  {
-    code: 'SAVE10',
-    type: 'Percentage',
-    value: 10,
-    minOrderAmount: 500000,
-    maxDiscount: 100000,
-    validFrom: '2026-01-01',
-    validTo: '2026-06-30',
-    usageLimit: 50,
-    usageCount: 20,
-    active: true,
-  },
-  {
-    code: 'FIRST50',
-    type: 'Fixed',
-    value: 50000,
-    minOrderAmount: 200000,
-    validFrom: '2026-01-01',
-    validTo: '2026-12-31',
-    usageLimit: 1000,
-    usageCount: 450,
-    active: true,
   },
 ]
 
@@ -174,8 +129,7 @@ const mockPaymentApi = {
       id: paymentId,
       status: 'Success',
       amount: 500000,
-      finalAmount: 450000,
-      discount: 50000,
+      finalAmount: 500000,
       currency: 'VND',
       method: 'Momo',
       transactionId: `TXN-${Date.now()}`,
@@ -183,64 +137,6 @@ const mockPaymentApi = {
       appointmentId: 'APT-NEW',
       description: 'Thanh toán lịch hẹn khám bệnh',
     }
-  },
-
-  validateVoucher: async (code, amount) => {
-    await new Promise((r) => setTimeout(r, 500))
-
-    const voucher = mockVouchers.find((v) => v.code === code)
-
-    if (!voucher) {
-      throw new Error('Mã voucher không tồn tại')
-    }
-
-    if (!voucher.active) {
-      throw new Error('Mã voucher đã hết hạn')
-    }
-
-    const now = new Date()
-    const validFrom = new Date(voucher.validFrom)
-    const validTo = new Date(voucher.validTo)
-
-    if (now < validFrom || now > validTo) {
-      throw new Error('Mã voucher không trong thời gian hiệu lực')
-    }
-
-    if (amount < voucher.minOrderAmount) {
-      throw new Error(`Đơn hàng tối thiểu ${voucher.minOrderAmount.toLocaleString('vi-VN')} VND`)
-    }
-
-    if (voucher.usageCount >= voucher.usageLimit) {
-      throw new Error('Mã voucher đã hết lượt sử dụng')
-    }
-
-    // Calculate discount
-    let discount = 0
-    if (voucher.type === 'Percentage') {
-      discount = Math.floor((amount * voucher.value) / 100)
-      if (voucher.maxDiscount) {
-        discount = Math.min(discount, voucher.maxDiscount)
-      }
-    } else {
-      discount = voucher.value
-    }
-
-    return {
-      valid: true,
-      voucher: {
-        code: voucher.code,
-        type: voucher.type,
-        value: voucher.value,
-      },
-      discount,
-      finalAmount: amount - discount,
-    }
-  },
-
-  applyVoucher: async (appointmentId, code) => {
-    // Reuse validation logic
-    const amount = 500000 // Mock amount
-    return await mockPaymentApi.validateVoucher(code, amount)
   },
 
   downloadReceipt: async (paymentId) => {

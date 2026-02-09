@@ -255,7 +255,7 @@ const DoctorAnalytics = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analytics.timeSlots} layout="horizontal">
+              <BarChart data={analytics.timeSlots} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis type="number" stroke="#6b7280" style={{ fontSize: '12px' }} />
                 <YAxis

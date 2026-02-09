@@ -43,8 +43,6 @@ public class PaymentResponse implements Serializable {
 
     private BigDecimal finalAmount;
 
-    private BigDecimal discount;
-
     private String description;
 
 

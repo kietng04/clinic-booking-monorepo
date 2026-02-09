@@ -32,7 +32,7 @@ spring:
         - id: appointment-service
           uri: lb://appointment-service
           predicates:
-            - Path=/api/appointments,/api/appointments/**,/api/schedules/**,/api/notifications/**,/api/statistics/appointments/**,/api/statistics/aggregate/**,/api/clinics,/api/clinics/**,/api/rooms,/api/rooms/**,/api/services,/api/services/**,/api/vouchers,/api/vouchers/**,/api/reports/**
+            - Path=/api/appointments,/api/appointments/**,/api/schedules/**,/api/notifications/**,/api/statistics/appointments/**,/api/statistics/aggregate/**,/api/clinics,/api/clinics/**,/api/rooms,/api/rooms/**,/api/services,/api/services/**,/api/reports/**
           filters:
             - AuthenticationFilter
             - name: CircuitBreaker

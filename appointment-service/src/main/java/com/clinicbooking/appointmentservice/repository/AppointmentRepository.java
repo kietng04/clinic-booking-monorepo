@@ -79,12 +79,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
                         @Param("endTime") java.time.LocalTime endTime);
 
         // Search appointments
+        // NOTE: Avoid `:param IS NULL OR ...` patterns for LocalDate on PostgreSQL.
+        // Hibernate may bind the `IS NULL` parameter occurrence without a concrete type,
+        // leading to `could not determine data type of parameter $N` at runtime.
         @Query("SELECT a FROM Appointment a WHERE " +
-                        "(:patientId IS NULL OR a.patientId = :patientId) " +
-                        "AND (:doctorId IS NULL OR a.doctorId = :doctorId) " +
-                        "AND (:status IS NULL OR a.status = :status) " +
-                        "AND (:fromDate IS NULL OR a.appointmentDate >= :fromDate) " +
-                        "AND (:toDate IS NULL OR a.appointmentDate <= :toDate)")
+                        "a.patientId = COALESCE(:patientId, a.patientId) " +
+                        "AND a.doctorId = COALESCE(:doctorId, a.doctorId) " +
+                        "AND a.status = COALESCE(:status, a.status) " +
+                        "AND a.appointmentDate >= COALESCE(:fromDate, a.appointmentDate) " +
+                        "AND a.appointmentDate <= COALESCE(:toDate, a.appointmentDate)")
         Page<Appointment> searchAppointments(
                         @Param("patientId") Long patientId,
                         @Param("doctorId") Long doctorId,

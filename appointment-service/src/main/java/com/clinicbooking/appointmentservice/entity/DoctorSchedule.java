@@ -17,8 +17,8 @@ import java.time.LocalTime;
 
 @Entity
 @Table(name = "doctor_schedules", indexes = {
-        @Index(name = "idx_doctor_id", columnList = "doctor_id"),
-        @Index(name = "idx_doctor_day", columnList = "doctor_id, day_of_week")
+        @Index(name = "idx_doctor_schedules_doctor_id", columnList = "doctor_id"),
+        @Index(name = "idx_doctor_schedules_doctor_day", columnList = "doctor_id, day_of_week")
 })
 @Data
 @NoArgsConstructor

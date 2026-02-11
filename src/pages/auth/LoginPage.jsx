@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { QUICK_DEMO_LOGINS } from '@/config/demoAccounts'
+import { getQuickDemoLogins } from '@/config/demoAccounts'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -17,6 +17,7 @@ export function LoginPage() {
     password: '',
   })
   const [quickLoginLoading, setQuickLoginLoading] = useState(null)
+  const quickDemoLogins = getQuickDemoLogins()
 
   const handleSubmit = async (e) => {
     e?.preventDefault()
@@ -75,7 +76,7 @@ export function LoginPage() {
           <div className="mb-6 p-4 bg-sage-50 dark:bg-sage-900/50 rounded-soft border border-sage-200 dark:border-sage-800">
             <p className="text-xs font-medium text-sage-600 dark:text-sage-400 mb-3">Đăng nhập nhanh để Demo:</p>
             <div className="flex flex-wrap gap-2">
-              {QUICK_DEMO_LOGINS.map((demo) => (
+              {quickDemoLogins.map((demo) => (
                 <button
                   key={demo.role}
                   onClick={() => handleQuickLogin(demo.email, demo.password, demo.role)}

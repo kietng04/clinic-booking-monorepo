@@ -1,6 +1,4 @@
-const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
-
-const MOCK_DEMO_ACCOUNTS = {
+export const MOCK_DEMO_ACCOUNTS = {
   PATIENT: {
     role: 'PATIENT',
     label: 'Bệnh nhân',
@@ -21,7 +19,7 @@ const MOCK_DEMO_ACCOUNTS = {
   },
 }
 
-const REAL_DEMO_ACCOUNTS = {
+export const REAL_DEMO_ACCOUNTS = {
   PATIENT: {
     role: 'PATIENT',
     label: 'Bệnh nhân',
@@ -42,6 +40,12 @@ const REAL_DEMO_ACCOUNTS = {
   },
 }
 
-export const DEMO_ACCOUNTS = USE_MOCK_BACKEND ? MOCK_DEMO_ACCOUNTS : REAL_DEMO_ACCOUNTS
+const resolveMode = () => String(import.meta.env.VITE_USE_MOCK_BACKEND).toLowerCase() === 'true'
 
-export const QUICK_DEMO_LOGINS = [DEMO_ACCOUNTS.PATIENT, DEMO_ACCOUNTS.DOCTOR, DEMO_ACCOUNTS.ADMIN]
+export const getDemoAccounts = (useMockBackend = resolveMode()) =>
+  useMockBackend ? MOCK_DEMO_ACCOUNTS : REAL_DEMO_ACCOUNTS
+
+export const getQuickDemoLogins = (useMockBackend = resolveMode()) => {
+  const demoAccounts = getDemoAccounts(useMockBackend)
+  return [demoAccounts.PATIENT, demoAccounts.DOCTOR, demoAccounts.ADMIN]
+}

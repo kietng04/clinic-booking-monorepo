@@ -24,3 +24,10 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn()
+
+// Mock ResizeObserver used by Recharts ResponsiveContainer
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}

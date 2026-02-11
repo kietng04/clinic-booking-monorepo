@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@/test/utils'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { LoginPage } from './LoginPage'
-import { DEMO_ACCOUNTS } from '@/config/demoAccounts'
+import { getDemoAccounts } from '@/config/demoAccounts'
 
 const mockLogin = vi.fn()
 const mockNavigate = vi.fn()
@@ -36,9 +36,13 @@ describe('LoginPage quick demo', () => {
     mockNavigate.mockReset()
     mockShowToast.mockReset()
     mockLogin.mockResolvedValue({})
+    vi.unstubAllEnvs()
   })
 
   it('uses mock patient credentials for quick demo login', async () => {
+    const mockDemoAccounts = getDemoAccounts(true)
+
+    vi.stubEnv('VITE_USE_MOCK_BACKEND', 'true')
     render(
       <MemoryRouter>
         <LoginPage />
@@ -48,11 +52,14 @@ describe('LoginPage quick demo', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bệnh nhân' }))
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith(DEMO_ACCOUNTS.PATIENT.email, DEMO_ACCOUNTS.PATIENT.password)
+      expect(mockLogin).toHaveBeenCalledWith(mockDemoAccounts.PATIENT.email, mockDemoAccounts.PATIENT.password)
     })
   })
 
-  it('uses mock doctor credentials for quick demo login', async () => {
+  it('uses mock doctor credentials in mock mode', async () => {
+    const mockDemoAccounts = getDemoAccounts(true)
+
+    vi.stubEnv('VITE_USE_MOCK_BACKEND', 'true')
     render(
       <MemoryRouter>
         <LoginPage />
@@ -62,7 +69,24 @@ describe('LoginPage quick demo', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bác sĩ' }))
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith(DEMO_ACCOUNTS.DOCTOR.email, DEMO_ACCOUNTS.DOCTOR.password)
+      expect(mockLogin).toHaveBeenCalledWith(mockDemoAccounts.DOCTOR.email, mockDemoAccounts.DOCTOR.password)
+    })
+  })
+
+  it('uses clinic doctor credentials in real mode', async () => {
+    const realDemoAccounts = getDemoAccounts(false)
+
+    vi.stubEnv('VITE_USE_MOCK_BACKEND', 'false')
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bác sĩ' }))
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledWith(realDemoAccounts.DOCTOR.email, realDemoAccounts.DOCTOR.password)
     })
   })
 })

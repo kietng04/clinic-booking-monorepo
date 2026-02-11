@@ -90,6 +90,7 @@ export function Sidebar() {
       <motion.aside
         initial={false}
         animate={{ x: sidebarOpen ? 0 : '-100%' }}
+        data-testid={`sidebar-${String(user.role || 'unknown').toLowerCase()}`}
         className={cn(
           'fixed left-0 top-16 bottom-0 w-64 glass border-r border-sage-100 dark:border-sage-800 z-40 overflow-y-auto',
           'lg:sticky lg:translate-x-0'
@@ -99,11 +100,13 @@ export function Sidebar() {
           {navigation.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.path
+            const normalizedPath = item.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
+                data-testid={`sidebar-link-${normalizedPath}`}
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-soft transition-all group relative overflow-hidden',
                   isActive

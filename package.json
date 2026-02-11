@@ -10,7 +10,14 @@
     "test": "vitest",
     "test:contracts": "vitest --run src/api/contracts/gatewayCoverage.test.js src/api/endpointRegistry.test.js",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "test:e2e:prepare": "bash ./scripts/e2e-prepare.sh",
+    "test:e2e:preflight": "node ./scripts/e2e-preflight.mjs",
+    "test:e2e:smoke": "playwright test tests/e2e/specs/public-routes.spec.js tests/e2e/specs/cross-role-authorization.spec.js tests/e2e/specs/negative-and-resilience.spec.js",
+    "test:e2e:critical": "playwright test tests/e2e/specs/patient-exhaustive.spec.js tests/e2e/specs/doctor-exhaustive.spec.js tests/e2e/specs/admin-exhaustive.spec.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ci": "npm run test:e2e:prepare && npm run test:e2e",
+    "test:e2e:report": "playwright show-report playwright-report"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",

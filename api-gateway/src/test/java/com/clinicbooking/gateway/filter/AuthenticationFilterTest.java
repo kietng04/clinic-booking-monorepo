@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.http.HttpMethod.OPTIONS;
 
 @DisplayName("Authentication Filter Tests")
 class AuthenticationFilterTest {
@@ -74,6 +75,30 @@ class AuthenticationFilterTest {
                 MockServerHttpRequest.get("/api/appointments")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + validToken)
                         .header("X-Correlation-Id", "corr-auth-valid-123")
+                        .build()
+        );
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+        GatewayFilterChain chain = e -> {
+            chainCalled.set(true);
+            return Mono.empty();
+        };
+
+        Mono<Void> result = authenticationFilter.apply(new AuthenticationFilter.Config())
+                .filter(exchange, chain);
+
+        StepVerifier.create(result).verifyComplete();
+
+        assertTrue(chainCalled.get());
+        assertNull(exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Should bypass authentication for OPTIONS preflight requests")
+    void shouldBypassAuthenticationForOptionsRequests() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.method(OPTIONS, "/api/auth/login")
+                        .header("Origin", "http://localhost:4173")
+                        .header("Access-Control-Request-Method", "POST")
                         .build()
         );
         AtomicBoolean chainCalled = new AtomicBoolean(false);

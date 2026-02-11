@@ -339,12 +339,14 @@ export function BookAppointment() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <Input
                     placeholder="Tìm theo tên hoặc chuyên khoa..."
+                    data-testid="booking-doctor-search"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     leftIcon={<Search className="w-5 h-5" />}
                   />
                   <Select
                     placeholder="Lọc theo chuyên khoa"
+                    data-testid="booking-specialization-filter"
                     value={selectedSpecialization}
                     onChange={(e) => setSelectedSpecialization(e.target.value)}
                     options={[
@@ -363,6 +365,7 @@ export function BookAppointment() {
                       <motion.div
                         key={doctor.id}
                         whileHover={{ scale: 1.02 }}
+                        data-testid={`booking-doctor-card-${doctor.id}`}
                         className="p-4 rounded-soft border border-sage-200 dark:border-sage-800 hover:border-sage-400 dark:hover:border-sage-600 transition-all cursor-pointer"
                         onClick={() => selectDoctor(doctor)}
                       >
@@ -388,7 +391,7 @@ export function BookAppointment() {
                               <span className="text-lg font-bold text-sage-900 dark:text-cream-100">
                                 ${doctor.consultationFee}
                               </span>
-                              <Button size="sm">Chọn</Button>
+                              <Button size="sm" data-testid={`booking-select-doctor-${doctor.id}`}>Chọn</Button>
                             </div>
                           </div>
                         </div>
@@ -429,6 +432,7 @@ export function BookAppointment() {
                       return (
                         <button
                           key={dateStr}
+                          data-testid={`booking-day-${dateStr}`}
                           onClick={() => {
                             setSelectedDate(dateStr)
                             loadAvailableSlots(dateStr)
@@ -469,6 +473,7 @@ export function BookAppointment() {
                           <Button
                             key={slot.time}
                             variant="outline"
+                            data-testid={`booking-slot-${slot.time}`}
                             className="h-auto py-3"
                             onClick={() => selectDateTime(selectedDate, slot.time)}
                           >
@@ -546,6 +551,7 @@ export function BookAppointment() {
 
                   <Select
                     label="Phòng khám *"
+                    data-testid="booking-clinic-select"
                     value={bookingData.clinicId}
                     onChange={(e) =>
                       setBookingData((prev) => ({
@@ -566,6 +572,7 @@ export function BookAppointment() {
 
                   <Select
                     label="Dịch vụ *"
+                    data-testid="booking-service-select"
                     value={bookingData.serviceId}
                     onChange={(e) =>
                       setBookingData((prev) => ({ ...prev, serviceId: e.target.value }))
@@ -583,6 +590,7 @@ export function BookAppointment() {
                   {bookingData.type === 'IN_PERSON' && (
                     <Select
                       label="Phòng khám cụ thể *"
+                      data-testid="booking-room-select"
                       value={bookingData.roomId}
                       onChange={(e) =>
                         setBookingData((prev) => ({ ...prev, roomId: e.target.value }))
@@ -601,6 +609,7 @@ export function BookAppointment() {
                   {/* Reason */}
                   <Input
                     label="Lý do khám bệnh"
+                    data-testid="booking-reason-input"
                     placeholder="E.g., Regular checkup, Follow-up, etc."
                     value={bookingData.reason}
                     onChange={(e) =>
@@ -615,6 +624,7 @@ export function BookAppointment() {
                       Ghi chú thêm (Tùy chọn)
                     </label>
                     <textarea
+                      data-testid="booking-notes-textarea"
                       className="w-full px-4 py-3 rounded-soft border border-sage-200 dark:border-sage-700 bg-white dark:bg-sage-800 text-sage-900 dark:text-cream-100 focus-ring resize-none"
                       rows={4}
                       placeholder="Any additional information for your doctor..."
@@ -632,6 +642,7 @@ export function BookAppointment() {
                     Quay lại
                   </Button>
                   <Button
+                    data-testid="booking-continue-button"
                     onClick={() => setCurrentStep(4)}
                     disabled={
                       !bookingData.reason ||
@@ -756,6 +767,7 @@ export function BookAppointment() {
                     Quay lại
                   </Button>
                   <Button
+                    data-testid="booking-confirm-button"
                     onClick={handleSubmit}
                     isLoading={loading}
                     rightIcon={<CheckCircle className="w-4 h-4" />}

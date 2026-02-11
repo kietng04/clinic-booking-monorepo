@@ -88,6 +88,7 @@ const ConsultationList = () => {
           <p className="text-sage-600 mt-1">Chat với bác sĩ mọi lúc mọi nơi</p>
         </div>
         <Button
+          data-testid="consultation-create-button"
           leftIcon={<Plus />}
           onClick={() => navigate('/patient/consultations/new')}
         >

@@ -12,8 +12,10 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "http://localhost:3000",  // Frontend dev server
+                        "http://127.0.0.1:3000", // Frontend dev server (127.0.0.1)
                         "http://localhost:4200",  // Alternative frontend port
                         "http://localhost:5173",  // Vite default port
+                        "http://127.0.0.1:5173", // Vite default port (127.0.0.1)
                         "http://localhost:8080"   // API Gateway
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")

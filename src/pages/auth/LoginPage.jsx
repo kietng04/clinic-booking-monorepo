@@ -79,6 +79,7 @@ export function LoginPage() {
               {quickDemoLogins.map((demo) => (
                 <button
                   key={demo.role}
+                  data-testid={`quick-login-${String(demo.role).toLowerCase()}`}
                   onClick={() => handleQuickLogin(demo.email, demo.password, demo.role)}
                   disabled={quickLoginLoading !== null}
                   className="px-3 py-1.5 bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700 rounded-lg text-xs font-medium text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-700 transition-colors disabled:opacity-50 flex items-center gap-1"
@@ -95,6 +96,7 @@ export function LoginPage() {
             <Input
               label="Email hoặc Số điện thoại"
               type="text"
+              data-testid="login-email-input"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="john@example.com"
@@ -105,6 +107,7 @@ export function LoginPage() {
             <Input
               label="Mật khẩu"
               type="password"
+              data-testid="login-password-input"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="••••••••"
@@ -124,6 +127,7 @@ export function LoginPage() {
 
             <Button
               type="submit"
+              data-testid="login-submit-button"
               className="w-full"
               size="lg"
               isLoading={isLoading}

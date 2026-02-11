@@ -124,6 +124,7 @@ const ConsultationRequest = () => {
             ) : (
               <Select
                 name="doctorId"
+                data-testid="consultation-doctor-select"
                 value={formData.doctorId}
                 onChange={handleChange}
                 required
@@ -176,6 +177,7 @@ const ConsultationRequest = () => {
               <Input
                 type="text"
                 name="topic"
+                data-testid="consultation-topic-input"
                 value={formData.topic}
                 onChange={handleChange}
                 placeholder="Ví dụ: Đau đầu kéo dài 3 ngày"
@@ -193,6 +195,7 @@ const ConsultationRequest = () => {
               </label>
               <Textarea
                 name="description"
+                data-testid="consultation-description-input"
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Mô tả triệu chứng, thời gian bắt đầu, các yếu tố liên quan..."
@@ -254,6 +257,7 @@ const ConsultationRequest = () => {
           </Button>
           <Button
             type="submit"
+            data-testid="consultation-submit-button"
             isLoading={isLoading}
             disabled={isLoading || !formData.doctorId || !formData.topic}
             className="flex-1"

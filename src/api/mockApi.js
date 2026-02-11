@@ -318,6 +318,46 @@ export const scheduleApi = {
     return doctorSchedules.filter(s => s.doctorId === doctorId)
   },
 
+  getDoctorScheduleByDay: async (doctorId, dayOfWeek) => {
+    await delay(300)
+    return doctorSchedules.filter((schedule) => {
+      if (String(schedule.doctorId) !== String(doctorId)) return false
+      const scheduleDate = new Date(schedule.date)
+      return !Number.isNaN(scheduleDate.getTime()) && scheduleDate.getDay() === Number(dayOfWeek)
+    })
+  },
+
+  getAvailableSlots: async (doctorId, date) => {
+    await delay(300)
+
+    const schedule = doctorSchedules.find(
+      (s) => String(s.doctorId) === String(doctorId) && s.date === date
+    )
+
+    let slots = Array.isArray(schedule?.slots)
+      ? schedule.slots.map((slot) => ({
+          time: normalizeTime(slot.time),
+          available: slot.available !== false,
+        })).filter((slot) => slot.time)
+      : generateDefaultSlots()
+
+    // Mark slots as unavailable when already booked by active appointments.
+    const bookedTimes = appointments
+      .filter((appointment) =>
+        String(appointment.doctorId) === String(doctorId) &&
+        appointment.date === date &&
+        appointment.status !== 'CANCELLED' &&
+        appointment.status !== 'COMPLETED'
+      )
+      .map((appointment) => normalizeTime(appointment.time))
+      .filter(Boolean)
+
+    return slots.map((slot) => ({
+      ...slot,
+      available: slot.available && !bookedTimes.includes(slot.time),
+    }))
+  },
+
   updateSchedule: async (doctorId, date, slots) => {
     await delay(600)
     const index = doctorSchedules.findIndex(
@@ -338,6 +378,26 @@ export const scheduleApi = {
     doctorSchedules[index].slots = slots
     return doctorSchedules[index]
   },
+}
+
+function normalizeTime(time) {
+  if (!time || typeof time !== 'string') return null
+  const match = time.match(/^(\d{1,2}):(\d{2})/)
+  if (!match) return null
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function generateDefaultSlots() {
+  const slots = []
+  for (let hour = 9; hour <= 16; hour += 1) {
+    slots.push({ time: `${String(hour).padStart(2, '0')}:00`, available: true })
+    slots.push({ time: `${String(hour).padStart(2, '0')}:30`, available: true })
+  }
+  return slots
 }
 
 // Medical Record API

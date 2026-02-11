@@ -1,68 +1,11 @@
-import axios from 'axios'
+import { createApiClient } from '../core/createApiClient'
 
 /**
  * User API - Real backend integration
  * Routes through API Gateway (port 8080) for centralized request handling
  */
 
-// Create dedicated axios client for API Gateway (port 8080)
-const userServiceClient = axios.create({
-  baseURL: 'http://localhost:8080',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add JWT token to requests
-userServiceClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Auto token refresh on 401
-userServiceClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        if (refreshToken) {
-          // Refresh via gateway (auth endpoint works)
-          const response = await axios.post(
-            'http://localhost:8080/api/auth/refresh',
-            null,
-            { params: { refreshToken } }
-          )
-
-          const { token, refreshToken: newRefreshToken } = response.data
-          localStorage.setItem('accessToken', token)
-          localStorage.setItem('refreshToken', newRefreshToken)
-
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return userServiceClient(originalRequest)
-        }
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('auth-storage')
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
-      }
-    }
-
-    return Promise.reject(error)
-  }
-)
+const userServiceClient = createApiClient()
 
 export const userApi = {
   /**

@@ -1,71 +1,11 @@
-import axios from 'axios'
+import { createApiClient } from '../core/createApiClient'
 
 /**
  * Medication API - Real backend integration
  * Medical Service on port 8083
  */
 
-// Create dedicated axios client for API Gateway (port 8080)
-const medicalServiceClient = axios.create({
-  baseURL: 'http://localhost:8080',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add JWT token to requests
-medicalServiceClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken')
-    console.log('[medicationApi] Token check:', { hasToken: !!token, url: config.url })
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-      console.log('[medicationApi] Authorization header added')
-    } else {
-      console.warn('[medicationApi] No token found in localStorage')
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Auto token refresh on 401
-medicalServiceClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        if (refreshToken) {
-          const response = await axios.post(
-            'http://localhost:8080/api/auth/refresh',
-            null,
-            { params: { refreshToken } }
-          )
-
-          const { token, refreshToken: newRefreshToken } = response.data
-          localStorage.setItem('accessToken', token)
-          localStorage.setItem('refreshToken', newRefreshToken)
-
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return axios(originalRequest)
-        }
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('auth-storage')
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
-      }
-    }
-
-    return Promise.reject(error)
-  }
-)
+const medicalServiceClient = createApiClient()
 
 export const medicationApi = {
   /**

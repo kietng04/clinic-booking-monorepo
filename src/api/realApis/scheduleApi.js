@@ -1,5 +1,5 @@
-import axios from 'axios'
 import { appointmentApi } from './appointmentApi'
+import { createApiClient } from '../core/createApiClient'
 
 /**
  * Doctor Schedule API - Real backend integration
@@ -7,63 +7,7 @@ import { appointmentApi } from './appointmentApi'
  * (Schedules are part of appointment-service)
  */
 
-// Create dedicated axios client for API Gateway (port 8080)
-const appointmentServiceClient = axios.create({
-  baseURL: 'http://localhost:8080',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Add JWT token to requests
-appointmentServiceClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
-// Auto token refresh on 401
-appointmentServiceClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        if (refreshToken) {
-          const response = await axios.post(
-            'http://localhost:8080/api/auth/refresh',
-            null,
-            { params: { refreshToken } }
-          )
-
-          const { token, refreshToken: newRefreshToken } = response.data
-          localStorage.setItem('accessToken', token)
-          localStorage.setItem('refreshToken', newRefreshToken)
-
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return appointmentServiceClient(originalRequest)
-        }
-      } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('auth-storage')
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
-      }
-    }
-
-    return Promise.reject(error)
-  }
-)
+const appointmentServiceClient = createApiClient()
 export const scheduleApi = {
   /**
    * Get schedule by ID

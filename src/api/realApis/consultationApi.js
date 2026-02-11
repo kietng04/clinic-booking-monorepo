@@ -1,13 +1,11 @@
 import SockJS from 'sockjs-client'
 import { Stomp } from '@stomp/stompjs'
-import { createApiClient } from '../core/createApiClient'
+import { API_BASE_URL, createApiClient } from '../core/createApiClient'
 
 /**
  * Consultation API - Real backend integration
  * Provides online consultation and real-time messaging endpoints
  */
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const consultationServiceClient = createApiClient()
 

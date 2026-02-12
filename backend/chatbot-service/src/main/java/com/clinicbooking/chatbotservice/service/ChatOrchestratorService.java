@@ -70,7 +70,10 @@ public class ChatOrchestratorService {
             answerProvider = ragUsed ? "RULE_RAG" : "RULE_TEMPLATE";
         }
 
-        List<ChatSource> sources = retrievedKnowledge.stream()
+        List<RetrievedKnowledge> orderedKnowledgeForDisplay =
+                orderKnowledgeForDisplay(classification.intentId(), classification.normalizedQuestion(), retrievedKnowledge);
+
+        List<ChatSource> sources = orderedKnowledgeForDisplay.stream()
                 .map(item -> new ChatSource(
                         item.document().id(),
                         item.document().title(),
@@ -238,6 +241,32 @@ public class ChatOrchestratorService {
         }
 
         return retrievedKnowledge.get(0).document().content();
+    }
+
+    private List<RetrievedKnowledge> orderKnowledgeForDisplay(
+            String intentId,
+            String normalizedQuestion,
+            List<RetrievedKnowledge> retrievedKnowledge
+    ) {
+        if (retrievedKnowledge == null || retrievedKnowledge.isEmpty()) {
+            return List.of();
+        }
+
+        String prioritizedSnippet = selectDeterministicSnippet(intentId, normalizedQuestion, retrievedKnowledge);
+        Optional<RetrievedKnowledge> prioritizedDocument = retrievedKnowledge.stream()
+                .filter(item -> prioritizedSnippet.equals(item.document().content()))
+                .findFirst();
+
+        if (prioritizedDocument.isEmpty()) {
+            return retrievedKnowledge;
+        }
+
+        List<RetrievedKnowledge> ordered = new java.util.ArrayList<>();
+        ordered.add(prioritizedDocument.get());
+        retrievedKnowledge.stream()
+                .filter(item -> item != prioritizedDocument.get())
+                .forEach(ordered::add);
+        return List.copyOf(ordered);
     }
 
     private boolean containsAny(String text, String... candidates) {

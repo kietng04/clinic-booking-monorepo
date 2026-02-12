@@ -205,6 +205,8 @@ class ChatOrchestratorServiceTest {
 
         assertThat(response.answerProvider()).isEqualTo("RULE_RAG");
         assertThat(response.answer()).contains("120 Nguyen Trai, Quan 1, TP HCM");
+        assertThat(response.sources()).hasSize(2);
+        assertThat(response.sources().get(0).id()).isEqualTo("CLINIC_BRANCH_MAIN");
     }
 
     @Test

@@ -65,6 +65,16 @@ spring:
                 fallbackUri: forward:/fallback
 
         # Payment routes (authenticated)
+        - id: payment-callback-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/payments/momo/callback
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: payment-service-cb
+                fallbackUri: forward:/fallback
+
         - id: payment-service
           uri: lb://payment-service
           predicates:

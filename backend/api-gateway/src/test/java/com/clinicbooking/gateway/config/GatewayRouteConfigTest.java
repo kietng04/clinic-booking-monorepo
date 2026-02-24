@@ -26,4 +26,13 @@ class GatewayRouteConfigTest {
                         .anySatisfy(route -> assertThat(route.getId()).isEqualTo("payment-service")))
                 .verifyComplete();
     }
+
+    @Test
+    @DisplayName("Should register public payment callback route")
+    void shouldRegisterPaymentCallbackRoute() {
+        StepVerifier.create(routeDefinitionLocator.getRouteDefinitions().collectList())
+                .assertNext(routes -> assertThat(routes)
+                        .anySatisfy(route -> assertThat(route.getId()).isEqualTo("payment-callback-service")))
+                .verifyComplete();
+    }
 }

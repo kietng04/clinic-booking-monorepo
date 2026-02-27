@@ -1,0 +1,149 @@
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5436}/${POSTGRES_DB:payment_db}
+    username: ${POSTGRES_USER:payment_user}
+    password: ${POSTGRES_PASSWORD:payment123}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: payment-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8761}
+
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  health:
+    redis:
+      enabled: false
+  endpoint:
+    health:
+      show-details: always
+
+# Momo Configuration
+momo:
+  partner-code: ${MOMO_PARTNER_CODE:MOMOBKUN20180529}
+  access-key: ${MOMO_ACCESS_KEY:klm05TvNBzhg7h7j}
+  secret-key: ${MOMO_SECRET_KEY:at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa}
+  public-key: ${MOMO_PUBLIC_KEY:}
+  endpoint: ${MOMO_ENDPOINT:https://test-payment.momo.vn}
+  redirect-url: ${PAYMENT_REDIRECT_URL:http://localhost:3000/payment/result}
+  ipn-url: ${PAYMENT_IPN_URL:http://localhost:8084/api/payments/momo/callback}
+  request-type: captureWallet
+  timeout: 30000
+  connection-timeout: 10000
+
+# Payment Service Configuration
+payment:
+  redirect-url: ${PAYMENT_REDIRECT_URL:http://localhost:3000/payment/result}
+  ipn-url: ${PAYMENT_IPN_URL:http://localhost:8084/api/payments/momo/callback}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-secret-key-here}
+  expiration: 86400000
+
+# Kafka Topics
+kafka:
+  topics:
+    payment-created: payment.created
+    payment-completed: payment.completed
+    payment-failed: payment.failed
+    payment-refunded: payment.refunded
+
+# Feign Client Configuration
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
+
+# Enable circuit breaker for Feign fallbacks
+spring.cloud.openfeign.circuitbreaker.enabled: true
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      momo-api:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 60000
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2000
+  retry:
+    instances:
+      momo-api:
+        maxAttempts: 3
+        waitDuration: 1000
+
+# Logging Configuration
+logging:
+  level:
+    com.clinicbooking.paymentservice: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

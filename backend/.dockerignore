@@ -1,0 +1,48 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Logs
+*.log
+logs/
+
+# Uploads (will be mounted as volume)
+uploads/
+
+# Environment files
+.env
+.env.*
+
+# Test files
+**/src/test/

@@ -24,6 +24,7 @@ import { useUIStore } from '@/store/uiStore'
 import { statsApi } from '@/api/statsApiWrapper'
 import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { mockDoctorAnalytics } from '@/api/mockData'
+import { withRetry } from '@/utils/apiRetry'
 import { vi } from '@/lib/translations'
 
 const DoctorAnalytics = () => {
@@ -43,16 +44,30 @@ const DoctorAnalytics = () => {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [statsData, analyticsData] = await Promise.all([
-        statsApi.getDoctorStats(user.id),
-        statsApi.getDoctorAnalyticsDashboard(user.id),
+      const [statsResult, analyticsResult] = await Promise.allSettled([
+        withRetry(
+          () => statsApi.getDoctorStats(user.id),
+          { maxRetries: 2, initialDelay: 500 }
+        ),
+        withRetry(
+          () => statsApi.getDoctorAnalyticsDashboard(user.id),
+          { maxRetries: 3, initialDelay: 800, backoffMultiplier: 2 }
+        ),
       ])
+
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value : null
+      const analyticsData = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null
+
       setStats(statsData)
-      setAnalytics(transformDataByDateRange(analyticsData, dateRange))
+      setAnalytics(transformDataByDateRange(analyticsData || mockDoctorAnalytics, dateRange))
+
+      if (statsResult.status === 'rejected' && analyticsResult.status === 'rejected') {
+        throw analyticsResult.reason || statsResult.reason
+      }
     } catch (error) {
       console.error('Failed to load doctor analytics:', error)
       showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải dữ liệu phân tích') })
-      setAnalytics(mockDoctorAnalytics)
+      setAnalytics(transformDataByDateRange(mockDoctorAnalytics, dateRange))
     } finally {
       setIsLoading(false)
     }
@@ -73,7 +88,7 @@ const DoctorAnalytics = () => {
   const overviewStats = [
     {
       label: vi.doctor.analytics.totalPatients,
-      value: stats?.totalPatients || 0,
+      value: stats?.totalPatients ?? stats?.uniquePatients ?? 0,
       icon: Users,
       color: 'sage',
     },

@@ -85,3 +85,30 @@ export function getPriorityColor(priority) {
   }
   return colors[priority] || 'bg-gray-100 text-gray-700'
 }
+
+export function formatPhone(phone) {
+  if (phone === null || phone === undefined) return ''
+
+  const raw = String(phone).trim()
+  if (!raw) return ''
+
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return raw
+
+  // Convert +84/84-prefixed values back to local VN format.
+  if (digits.startsWith('84')) {
+    const local = `0${digits.slice(2)}`
+    if (local.length === 10 || local.length === 11) return local
+  }
+
+  // Some sources may drop the leading zero.
+  if (digits.length === 9) {
+    return `0${digits}`
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return digits
+  }
+
+  return raw
+}

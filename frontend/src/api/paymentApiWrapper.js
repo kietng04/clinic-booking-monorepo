@@ -80,12 +80,14 @@ const mockPaymentApi = {
     await new Promise((r) => setTimeout(r, 1000))
 
     // Simulate payment gateway redirect
-    const paymentId = `PAY-${Date.now()}`
-    const mockPaymentUrl = `/payment/result?paymentId=${paymentId}&status=success`
+    const orderId = `PAY-${Date.now()}`
+    const mockPaymentUrl = `/payment/result?orderId=${orderId}&status=success`
 
     return {
-      paymentId,
-      status: 'Pending',
+      orderId,
+      paymentId: orderId,
+      status: 'PENDING',
+      payUrl: mockPaymentUrl,
       redirectUrl: mockPaymentUrl,
       qrCode: data.method === 'Momo' || data.method === 'VNPay' ? 'mock-qr-code-url' : null,
     }
@@ -127,15 +129,40 @@ const mockPaymentApi = {
     // Simulate successful payment result
     return {
       id: paymentId,
-      status: 'Success',
+      orderId: paymentId,
+      status: 'COMPLETED',
       amount: 500000,
       finalAmount: 500000,
       currency: 'VND',
-      method: 'Momo',
+      paymentMethod: 'MOMO_WALLET',
       transactionId: `TXN-${Date.now()}`,
-      paidAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
       appointmentId: 'APT-NEW',
       description: 'Thanh toán lịch hẹn khám bệnh',
+    }
+  },
+
+  queryPaymentStatus: async (orderId) => {
+    return mockPaymentApi.getPaymentResult(orderId)
+  },
+
+  getPaymentByAppointment: async (appointmentId) => {
+    await new Promise((r) => setTimeout(r, 300))
+    const record = mockPayments.find((p) => String(p.appointmentId) === String(appointmentId))
+    if (!record) {
+      throw new Error('Payment not found')
+    }
+    const status = (record.status || '').toString().toUpperCase()
+    const normalizedStatus = status === 'SUCCESS' ? 'COMPLETED' : status
+    return {
+      orderId: record.id || `PAY-${appointmentId}`,
+      appointmentId: record.appointmentId,
+      amount: record.amount,
+      finalAmount: record.finalAmount,
+      status: normalizedStatus,
+      paymentMethod: record.paymentMethod || record.method,
+      payUrl: `/payment/result?orderId=${record.id || `PAY-${appointmentId}`}`,
+      createdAt: record.createdAt,
     }
   },
 

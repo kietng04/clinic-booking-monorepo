@@ -9,6 +9,27 @@ import { statsApi } from '@/api/statsApiWrapper'
 import { vi } from '@/lib/translations'
 import { withRetry } from '@/utils/apiRetry'
 
+const MAX_AUTO_RETRY_503 = 3
+
+const normalizeAdminStats = (dashboardStats, analyticsData) => {
+  const userStats = dashboardStats?.userStatistics || {}
+  const appointmentStats = dashboardStats?.appointmentStatistics || {}
+  const systemHealth = dashboardStats?.systemHealth || {}
+  const latestRevenue = Array.isArray(analyticsData?.revenue) && analyticsData.revenue.length > 0
+    ? Number(analyticsData.revenue[analyticsData.revenue.length - 1]?.thisYear || 0)
+    : 0
+
+  return {
+    totalUsers: userStats.totalUsers || 0,
+    totalDoctors: userStats.totalDoctors || 0,
+    activeUsers: userStats.activeUsers || systemHealth.totalActiveUsers || 0,
+    todayAppointments: appointmentStats.appointmentsToday || 0,
+    totalAppointments: appointmentStats.totalAppointments || 0,
+    pendingApprovals: systemHealth.pendingActionsCount || 0,
+    monthlyRevenue: latestRevenue,
+  }
+}
+
 const AdminDashboard = () => {
   const { showToast } = useUIStore()
   const [stats, setStats] = useState(null)
@@ -19,6 +40,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null)
   const abortControllerRef = useRef(null)
   const autoRetryTimeoutRef = useRef(null)
+  const autoRetryCountRef = useRef(0)
 
   useEffect(() => {
     fetchData()
@@ -35,7 +57,7 @@ const AdminDashboard = () => {
     }
   }, [])
 
-  const fetchData = async () => {
+  const fetchData = async (isAutoRetry = false) => {
     if (autoRetryTimeoutRef.current) {
       clearTimeout(autoRetryTimeoutRef.current)
       autoRetryTimeoutRef.current = null
@@ -53,11 +75,14 @@ const AdminDashboard = () => {
 
     setIsLoading(true)
     setError(null)
-    setIsRetrying(false)
-    setRetryAttempt(0)
-    // Avoid showing stale dashboard data while refetching / retrying.
-    setStats(null)
-    setAnalytics(null)
+    if (!isAutoRetry) {
+      setIsRetrying(false)
+      setRetryAttempt(0)
+      autoRetryCountRef.current = 0
+      // Avoid showing stale dashboard data while refetching / retrying.
+      setStats(null)
+      setAnalytics(null)
+    }
 
     let shouldAutoRetry503 = false
 
@@ -92,11 +117,12 @@ const AdminDashboard = () => {
         )
       ])
 
-      setStats(statsData)
+      setStats(normalizeAdminStats(statsData, analyticsData))
       setAnalytics(analyticsData)
       setError(null)
       setIsRetrying(false)
       setRetryAttempt(0)
+      autoRetryCountRef.current = 0
     } catch (error) {
       // If another fetch started, ignore results from this (now stale) request.
       if (abortControllerRef.current !== controller) {
@@ -115,16 +141,21 @@ const AdminDashboard = () => {
       // 503 is commonly transient during service restarts.
       // Don't show a generic red toast; keep the user on a stable "retrying" UI and auto-retry.
       if (status === 503) {
-        shouldAutoRetry503 = true
+        if (autoRetryCountRef.current < MAX_AUTO_RETRY_503) {
+          autoRetryCountRef.current += 1
+          shouldAutoRetry503 = true
+          setError(error)
+          setIsRetrying(true)
+          setRetryAttempt(autoRetryCountRef.current)
+
+          autoRetryTimeoutRef.current = setTimeout(() => {
+            fetchData(true)
+          }, 2500)
+          return
+        }
+
         setError(error)
-        setIsRetrying(true)
-        // When all retries are exhausted, keep increasing attempt number for the banner.
-        setRetryAttempt((prev) => (prev > 0 ? prev + 1 : 1))
-
-        autoRetryTimeoutRef.current = setTimeout(() => {
-          fetchData()
-        }, 2500)
-
+        setIsRetrying(false)
         return
       }
 

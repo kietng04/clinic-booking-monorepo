@@ -6,6 +6,7 @@ import { useUIStore } from '@/store/uiStore'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { profileApi } from '@/api/profileApiWrapper'
+import { formatPhone } from '@/lib/utils'
 
 export default function ProfileSettings() {
   const { user, updateUser } = useAuthStore()
@@ -25,7 +26,7 @@ export default function ProfileSettings() {
     profileApi.getProfile().then((data) => {
       setFormData({
         fullName: data.fullName || '',
-        phone: data.phone || '',
+        phone: formatPhone(data.phone) || '',
         dateOfBirth: data.dateOfBirth || '',
         gender: data.gender || '',
         avatarUrl: data.avatarUrl || '',

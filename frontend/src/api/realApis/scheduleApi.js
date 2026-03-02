@@ -72,6 +72,7 @@ export const scheduleApi = {
       try {
         const appointments = await appointmentApi.getAppointments({
           doctorId,
+          includeUnpaid: true,
           fromDate: date,
           toDate: date,
           size: 100, // Get all appointments for the day

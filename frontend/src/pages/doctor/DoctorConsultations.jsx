@@ -47,12 +47,12 @@ const DoctorConsultations = () => {
   const fetchConsultations = async () => {
     setIsLoading(true)
     try {
-      const [allData, pendingData] = await Promise.all([
-        consultationApi.getConsultationsByDoctor(user.id, 0, 50),
-        consultationApi.getPendingConsultations(user.id),
-      ])
-      setConsultations(allData.content || [])
-      setPendingConsultations(pendingData || [])
+      const allData = await consultationApi.getConsultationsByDoctor(user.id, 0, 50)
+      const allConsultations = allData.content || []
+      setConsultations(allConsultations)
+      // Derive pending list from primary dataset so UI still works
+      // even when /pending endpoint is temporarily unavailable.
+      setPendingConsultations(allConsultations.filter(c => c.status === 'PENDING'))
     } catch (error) {
       console.error('Failed to load consultations:', error)
       showToast({ type: 'error', message: 'Không thể tải danh sách tư vấn' })

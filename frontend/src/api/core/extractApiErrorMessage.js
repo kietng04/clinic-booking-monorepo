@@ -28,6 +28,15 @@ const pickFirstNonEmpty = (value) => {
     if (typeof value.message === 'string' && value.message.trim()) {
       return value.message.trim()
     }
+    if (typeof value.error === 'string' && value.error.trim()) {
+      return value.error.trim()
+    }
+    if (typeof value.reason === 'string' && value.reason.trim()) {
+      return value.reason.trim()
+    }
+    if (typeof value.detail === 'string' && value.detail.trim()) {
+      return value.detail.trim()
+    }
   }
   return null
 }
@@ -51,21 +60,27 @@ export const extractApiErrorMessage = (error, fallbackMessage) => {
     return data.trim()
   }
 
-  const messageFromEnvelope = pickFirstNonEmpty(data?.message)
+  const messageFromEnvelope = pickFirstNonEmpty([
+    data?.message,
+    data?.error,
+    data?.reason,
+    data?.detail,
+    data?.title,
+    data?.error_description,
+    data?.details?.message,
+    data?.details?.error,
+    data?.details?.detail,
+  ])
   if (messageFromEnvelope) {
     return messageFromEnvelope
   }
 
-  const messageFromDetails = extractValidationDetails(data?.details)
+  const messageFromDetails = extractValidationDetails(data?.details || data?.errors)
   if (messageFromDetails) {
     return messageFromDetails
   }
 
   const status = error?.response?.status
-  if (fallbackMessage && typeof fallbackMessage === 'string' && fallbackMessage.trim()) {
-    return fallbackMessage.trim()
-  }
-
   if (status && STATUS_MESSAGES[status]) {
     return STATUS_MESSAGES[status]
   }
@@ -75,6 +90,10 @@ export const extractApiErrorMessage = (error, fallbackMessage) => {
       return 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại.'
     }
     return error.message.trim()
+  }
+
+  if (fallbackMessage && typeof fallbackMessage === 'string' && fallbackMessage.trim()) {
+    return fallbackMessage.trim()
   }
 
   return 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.'

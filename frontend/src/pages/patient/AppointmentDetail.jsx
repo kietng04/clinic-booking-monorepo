@@ -25,15 +25,14 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Loading } from '@/components/ui/Loading'
 import { RescheduleModal } from '@/components/RescheduleModal'
 import { CancelAppointmentModal } from '@/components/CancelAppointmentModal'
-import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { paymentApi } from '@/api/paymentApiWrapper'
 import { formatDate, formatTime, translateStatus } from '@/lib/utils'
 
 const AppointmentDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
   const { showToast } = useUIStore()
 
   const [appointment, setAppointment] = useState(null)
@@ -186,6 +185,59 @@ const AppointmentDetail = () => {
   const canCancel = () => {
     if (!appointment) return false
     return ['PENDING', 'CONFIRMED'].includes(appointment.status)
+  }
+
+  const getPaymentStatusColor = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'PAID':
+        return 'bg-green-100 text-green-800'
+      case 'PENDING_PAYMENT':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'PAYMENT_EXPIRED':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getPaymentStatusLabel = (paymentStatus) => {
+    switch (paymentStatus) {
+      case 'PAID':
+        return 'Đã thanh toán'
+      case 'PENDING_PAYMENT':
+        return 'Chờ thanh toán'
+      case 'PAYMENT_EXPIRED':
+        return 'Hết hạn thanh toán'
+      default:
+        return 'Không xác định'
+    }
+  }
+
+  const handleContinuePayment = async () => {
+    try {
+      const payment = await paymentApi.getPaymentByAppointment(appointment.id)
+      const normalizedStatus = (payment?.status || '').toString().trim().toUpperCase()
+
+      if (normalizedStatus === 'COMPLETED') {
+        const orderId = payment?.orderId || appointment.paymentOrderId
+        if (orderId) {
+          navigate(`/payment/result?orderId=${orderId}`)
+          return
+        }
+      }
+
+      const payUrl = payment?.payUrl || payment?.redirectUrl
+      if (!payUrl) {
+        throw new Error('Không tìm thấy link thanh toán')
+      }
+
+      window.location.href = payUrl
+    } catch (error) {
+      showToast({
+        type: 'error',
+        message: 'Không thể khởi tạo lại thanh toán. Vui lòng thử lại.',
+      })
+    }
   }
 
   if (isLoading) {
@@ -405,7 +457,7 @@ const AppointmentDetail = () => {
       )}
 
       {/* Payment Info */}
-      {appointment.paymentId && (
+      {appointment.paymentStatus && (
         <Card>
           <CardHeader>
             <CardTitle>Thông tin thanh toán</CardTitle>
@@ -414,14 +466,27 @@ const AppointmentDetail = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-sage-600 mb-1">Trạng thái thanh toán</p>
-                <Badge className="bg-green-100 text-green-800">Đã thanh toán</Badge>
+                <Badge className={getPaymentStatusColor(appointment.paymentStatus)}>
+                  {getPaymentStatusLabel(appointment.paymentStatus)}
+                </Badge>
               </div>
 
-              <Link to={`/payments`}>
-                <Button variant="outline" size="sm" leftIcon={<CreditCard className="w-4 h-4" />}>
-                  Xem hóa đơn
+              {appointment.paymentStatus === 'PAID' ? (
+                <Link to="/payments">
+                  <Button variant="outline" size="sm" leftIcon={<CreditCard className="w-4 h-4" />}>
+                    Xem hóa đơn
+                  </Button>
+                </Link>
+              ) : appointment.paymentStatus === 'PENDING_PAYMENT' ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleContinuePayment}
+                  leftIcon={<CreditCard className="w-4 h-4" />}
+                >
+                  Thanh toán ngay
                 </Button>
-              </Link>
+              ) : null}
             </div>
           </CardContent>
         </Card>

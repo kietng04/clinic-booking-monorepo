@@ -20,6 +20,7 @@ import { appointmentApi } from '@/api/appointmentApiWrapper'
 import { paymentApi } from '@/api/paymentApiWrapper'
 import { adminApi } from '@/api/adminApiWrapper'
 import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
+import { formatCurrency } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -475,7 +476,7 @@ export function BookAppointment() {
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-lg font-bold text-sage-900 dark:text-cream-100">
-                                ${doctor.consultationFee}
+                                {formatCurrency(doctor.consultationFee)}
                               </span>
                               <Button size="sm" data-testid={`booking-select-doctor-${doctor.id}`}>Chọn</Button>
                             </div>
@@ -810,9 +811,9 @@ export function BookAppointment() {
                       </div>
                     </div>
                     <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">
-                      <div className="text-sm text-sage-600 dark:text-sage-400 mb-1">Fee</div>
+                      <div className="text-sm text-sage-600 dark:text-sage-400 mb-1">Phí khám</div>
                       <div className="font-semibold text-sage-900 dark:text-cream-100">
-                        ${bookingData.doctor?.consultationFee}
+                        {formatCurrency(bookingData.doctor?.consultationFee)}
                       </div>
                     </div>
                     <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">

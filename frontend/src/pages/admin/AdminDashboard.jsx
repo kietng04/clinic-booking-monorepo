@@ -8,6 +8,7 @@ import { useUIStore } from '@/store/uiStore'
 import { statsApi } from '@/api/statsApiWrapper'
 import { vi } from '@/lib/translations'
 import { withRetry } from '@/utils/apiRetry'
+import { formatCurrency } from '@/lib/utils'
 
 const MAX_AUTO_RETRY_503 = 3
 
@@ -207,7 +208,7 @@ const AdminDashboard = () => {
     },
     {
       label: vi.admin.dashboard.monthlyRevenue,
-      value: stats?.monthlyRevenue ? `${(stats.monthlyRevenue / 1000000).toFixed(1)}M VND` : '0M VND',
+      value: stats?.monthlyRevenue ? formatCurrency(stats.monthlyRevenue) : '0 ₫',
       change: '+22.3%',
       icon: DollarSign,
       color: 'green',

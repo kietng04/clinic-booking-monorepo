@@ -22,6 +22,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { consultationApi } from '@/api/realApis/consultationApi'
 import { formatDistanceToNow } from 'date-fns'
+import { formatCurrency } from '@/lib/utils'
 import { vi } from 'date-fns/locale'
 
 const DoctorConsultations = () => {
@@ -360,7 +361,7 @@ const DoctorConsultations = () => {
 
                     <div className="flex flex-col items-end gap-2 ml-4">
                       <div className="text-lg font-bold text-sage-900">
-                        {consultation.fee?.toLocaleString()} đ
+                        {formatCurrency(consultation.fee)}
                       </div>
 
                       {/* Action buttons for pending consultations */}

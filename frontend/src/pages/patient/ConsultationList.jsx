@@ -11,6 +11,7 @@ import { useUIStore } from '@/store/uiStore'
 import { consultationApi } from '@/api/realApis/consultationApi'
 import { formatDistanceToNow } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { formatCurrency } from '@/lib/utils'
 
 const ConsultationList = () => {
   const navigate = useNavigate()
@@ -210,7 +211,7 @@ const ConsultationList = () => {
 
                     <div className="flex flex-col items-end gap-2">
                       <div className="text-lg font-bold text-sage-900">
-                        {consultation.fee?.toLocaleString()} đ
+                        {formatCurrency(consultation.fee)}
                       </div>
                       {consultation.isPaid ? (
                         <Badge variant="green">Đã thanh toán</Badge>

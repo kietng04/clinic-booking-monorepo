@@ -26,6 +26,7 @@ import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 import { mockDoctorAnalytics } from '@/api/mockData'
 import { withRetry } from '@/utils/apiRetry'
 import { vi } from '@/lib/translations'
+import { formatCurrency } from '@/lib/utils'
 
 const DoctorAnalytics = () => {
   const { user } = useAuthStore()
@@ -222,7 +223,7 @@ const DoctorAnalytics = () => {
                   tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
                 />
                 <Tooltip
-                  formatter={(value) => [`${value.toLocaleString()} VND`, 'Doanh thu']}
+                  formatter={(value) => [formatCurrency(value), 'Doanh thu']}
                   contentStyle={{
                     backgroundColor: '#fff',
                     border: '1px solid #e5e7eb',

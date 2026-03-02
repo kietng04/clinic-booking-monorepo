@@ -86,6 +86,11 @@ export function getPriorityColor(priority) {
   return colors[priority] || 'bg-gray-100 text-gray-700'
 }
 
+export function formatCurrency(amount) {
+  if (amount === null || amount === undefined) return 'Liên hệ'
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', minimumFractionDigits: 0 }).format(amount)
+}
+
 export function formatPhone(phone) {
   if (phone === null || phone === undefined) return ''
 

@@ -12,6 +12,7 @@ import { useUIStore } from '@/store/uiStore'
 import { consultationApi } from '@/api/realApis/consultationApi'
 import { userApi } from '@/api/userApiWrapper'
 import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
+import { formatCurrency } from '@/lib/utils'
 
 const ConsultationRequest = () => {
   const navigate = useNavigate()
@@ -224,7 +225,7 @@ const ConsultationRequest = () => {
                 <p className="text-sm text-sage-600">Thanh toán sau khi bác sĩ chấp nhận</p>
               </div>
               <div className="text-2xl font-bold text-sage-900">
-                {formData.fee.toLocaleString()} đ
+                {formatCurrency(formData.fee)}
               </div>
             </div>
           </CardContent>

@@ -34,6 +34,7 @@ export const gatewayPatterns = [
   '/api/consultations/**',
   '/api/messages/**',
   '/api/payments/**',
+  '/api/chatbot/**',
 ]
 
 export default gatewayPatterns

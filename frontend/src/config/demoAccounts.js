@@ -23,20 +23,38 @@ export const REAL_DEMO_ACCOUNTS = {
   PATIENT: {
     role: 'PATIENT',
     label: 'Bệnh nhân',
-    email: 'patient.1@healthflow.vn',
+    email: 'patient1@clinic.com',
     password: 'password',
+    fallbacks: [
+      {
+        email: 'patient.1@healthflow.vn',
+        password: 'password',
+      },
+    ],
   },
   DOCTOR: {
     role: 'DOCTOR',
     label: 'Bác sĩ',
-    email: 'doctor.1@healthflow.vn',
+    email: 'dr.sarah@clinic.com',
     password: 'password',
+    fallbacks: [
+      {
+        email: 'doctor.1@healthflow.vn',
+        password: 'password',
+      },
+    ],
   },
   ADMIN: {
     role: 'ADMIN',
     label: 'Quản trị',
-    email: 'admin.1@healthflow.vn',
+    email: 'admin@clinic.com',
     password: 'password',
+    fallbacks: [
+      {
+        email: 'admin.1@healthflow.vn',
+        password: 'password',
+      },
+    ],
   },
 }
 

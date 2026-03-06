@@ -54,4 +54,27 @@ class RuleBasedClassifierServiceTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void shouldNotMatchShortKeywordInsideAnotherWord() {
+        List<IntentDefinition> intents = List.of(
+                new IntentDefinition(
+                        "GREETING",
+                        "Chao hoi",
+                        "Greeting",
+                        List.of("hi")
+                ),
+                new IntentDefinition(
+                        "DOCTOR_LOOKUP",
+                        "Tra cuu bac si",
+                        "Doctor lookup",
+                        List.of("co bac si nao ten")
+                )
+        );
+
+        var result = service.classify("hien gio co bac si nao ten binh khong", intents);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().intentId()).isEqualTo("DOCTOR_LOOKUP");
+    }
 }

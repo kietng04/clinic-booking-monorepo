@@ -6,6 +6,12 @@
     "keywords": ["dat lich", "book appointment", "hen kham", "book", "schedule appointment"]
   },
   {
+    "id": "GREETING",
+    "name": "Chao hoi",
+    "description": "Nguoi dung chao hoi hoac mo dau cuoc tro chuyen",
+    "keywords": ["xin chao", "chao", "hello", "hi", "hey", "alo"]
+  },
+  {
     "id": "RESCHEDULE_APPOINTMENT",
     "name": "Doi lich kham",
     "description": "Nguoi dung muon doi thoi gian lich kham",
@@ -24,10 +30,28 @@
     "keywords": ["lich bac si", "doctor schedule", "bac si nao ranh", "gio kham", "ca kham"]
   },
   {
+    "id": "DOCTOR_LOOKUP",
+    "name": "Tra cuu bac si",
+    "description": "Nguoi dung tim bac si theo ten hoac hoi hien tai co bac si nao phu hop",
+    "keywords": ["bac si ten", "co bac si nao ten", "tim bac si", "bac si nao ten", "doctor named", "cac bac si nao", "co nhung bac si nao", "danh sach bac si", "bac si hien co"]
+  },
+  {
+    "id": "CLINIC_DIRECTORY",
+    "name": "Danh sach co so",
+    "description": "Nguoi dung hoi danh sach chi nhanh, tru so hoac co so dang hoat dong",
+    "keywords": ["cac tru so", "tru so nao", "chi nhanh nao", "cac chi nhanh", "co so nao", "co cac tru so nao"]
+  },
+  {
+    "id": "SERVICE_CATALOG",
+    "name": "Danh muc dich vu",
+    "description": "Nguoi dung hoi phong kham co nhung dich vu gi",
+    "keywords": ["co dich vu gi", "dich vu gi", "cac dich vu nao", "nhung dich vu nao", "danh muc dich vu"]
+  },
+  {
     "id": "CLINIC_ADDRESS",
     "name": "Dia chi phong kham",
     "description": "Nguoi dung hoi dia chi va thong tin di chuyen",
-    "keywords": ["dia chi", "address", "o dau", "chi nhanh", "ban do"]
+    "keywords": ["dia chi", "address", "o dau", "chi nhanh", "ban do", "tru so", "co so"]
   },
   {
     "id": "SERVICE_PRICE",

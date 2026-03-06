@@ -30,12 +30,27 @@ export function LoginPage() {
     }
   }
 
-  const handleQuickLogin = async (email, password, role) => {
-    setQuickLoginLoading(role)
+  const handleQuickLogin = async (demo) => {
+    setQuickLoginLoading(demo.role)
     try {
-      await login(email, password)
-      showToast({ type: 'success', message: 'Đăng nhập thành công!' })
-      navigate('/dashboard')
+      const loginAttempts = [
+        { email: demo.email, password: demo.password },
+        ...(demo.fallbacks || []),
+      ]
+
+      let lastError = null
+      for (const credentials of loginAttempts) {
+        try {
+          await login(credentials.email, credentials.password)
+          showToast({ type: 'success', message: 'Đăng nhập thành công!' })
+          navigate('/dashboard')
+          return
+        } catch (error) {
+          lastError = error
+        }
+      }
+
+      throw lastError || new Error('Đăng nhập thất bại')
     } catch (error) {
       showToast({ type: 'error', message: error.message || 'Đăng nhập thất bại' })
     } finally {
@@ -80,7 +95,7 @@ export function LoginPage() {
                 <button
                   key={demo.role}
                   data-testid={`quick-login-${String(demo.role).toLowerCase()}`}
-                  onClick={() => handleQuickLogin(demo.email, demo.password, demo.role)}
+                  onClick={() => handleQuickLogin(demo)}
                   disabled={quickLoginLoading !== null}
                   className="px-3 py-1.5 bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700 rounded-lg text-xs font-medium text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-700 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >

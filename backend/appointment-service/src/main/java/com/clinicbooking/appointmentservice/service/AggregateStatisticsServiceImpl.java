@@ -78,6 +78,7 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                 log.info("Fetching patient statistics for patient: {}", patientId);
 
                 try {
+                        PatientMedicalSummaryDto medicalSummary = medicalServiceClient.getPatientMedicalSummary(patientId);
                         List<Appointment> patientAppointments = appointmentRepository
                                         .findByPatientId(patientId,
                                                         org.springframework.data.domain.PageRequest.of(0,
@@ -92,8 +93,9 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                                                 .completedAppointments(0L)
                                                 .upcomingAppointments(0L)
                                                 .cancelledAppointments(0L)
-                                                .totalMedicalRecords(0L)
-                                                .totalPrescriptions(0L)
+                                                .totalMedicalRecords(medicalSummary.getTotalMedicalRecords())
+                                                .totalPrescriptions(medicalSummary.getTotalPrescriptions())
+                                                .healthMetricsLogged(medicalSummary.getTotalHealthMetrics())
                                                 .completionRate(0.0)
                                                 .avgAppointmentsPerMonth(0.0)
                                                 .generatedAt(LocalDateTime.now())
@@ -146,6 +148,9 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                                         .completedAppointments(completedAppointments)
                                         .upcomingAppointments(upcomingAppointments)
                                         .cancelledAppointments(cancelledAppointments)
+                                        .totalMedicalRecords(medicalSummary.getTotalMedicalRecords())
+                                        .totalPrescriptions(medicalSummary.getTotalPrescriptions())
+                                        .healthMetricsLogged(medicalSummary.getTotalHealthMetrics())
                                         .frequentDoctorId(frequentDoctorId)
                                         .lastAppointmentDate(lastAppointmentDate)
                                         .completionRate(Math.round(completionRate * 100.0) / 100.0)

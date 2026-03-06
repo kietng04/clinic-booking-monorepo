@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -38,7 +39,7 @@ public class RuleBasedClassifierService {
 
             for (String keyword : keywords) {
                 String normalizedKeyword = TextNormalizer.normalize(keyword);
-                if (!normalizedKeyword.isBlank() && question.contains(normalizedKeyword)) {
+                if (!normalizedKeyword.isBlank() && containsPhrase(question, normalizedKeyword)) {
                     matchedKeywords.add(keyword);
                 }
             }
@@ -73,5 +74,10 @@ public class RuleBasedClassifierService {
         }
 
         return Optional.ofNullable(bestResult);
+    }
+
+    private boolean containsPhrase(String normalizedQuestion, String normalizedKeyword) {
+        String pattern = "(^|\\s)" + Pattern.quote(normalizedKeyword) + "(\\s|$)";
+        return Pattern.compile(pattern).matcher(normalizedQuestion).find();
     }
 }

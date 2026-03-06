@@ -48,6 +48,8 @@ public interface HealthMetricRepository extends JpaRepository<HealthMetric, Long
      */
     long countByPatientIdAndMetricType(Long patientId, String metricType);
 
+    long countByPatientId(Long patientId);
+
     /**
      * Find metrics by patient ID, metric type, and date range
      */

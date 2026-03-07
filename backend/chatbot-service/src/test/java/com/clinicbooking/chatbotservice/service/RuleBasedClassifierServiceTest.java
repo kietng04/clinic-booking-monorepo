@@ -77,4 +77,22 @@ class RuleBasedClassifierServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get().intentId()).isEqualTo("DOCTOR_LOOKUP");
     }
+
+    @Test
+    void shouldMatchClinicAddressIntentForOpeningHoursQuestion() {
+        List<IntentDefinition> intents = List.of(
+                new IntentDefinition(
+                        "CLINIC_ADDRESS",
+                        "Dia chi phong kham",
+                        "Dia chi va gio lam viec",
+                        List.of("gio mo cua", "mo cua may gio", "gio lam viec")
+                ),
+                new IntentDefinition("UNKNOWN", "Khong xac dinh", "Fallback", List.of())
+        );
+
+        var result = service.classify("phong kham mo cua may gio", intents);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().intentId()).isEqualTo("CLINIC_ADDRESS");
+    }
 }

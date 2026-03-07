@@ -222,6 +222,24 @@ class UserRepositoryTest {
     }
 
     @Test
+    void searchDoctors_withBlankStringFilters_returnsAllDoctors() {
+        Pageable pageable = PageRequest.of(0, 10);
+
+        Page<User> result = userRepository.searchDoctors(
+                User.UserRole.DOCTOR,
+                "",
+                "",
+                null,
+                null,
+                pageable
+        );
+
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getContent())
+                .allMatch(user -> user.getRole() == User.UserRole.DOCTOR);
+    }
+
+    @Test
     void searchDoctors_pagination_worksCorrectly() {
         // Arrange
         Pageable pageable = PageRequest.of(0, 2);

@@ -64,6 +64,17 @@ const DoctorConsultationChat = () => {
         scrollToBottom()
     }, [messages])
 
+    const appendMessageUnique = (incomingMessage) => {
+        if (!incomingMessage) return
+        setMessages((prev) => {
+            const incomingId = incomingMessage.id
+            if (incomingId != null && prev.some((msg) => msg.id === incomingId)) {
+                return prev
+            }
+            return [...prev, incomingMessage]
+        })
+    }
+
     useEffect(() => {
         // Mark messages as read when viewing
         if (consultation && messages.length > 0) {
@@ -98,7 +109,7 @@ const DoctorConsultationChat = () => {
                 () => {
                     setIsConnected(true)
                     wsManager.subscribeToConsultation(parseInt(consultationId), (message) => {
-                        setMessages((prev) => [...prev, message])
+                        appendMessageUnique(message)
                     })
                 },
                 (error) => {
@@ -109,7 +120,7 @@ const DoctorConsultationChat = () => {
         } else {
             setIsConnected(true)
             wsManager.subscribeToConsultation(parseInt(consultationId), (message) => {
-                setMessages((prev) => [...prev, message])
+                appendMessageUnique(message)
             })
         }
     }
@@ -227,7 +238,21 @@ const DoctorConsultationChat = () => {
         consultation.status === 'ACCEPTED' || consultation.status === 'IN_PROGRESS'
     const isPending = consultation.status === 'PENDING'
 
-    const isMyMessage = (message) => message.senderId === user.id
+    const isMyMessage = (message) => {
+        const senderId = message?.senderId
+        const currentUserId = user?.id
+
+        if (senderId != null && currentUserId != null && String(senderId) === String(currentUserId)) {
+            return true
+        }
+
+        // Fallback for inconsistent ID typing/payloads from realtime channel.
+        if (message?.senderRole && user?.role) {
+            return String(message.senderRole).toUpperCase() === String(user.role).toUpperCase()
+        }
+
+        return false
+    }
 
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)]">

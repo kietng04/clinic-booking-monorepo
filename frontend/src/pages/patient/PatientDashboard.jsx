@@ -205,7 +205,7 @@ export function PatientDashboard() {
                     >
                       <div className="flex items-start gap-4">
                         <Avatar
-                          src={`https://i.pravatar.cc/150?u=${apt.doctorId}`}
+                          src={apt.doctorAvatar || `https://i.pravatar.cc/150?u=doctor-${apt.doctorId || apt.id}`}
                           name={apt.doctorName}
                           size="md"
                         />

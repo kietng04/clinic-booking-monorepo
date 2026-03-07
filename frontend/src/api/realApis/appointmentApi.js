@@ -22,6 +22,12 @@ const normalizeAppointment = (appointment) => {
     reason: appointment.reason || appointment.symptoms || appointment.notes || '',
     doctorName: appointment.doctorName || doctorProfile.fullName || doctorProfile.name || appointment.doctorId,
     doctorSpecialization: appointment.doctorSpecialization || doctorProfile.specialization || '',
+    doctorAvatar:
+      appointment.doctorAvatar ||
+      doctorProfile.avatarUrl ||
+      doctorProfile.avatar ||
+      doctorProfile.profileImage ||
+      null,
     patientName: appointment.patientName || patientProfile.fullName || patientProfile.name || appointment.patientId,
   }
 }

@@ -46,7 +46,13 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! docker ps --format '{{.Names}}' | rg -q "^${USER_DB_CONTAINER}$"; then
+if command -v rg >/dev/null 2>&1; then
+  db_container_running="$(docker ps --format '{{.Names}}' | rg -q "^${USER_DB_CONTAINER}$" && echo yes || echo no)"
+else
+  db_container_running="$(docker ps --format '{{.Names}}' | grep -Eq "^${USER_DB_CONTAINER}$" && echo yes || echo no)"
+fi
+
+if [[ "$db_container_running" != "yes" ]]; then
   echo "Container not running: ${USER_DB_CONTAINER}" >&2
   exit 1
 fi

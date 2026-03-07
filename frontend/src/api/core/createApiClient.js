@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { repairMojibakeDeep } from '../../utils/encoding'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
@@ -38,8 +39,17 @@ export const createApiClient = (options = {}) => {
   )
 
   client.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      if (response?.data !== undefined) {
+        response.data = repairMojibakeDeep(response.data)
+      }
+      return response
+    },
     async (error) => {
+      if (error?.response?.data !== undefined) {
+        error.response.data = repairMojibakeDeep(error.response.data)
+      }
+
       const originalRequest = error?.config
       const status = error?.response?.status
       const isRefreshRequest = (originalRequest?.url || '').includes('/api/auth/refresh')

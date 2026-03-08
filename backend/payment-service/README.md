@@ -203,6 +203,28 @@ Development configuration with debug logging and local service URLs.
 - Kafka 3.5+
 - Redis 7.0+
 
+## Local MoMo Sandbox with ngrok
+
+For local development, use the helper script below from the `backend/` directory:
+
+```bash
+bash ./scripts/start_payment_dev.sh
+```
+
+What it does:
+
+- starts or reuses the frontend dev server on `http://localhost:3000`
+- starts or reuses an ngrok tunnel for the API gateway on `:8080`
+- writes the current sandbox values into `backend/.env`
+- sets `PAYMENT_REDIRECT_URL=http://localhost:3000/payment/result`
+- sets `PAYMENT_IPN_URL=https://<ngrok-domain>/api/payments/momo/callback`
+- rebuilds the `api-gateway`, `user-service`, `appointment-service`, and `payment-service` containers
+
+Why the redirect stays on localhost:
+
+- the browser returns to `http://localhost:3000/payment/result`, so the existing local auth session is preserved
+- only the MoMo webhook needs a public ngrok URL
+
 ### Build Commands
 
 ```bash

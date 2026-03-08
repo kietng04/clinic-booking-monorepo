@@ -8,7 +8,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 
 @Slf4j
 public final class SignatureUtil {
@@ -41,7 +40,7 @@ public final class SignatureUtil {
             mac.init(secretKeySpec);
 
             byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            String signature = Base64.getEncoder().encodeToString(rawHmac);
+            String signature = toHex(rawHmac);
 
             log.debug("Generated HMAC-SHA256 signature successfully");
             return signature;
@@ -125,5 +124,13 @@ public final class SignatureUtil {
         byte[] bBytes = b.getBytes(StandardCharsets.UTF_8);
 
         return java.security.MessageDigest.isEqual(aBytes, bBytes);
+    }
+
+    private static String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(String.format("%02x", value));
+        }
+        return builder.toString();
     }
 }

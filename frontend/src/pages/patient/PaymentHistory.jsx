@@ -141,6 +141,33 @@ const PaymentHistory = () => {
     }
   }
 
+  const handleContinuePayment = async (payment) => {
+    try {
+      let payUrl = payment?.payUrl || payment?.redirectUrl
+
+      if (!payUrl && payment?.orderId) {
+        const latest = await paymentApi.getPaymentResult(payment.orderId)
+        payUrl = latest?.payUrl || latest?.redirectUrl
+      }
+
+      if (!payUrl && payment?.orderId) {
+        const synced = await paymentApi.queryPaymentStatus(payment.orderId)
+        payUrl = synced?.payUrl || synced?.redirectUrl
+      }
+
+      if (!payUrl) {
+        throw new Error('Không tìm thấy link thanh toán')
+      }
+
+      window.location.href = payUrl
+    } catch (error) {
+      showToast({
+        type: 'error',
+        message: extractApiErrorMessage(error, 'Không thể tiếp tục thanh toán MoMo'),
+      })
+    }
+  }
+
   const formatAmount = (amount, currency = 'VND') => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -394,6 +421,16 @@ const PaymentHistory = () => {
                               leftIcon={<FileText className="w-4 h-4" />}
                             >
                               Tải hóa đơn
+                            </Button>
+                          )}
+
+                          {payment.status === 'PENDING' && payment.paymentMethod === 'MOMO_WALLET' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleContinuePayment(payment)}
+                              leftIcon={<CreditCard className="w-4 h-4" />}
+                            >
+                              Tiếp tục thanh toán
                             </Button>
                           )}
                         </div>

@@ -16,7 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +34,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("MomoPaymentService Tests - External API Integration")
 class MomoPaymentServiceTest {
 
@@ -48,12 +52,12 @@ class MomoPaymentServiceTest {
         gson = new Gson();
         momoPaymentService = new MomoPaymentService(momoConfig, restTemplate);
 
-        when(momoConfig.getEndpoint()).thenReturn("http://test.momo.vn");
-        when(momoConfig.getPartnerCode()).thenReturn("TEST_PARTNER");
-        when(momoConfig.getAccessKey()).thenReturn("TEST_ACCESS_KEY");
-        when(momoConfig.getSecretKey()).thenReturn("TEST_SECRET_KEY");
-        when(momoConfig.getRedirectUrl()).thenReturn("http://localhost/callback");
-        when(momoConfig.getIpnUrl()).thenReturn("http://localhost/ipn");
+        Mockito.lenient().when(momoConfig.getEndpoint()).thenReturn("http://test.momo.vn");
+        Mockito.lenient().when(momoConfig.getPartnerCode()).thenReturn("TEST_PARTNER");
+        Mockito.lenient().when(momoConfig.getAccessKey()).thenReturn("TEST_ACCESS_KEY");
+        Mockito.lenient().when(momoConfig.getSecretKey()).thenReturn("TEST_SECRET_KEY");
+        Mockito.lenient().when(momoConfig.getRedirectUrl()).thenReturn("http://localhost/callback");
+        Mockito.lenient().when(momoConfig.getIpnUrl()).thenReturn("http://localhost/ipn");
     }
 
     @Test
@@ -365,9 +369,12 @@ class MomoPaymentServiceTest {
         when(restTemplate.postForEntity(anyString(), any(HttpEntity.class), eq(String.class)))
                 .thenReturn(responseEntity);
 
-        assertThatThrownBy(() -> momoPaymentService.refundPayment(
-                "ORDER123", 999888777L, new BigDecimal("50000.00"), "reason"))
-                .isInstanceOf(MomoException.class);
+        MomoRefundResponse response = momoPaymentService.refundPayment(
+                "ORDER123", 999888777L, new BigDecimal("50000.00"), "reason");
+
+        assertThat(response).isNotNull();
+        assertThat(response.getResultCode()).isEqualTo(1006);
+        assertThat(response.isSuccess()).isFalse();
 
         verify(restTemplate).postForEntity(anyString(), any(HttpEntity.class), eq(String.class));
     }

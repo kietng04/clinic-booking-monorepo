@@ -37,6 +37,7 @@ public class MessageServiceImpl implements MessageService {
     private final ConsultationRepository consultationRepository;
     private final UserServiceClient userServiceClient;
     private final ConsultationService consultationService;
+    private final ConsultationNotificationService consultationNotificationService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Override
@@ -97,7 +98,17 @@ public class MessageServiceImpl implements MessageService {
 
         log.info("Message broadcast via WebSocket to consultation {}", request.getConsultationId());
 
-        // TODO: Send push notification to recipient via Kafka
+        Long recipientId = consultation.getPatientId().equals(senderId)
+                ? consultation.getDoctorId()
+                : consultation.getPatientId();
+
+        consultationNotificationService.notifyUser(
+                recipientId,
+                "Tin nhan tu van moi",
+                sender.getFullName() + ": " + buildMessagePreview(request.getContent()),
+                "SYSTEM",
+                consultation.getId()
+        );
 
         return messageDto;
     }
@@ -202,6 +213,15 @@ public class MessageServiceImpl implements MessageService {
                 .isRead(message.getIsRead())
                 .readAt(message.getReadAt())
                 .build();
+    }
+
+    private String buildMessagePreview(String content) {
+        if (content == null || content.isBlank()) {
+            return "Ban co mot tin nhan moi trong cuoc tu van.";
+        }
+
+        String trimmed = content.trim();
+        return trimmed.length() <= 80 ? trimmed : trimmed.substring(0, 80) + "...";
     }
 
     // Import for Map

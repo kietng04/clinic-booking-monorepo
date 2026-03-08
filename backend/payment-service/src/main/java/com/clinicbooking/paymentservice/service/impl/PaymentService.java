@@ -1,5 +1,6 @@
 package com.clinicbooking.paymentservice.service.impl;
 
+import com.clinicbooking.paymentservice.client.AppointmentPaymentSyncClient;
 import com.clinicbooking.paymentservice.dto.request.ConfirmCounterPaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.CreatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.RefundPaymentRequest;
@@ -23,6 +24,7 @@ import com.clinicbooking.paymentservice.service.IPaymentService;
 import com.clinicbooking.paymentservice.service.IPaymentEventPublisher;
 import com.clinicbooking.paymentservice.service.IMomoPaymentService;
 import com.clinicbooking.paymentservice.util.OrderIdGenerator;
+import com.clinicbooking.paymentservice.util.ReceiptPdfGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +52,7 @@ public class PaymentService implements IPaymentService {
 
     private final IMomoPaymentService momoPaymentService;
     private final IPaymentEventPublisher eventPublisher;
+    private final AppointmentPaymentSyncClient appointmentPaymentSyncClient;
 
     @Value("${payment.redirect-url}")
     private String redirectUrl;
@@ -129,6 +132,14 @@ public class PaymentService implements IPaymentService {
                     log.error("Failed to publish payment.created event for order: {}", orderId, e);
                 }
 
+                appointmentPaymentSyncClient.linkPaymentOrder(
+                        paymentOrder.getAppointmentId(),
+                        orderId,
+                        paymentMethod.name(),
+                        null
+                );
+                syncAppointmentPaymentState(paymentOrder, null);
+
                 return PaymentResponse.builder()
                         .orderId(orderId)
                         .invoiceNumber(orderId)
@@ -148,6 +159,7 @@ public class PaymentService implements IPaymentService {
             // For online payments (Momo), call Momo API
             log.debug("Calling Momo API to create payment request for order {}", orderId);
             PaymentResponse momoResponse = momoPaymentService.createPaymentRequest(request, orderId);
+            paymentOrder.setExpiredAt(momoResponse.getExpiresAt());
 
             PaymentTransaction transaction = PaymentTransaction.builder()
                     .paymentOrder(paymentOrder)
@@ -173,6 +185,14 @@ public class PaymentService implements IPaymentService {
                 log.error("Failed to publish payment.created event for order: {}", orderId, e);
 
             }
+
+            appointmentPaymentSyncClient.linkPaymentOrder(
+                    paymentOrder.getAppointmentId(),
+                    orderId,
+                    paymentMethod.name(),
+                    momoResponse.getExpiresAt()
+            );
+            syncAppointmentPaymentState(paymentOrder, momoResponse.getExpiresAt());
 
             return PaymentResponse.builder()
                     .orderId(orderId)
@@ -282,6 +302,7 @@ public class PaymentService implements IPaymentService {
             }
 
             paymentOrderRepository.save(paymentOrder);
+            syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
             log.info("Callback processing completed for order {}", callback.getOrderId());
 
         } catch (PaymentException e) {
@@ -367,6 +388,7 @@ public class PaymentService implements IPaymentService {
         paymentOrder.setStatus(PaymentStatus.EXPIRED);
         paymentOrder.setExpiredAt(LocalDateTime.now());
         paymentOrderRepository.save(paymentOrder);
+        syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
 
         // Publish cancellation event (using paymentFailed publisher)
         PaymentEvent cancelledEvent = PaymentEvent.builder()
@@ -498,6 +520,7 @@ public class PaymentService implements IPaymentService {
                     paymentOrder.setStatus(PaymentStatus.PARTIALLY_REFUNDED);
                 }
                 paymentOrderRepository.save(paymentOrder);
+                syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
 
                 try {
                     publishPaymentRefunded(paymentOrder, request.getAmount(), request.getReason(), !isFullRefund);
@@ -571,6 +594,7 @@ public class PaymentService implements IPaymentService {
 
                     paymentTransactionRepository.save(transaction);
                     paymentOrderRepository.save(paymentOrder);
+                    syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
 
                     try {
                         publishPaymentCompleted(paymentOrder, transaction.getTransId());
@@ -581,6 +605,7 @@ public class PaymentService implements IPaymentService {
                 } else {
                     paymentTransactionRepository.save(transaction);
                     paymentOrderRepository.save(paymentOrder);
+                    syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
                 }
             }
 
@@ -633,6 +658,16 @@ public class PaymentService implements IPaymentService {
         return csv.toString().getBytes();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generateReceiptPdf(String orderId) {
+        PaymentOrder paymentOrder = paymentOrderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new PaymentNotFoundException(orderId));
+
+        PaymentResponse paymentResponse = mapToPaymentResponse(paymentOrder);
+        return ReceiptPdfGenerator.generate(paymentOrder, paymentResponse);
+    }
+
     /**
      * Confirm counter payment by receptionist
      * Used when patient pays cash/bank transfer/card at clinic counter
@@ -677,6 +712,7 @@ public class PaymentService implements IPaymentService {
             paymentOrder.setConfirmationNote(request.getNote());
 
             paymentOrder = paymentOrderRepository.save(paymentOrder);
+            syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
             log.info("Counter payment confirmed successfully for order {} using {}", orderId, request.getPaymentMethod());
 
             // Publish payment completed event
@@ -744,6 +780,31 @@ public class PaymentService implements IPaymentService {
                 "INVALID_AMOUNT"
             );
         }
+    }
+
+    private void syncAppointmentPaymentState(PaymentOrder paymentOrder, LocalDateTime paymentExpiresAt) {
+        appointmentPaymentSyncClient.updatePaymentStatus(
+                paymentOrder.getAppointmentId(),
+                mapAppointmentPaymentStatus(paymentOrder.getStatus()),
+                paymentOrder.getPaymentMethod() != null ? paymentOrder.getPaymentMethod().name() : null,
+                paymentExpiresAt,
+                paymentOrder.getCompletedAt()
+        );
+    }
+
+    private String mapAppointmentPaymentStatus(PaymentStatus status) {
+        if (status == null) {
+            return null;
+        }
+
+        return switch (status) {
+            case PENDING, PROCESSING -> "PENDING_PAYMENT";
+            case COMPLETED -> "PAID";
+            case FAILED -> "PAYMENT_FAILED";
+            case EXPIRED -> "PAYMENT_EXPIRED";
+            case REFUNDED -> "REFUNDED";
+            case PARTIALLY_REFUNDED -> "PARTIALLY_REFUNDED";
+        };
     }
 
 

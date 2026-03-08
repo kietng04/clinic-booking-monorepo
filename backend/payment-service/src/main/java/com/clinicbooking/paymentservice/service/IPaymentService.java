@@ -33,6 +33,8 @@ public interface IPaymentService {
 
     byte[] exportPatientPaymentsCsv(Long patientId, LocalDateTime fromDate, LocalDateTime toDate);
 
+    byte[] generateReceiptPdf(String orderId);
+
     /**
      * Confirm counter payment by receptionist
      * Used when patient pays cash/bank transfer/card at clinic counter

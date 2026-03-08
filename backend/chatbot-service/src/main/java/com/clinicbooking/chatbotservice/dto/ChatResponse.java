@@ -3,6 +3,7 @@ package com.clinicbooking.chatbotservice.dto;
 import java.util.List;
 
 public record ChatResponse(
+        String sessionId,
         String question,
         String normalizedQuestion,
         String answer,

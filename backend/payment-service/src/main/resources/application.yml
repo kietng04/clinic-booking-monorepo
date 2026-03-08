@@ -147,3 +147,7 @@ logging:
     org.springframework.security: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+services:
+  appointment-service:
+    url: ${SERVICES_APPOINTMENT_SERVICE_URL:http://localhost:8082}

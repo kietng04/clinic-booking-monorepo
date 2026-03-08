@@ -753,9 +753,10 @@ export const consultationApi = {
 }
 
 export const chatbotApi = {
-  chat: async (message) => {
+  chat: async (message, options = {}) => {
     await delay(900)
     return {
+      sessionId: options.sessionId || 'mock-session',
       question: message,
       normalizedQuestion: String(message || '').trim().toLowerCase(),
       answer: 'Toi dang chay o che do demo. Hay chuyen sang backend that de test RAG va live data.',
@@ -786,6 +787,30 @@ export const chatbotApi = {
 
   getIntents: async () => {
     await delay(200)
+    return []
+  },
+
+  createSession: async (title) => {
+    await delay(200)
+    return {
+      id: 'mock-session',
+      userId: 1,
+      userRole: 'PATIENT',
+      title: title || 'Cuoc tro chuyen moi',
+      lastMessagePreview: '',
+      messageCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  },
+
+  getSessions: async () => {
+    await delay(150)
+    return []
+  },
+
+  getSessionMessages: async () => {
+    await delay(150)
     return []
   },
 }

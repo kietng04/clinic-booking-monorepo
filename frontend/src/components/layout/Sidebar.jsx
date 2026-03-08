@@ -32,7 +32,7 @@ const patientNav = [
   { name: 'Lịch sử thanh toán', path: '/payments', icon: CreditCard },
   { name: 'Chỉ số sức khỏe', path: '/health-metrics', icon: Heart },
   { name: 'Thông báo', path: '/notifications', icon: Bell },
-  { name: 'Tin nhắn', path: '/messages', icon: MessageSquare },
+  { name: 'Tin nhắn', path: '/patient/consultations', icon: MessageSquare },
   { name: 'Gia đình', path: '/family', icon: Users },
   { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]
@@ -43,7 +43,7 @@ const doctorNav = [
   { name: 'Lịch làm việc', path: '/schedule', icon: Clock },
   { name: 'Bệnh nhân', path: '/patients', icon: Users },
   { name: 'Tư vấn', path: '/consultations', icon: Stethoscope },
-  { name: 'Tin nhắn', path: '/messages', icon: MessageSquare },
+  { name: 'Tin nhắn', path: '/consultations', icon: MessageSquare },
   { name: 'Thống kê', path: '/doctor/analytics', icon: TrendingUp },
   { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]

@@ -113,6 +113,21 @@ public class Appointment {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
+    @Column(name = "payment_order_id", length = 64)
+    private String paymentOrderId;
+
+    @Column(name = "payment_status", length = 32)
+    private String paymentStatus;
+
+    @Column(name = "payment_method", length = 50)
+    private String paymentMethod;
+
+    @Column(name = "payment_expires_at")
+    private LocalDateTime paymentExpiresAt;
+
+    @Column(name = "payment_completed_at")
+    private LocalDateTime paymentCompletedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

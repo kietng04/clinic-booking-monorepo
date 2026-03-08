@@ -18,7 +18,6 @@ const MedicalRecords = lazy(() => import('./pages/patient/MedicalRecords'))
 const MedicalRecordDetail = lazy(() => import('./pages/patient/MedicalRecordDetail'))
 const HealthMetrics = lazy(() => import('./pages/patient/HealthMetrics'))
 const FamilyMembers = lazy(() => import('./pages/patient/FamilyMembers'))
-const Messages = lazy(() => import('./pages/patient/Messages'))
 const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'))
 const DoctorAppointments = lazy(() => import('./pages/doctor/DoctorAppointments'))
 const CreateMedicalRecord = lazy(() => import('./pages/doctor/CreateMedicalRecord'))
@@ -213,9 +212,12 @@ function App() {
         <Route
           path="/messages"
           element={
-            <ProtectedDashboardPage>
-                <Messages />
-            </ProtectedDashboardPage>
+            <ProtectedRoute>
+              <Navigate
+                to={user?.role === 'DOCTOR' ? '/consultations' : '/patient/consultations'}
+                replace
+              />
+            </ProtectedRoute>
           }
         />
 

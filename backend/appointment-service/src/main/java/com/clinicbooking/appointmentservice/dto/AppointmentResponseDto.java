@@ -30,6 +30,11 @@ public class AppointmentResponseDto {
     private BigDecimal patientRating;
     private String patientReview;
     private LocalDateTime reviewedAt;
+    private String paymentOrderId;
+    private String paymentStatus;
+    private String paymentMethod;
+    private LocalDateTime paymentExpiresAt;
+    private LocalDateTime paymentCompletedAt;
     private LocalDate appointmentDate;
     private LocalTime appointmentTime;
     private Integer durationMinutes;

@@ -126,6 +126,30 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{orderId}/receipt")
+    @Operation(
+            summary = "Download payment receipt",
+            description = "Generate a receipt document for a payment order"
+    )
+    public ResponseEntity<byte[]> downloadReceipt(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestHeader(value = "X-User-Id", required = false) Long userIdHeader,
+            @PathVariable String orderId) {
+
+        Long patientId = resolveUserId(userDetails, userIdHeader);
+        PaymentResponse payment = paymentService.getPaymentByOrderId(orderId);
+
+        if (payment != null && !patientId.equals(payment.getPatientId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        byte[] pdfData = paymentService.generateReceiptPdf(orderId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=receipt-" + orderId + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfData);
+    }
+
 
     @PutMapping("/{orderId}")
     @Operation(

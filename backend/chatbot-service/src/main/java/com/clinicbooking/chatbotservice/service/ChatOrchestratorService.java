@@ -27,17 +27,21 @@ public class ChatOrchestratorService {
     private final ServiceCatalogService serviceCatalogService;
 
     public ChatResponse chat(String message, String userRole) {
-        return chat(message, userRole, null);
+        return chat(message, userRole, null, null);
     }
 
     public ChatResponse chat(String message, String userRole, String authorizationHeader) {
+        return chat(message, userRole, authorizationHeader, null);
+    }
+
+    public ChatResponse chat(String message, String userRole, String authorizationHeader, String sessionId) {
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("message is required");
         }
 
         ClassifyQuestionResponse classification = questionClassifierService.classify(message, userRole);
         Optional<ChatResponse> specialCaseResponse =
-                handleSpecialCase(message, classification, authorizationHeader);
+                handleSpecialCase(message, classification, authorizationHeader, sessionId);
         if (specialCaseResponse.isPresent()) {
             return specialCaseResponse.get();
         }
@@ -83,6 +87,7 @@ public class ChatOrchestratorService {
                 .toList();
 
         return buildResponse(
+                sessionId,
                 classification.question(),
                 classification.normalizedQuestion(),
                 answer,
@@ -96,7 +101,8 @@ public class ChatOrchestratorService {
     private Optional<ChatResponse> handleSpecialCase(
             String message,
             ClassifyQuestionResponse classification,
-            String authorizationHeader
+            String authorizationHeader,
+            String sessionId
     ) {
         String intentId = classification.intentId() == null
                 ? "UNKNOWN"
@@ -104,6 +110,7 @@ public class ChatOrchestratorService {
 
         return switch (intentId) {
             case "GREETING" -> Optional.of(buildResponse(
+                    sessionId,
                     classification.question(),
                     classification.normalizedQuestion(),
                     buildGreetingAnswer(),
@@ -115,6 +122,7 @@ public class ChatOrchestratorService {
             case "DOCTOR_LOOKUP" -> doctorDirectoryService
                     .answerDoctorLookup(message, classification.normalizedQuestion(), authorizationHeader)
                     .map(answer -> buildResponse(
+                            sessionId,
                             classification.question(),
                             classification.normalizedQuestion(),
                             answer,
@@ -125,6 +133,7 @@ public class ChatOrchestratorService {
                     ));
             case "CLINIC_DIRECTORY" -> clinicDirectoryService.answerClinicDirectory(authorizationHeader)
                     .map(answer -> buildResponse(
+                            sessionId,
                             classification.question(),
                             classification.normalizedQuestion(),
                             answer,
@@ -135,6 +144,7 @@ public class ChatOrchestratorService {
                     ));
             case "SERVICE_CATALOG" -> serviceCatalogService.answerServiceCatalog(authorizationHeader)
                     .map(answer -> buildResponse(
+                            sessionId,
                             classification.question(),
                             classification.normalizedQuestion(),
                             answer,
@@ -146,6 +156,7 @@ public class ChatOrchestratorService {
             case "UNKNOWN" -> doctorDirectoryService
                     .answerImplicitDoctorLookup(message, classification.normalizedQuestion(), authorizationHeader)
                     .map(answer -> buildResponse(
+                            sessionId,
                             classification.question(),
                             classification.normalizedQuestion(),
                             answer,
@@ -301,6 +312,7 @@ public class ChatOrchestratorService {
     }
 
     private ChatResponse buildResponse(
+            String sessionId,
             String question,
             String normalizedQuestion,
             String answer,
@@ -310,6 +322,7 @@ public class ChatOrchestratorService {
             List<ChatSource> sources
     ) {
         return new ChatResponse(
+                sessionId,
                 question,
                 normalizedQuestion,
                 answer,

@@ -34,6 +34,7 @@ public class ConsultationServiceImpl implements ConsultationService {
     private final ConsultationRepository consultationRepository;
     private final MessageRepository messageRepository;
     private final UserServiceClient userServiceClient;
+    private final ConsultationNotificationService consultationNotificationService;
 
     @Value("${consultation.default-fee:200000}")
     private BigDecimal defaultFee;
@@ -68,7 +69,13 @@ public class ConsultationServiceImpl implements ConsultationService {
         consultation = consultationRepository.save(consultation);
         log.info("Consultation created with ID: {}", consultation.getId());
 
-        // TODO: Send notification to doctor via Kafka
+        consultationNotificationService.notifyUser(
+                consultation.getDoctorId(),
+                "Yeu cau tu van moi",
+                "Ban co yeu cau tu van moi tu " + consultation.getPatientName() + ": " + consultation.getTopic(),
+                "SYSTEM",
+                consultation.getId()
+        );
 
         return mapToResponseDto(consultation, patientId);
     }
@@ -168,7 +175,13 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         log.info("Consultation {} accepted by doctor {}", consultationId, doctorId);
 
-        // TODO: Send notification to patient via Kafka
+        consultationNotificationService.notifyUser(
+                consultation.getPatientId(),
+                "Yeu cau tu van da duoc chap nhan",
+                "Bac si " + consultation.getDoctorName() + " da chap nhan yeu cau tu van cua ban.",
+                "SYSTEM",
+                consultation.getId()
+        );
 
         return mapToResponseDto(consultation, doctorId);
     }
@@ -198,7 +211,13 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         log.info("Consultation {} rejected by doctor {}", consultationId, doctorId);
 
-        // TODO: Send notification to patient via Kafka
+        consultationNotificationService.notifyUser(
+                consultation.getPatientId(),
+                "Yeu cau tu van da bi tu choi",
+                "Bac si " + consultation.getDoctorName() + " da tu choi yeu cau tu van cua ban.",
+                "ALERT",
+                consultation.getId()
+        );
 
         return mapToResponseDto(consultation, doctorId);
     }
@@ -252,7 +271,13 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         log.info("Consultation {} completed by doctor {}", consultationId, doctorId);
 
-        // TODO: Send notification to patient via Kafka
+        consultationNotificationService.notifyUser(
+                consultation.getPatientId(),
+                "Cuoc tu van da hoan thanh",
+                "Cuoc tu van #" + consultation.getId() + " da hoan thanh. Ban co the xem chan doan va ghi chu moi.",
+                "DOCUMENT_READY",
+                consultation.getId()
+        );
 
         return mapToResponseDto(consultation, doctorId);
     }
@@ -281,7 +306,13 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         log.info("Consultation {} cancelled by patient {}", consultationId, patientId);
 
-        // TODO: Send notification to doctor via Kafka
+        consultationNotificationService.notifyUser(
+                consultation.getDoctorId(),
+                "Benh nhan da huy tu van",
+                consultation.getPatientName() + " da huy cuoc tu van #" + consultation.getId() + ".",
+                "ALERT",
+                consultation.getId()
+        );
 
         return mapToResponseDto(consultation, patientId);
     }

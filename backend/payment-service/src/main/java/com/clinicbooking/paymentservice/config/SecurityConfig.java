@@ -26,6 +26,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
             "/api/payments/momo/callback",
+            "/api/payments/internal/statistics/**",
             "/actuator/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -77,6 +78,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/payments/momo/callback").permitAll()
+                        .requestMatchers("/api/payments/internal/statistics/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()

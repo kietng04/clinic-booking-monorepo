@@ -4,6 +4,7 @@ import com.clinicbooking.chatbotservice.dto.ClassifyQuestionResponse;
 import com.clinicbooking.chatbotservice.exception.AIProviderException;
 import com.clinicbooking.chatbotservice.model.RetrievedKnowledge;
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -13,7 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GeminiAnswerService {
 
     private final RestTemplate restTemplate;
@@ -42,6 +46,12 @@ public class GeminiAnswerService {
     @Value("${ai.gemini.answer-temperature:0.2}")
     private double temperature;
 
+    @Value("${ai.gemini.retry.max-attempts:3}")
+    private int retryMaxAttempts;
+
+    @Value("${ai.gemini.retry.backoff-ms:800}")
+    private long retryBackoffMs;
+
     public Optional<String> generateAnswer(
             String question,
             String userRole,
@@ -53,32 +63,52 @@ public class GeminiAnswerService {
         }
 
         String prompt = buildAnswerPrompt(question, userRole, classification, retrievedKnowledge);
-        String url = String.format("%s/models/%s:generateContent", baseUrl, model);
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .pathSegment("models", model + ":generateContent")
+                .queryParam("key", apiKey)
+                .toUriString();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-goog-api-key", apiKey);
 
-        try {
-            ResponseEntity<JsonNode> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    new HttpEntity<>(buildRequestBody(prompt), headers),
-                    JsonNode.class
-            );
+        Map<String, Object> requestBody = buildRequestBody(prompt);
+        int attempts = Math.max(1, retryMaxAttempts);
 
-            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-                throw new AIProviderException("Gemini answer request failed");
+        for (int attempt = 1; attempt <= attempts; attempt++) {
+            try {
+                ResponseEntity<JsonNode> response = restTemplate.exchange(
+                        url,
+                        HttpMethod.POST,
+                        new HttpEntity<>(requestBody, headers),
+                        JsonNode.class
+                );
+
+                if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                    throw new AIProviderException("Gemini answer request failed");
+                }
+
+                String generatedText = extractGeminiText(response.getBody()).trim();
+                if (!generatedText.isBlank()) {
+                    return Optional.of(generatedText);
+                }
+
+                log.warn("Gemini answer returned empty content on attempt {}/{}", attempt, attempts);
+            } catch (RestClientException ex) {
+                if (attempt == attempts) {
+                    throw new AIProviderException("Gemini service is unavailable: " + describeRestClientError(ex), ex);
+                }
+                log.warn(
+                        "Gemini answer attempt {}/{} failed: {}",
+                        attempt,
+                        attempts,
+                        describeRestClientError(ex)
+                );
             }
 
-            String generatedText = extractGeminiText(response.getBody()).trim();
-            if (generatedText.isBlank()) {
-                return Optional.empty();
-            }
-            return Optional.of(generatedText);
-        } catch (RestClientException ex) {
-            throw new AIProviderException("Gemini service is unavailable", ex);
+            sleepBeforeRetry(attempt, attempts);
         }
+
+        return Optional.empty();
     }
 
     private Map<String, Object> buildRequestBody(String prompt) {
@@ -138,5 +168,25 @@ public class GeminiAnswerService {
                 + "Question: " + question + "\n\n"
                 + "Retrieved context:\n" + context + "\n\n"
                 + "Give one concise answer and practical next step.";
+    }
+
+    private void sleepBeforeRetry(int attempt, int attempts) {
+        if (attempt >= attempts || retryBackoffMs <= 0) {
+            return;
+        }
+
+        try {
+            Thread.sleep(retryBackoffMs * attempt);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AIProviderException("Gemini answer retry interrupted", ex);
+        }
+    }
+
+    private String describeRestClientError(RestClientException ex) {
+        if (ex instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode() + " " + responseException.getResponseBodyAsString();
+        }
+        return ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
     }
 }

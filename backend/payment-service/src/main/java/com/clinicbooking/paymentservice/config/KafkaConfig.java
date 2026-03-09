@@ -49,7 +49,8 @@ public class KafkaConfig {
 
         configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
         configProps.put(ProducerConfig.LINGER_MS_CONFIG, 10);
-        configProps.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
+        // Avoid native snappy dependency failures in the Alpine runtime image.
+        configProps.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "none");
         configProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
 
         return new DefaultKafkaProducerFactory<>(configProps);

@@ -41,6 +41,9 @@ public class MomoPaymentService implements IMomoPaymentService {
 
     private static final String CURRENCY_VND = "VND";
     private static final int RESULT_CODE_SUCCESS = 0;
+    private static final int RESULT_CODE_QR_TEMPORARY_FAILURE = 98;
+    private static final int MAX_CREATE_ORDER_ATTEMPTS = 2;
+    private static final int ORDER_INFO_MAX_LENGTH = 120;
     private static final long PAYMENT_EXPIRY_MINUTES = 15;
 
     private final MomoConfig momoConfig;
@@ -75,88 +78,104 @@ public class MomoPaymentService implements IMomoPaymentService {
                 orderId, request.getAppointmentId(), request.getAmount());
 
         try {
-
-            String requestId = UUID.randomUUID().toString();
-            log.debug("Generated requestId: {}", requestId);
-
             Long amountVND = request.getAmount().longValue();
             log.debug("Amount in VND: {}", amountVND);
 
             String orderInfo = prepareOrderInfo(request);
             log.debug("Order info: {}", orderInfo);
 
-            String rawSignature = buildCreateOrderSignatureData(
-                    momoConfig.getAccessKey(),
-                    amountVND,
-                    "",
-                    momoConfig.getIpnUrl(),
-                    orderId,
-                    orderInfo,
-                    momoConfig.getPartnerCode(),
-                    momoConfig.getRedirectUrl(),
-                    requestId,
-                    REQUEST_TYPE_CAPTURE_WALLET
-            );
-            log.debug("Signature data prepared for orderId: {}", orderId);
-
-            String signature = SignatureUtil.generateHmacSHA256(rawSignature, momoConfig.getSecretKey());
-            log.debug("Generated HMAC-SHA256 signature for orderId: {}", orderId);
-
-            JsonObject requestPayload = buildCreateOrderPayload(
-                    orderId,
-                    requestId,
-                    amountVND,
-                    orderInfo,
-                    signature
-            );
-            log.debug("Request payload keys: {}", requestPayload.keySet());
-
             String endpoint = momoConfig.getEndpoint() + MOMO_CREATE_ORDER_ENDPOINT;
             log.info("Calling Momo API at endpoint: {}", endpoint);
 
-            JsonObject momoResponse = callMomoApi(endpoint, requestPayload.toString());
-            log.debug("Momo response: {}", momoResponse);
+            MomoException lastCreateOrderError = null;
 
-            Integer resultCode = momoResponse.get("resultCode").getAsInt();
-            log.info("Momo API response resultCode: {}", resultCode);
+            for (int attempt = 1; attempt <= MAX_CREATE_ORDER_ATTEMPTS; attempt++) {
+                String requestId = UUID.randomUUID().toString();
+                log.debug("Generated requestId: {}", requestId);
 
-            if (resultCode != RESULT_CODE_SUCCESS) {
+                String rawSignature = buildCreateOrderSignatureData(
+                        momoConfig.getAccessKey(),
+                        amountVND,
+                        "",
+                        momoConfig.getIpnUrl(),
+                        orderId,
+                        orderInfo,
+                        momoConfig.getPartnerCode(),
+                        momoConfig.getRedirectUrl(),
+                        requestId,
+                        REQUEST_TYPE_CAPTURE_WALLET
+                );
+                log.debug("Signature data prepared for orderId: {}", orderId);
+
+                String signature = SignatureUtil.generateHmacSHA256(rawSignature, momoConfig.getSecretKey());
+                log.debug("Generated HMAC-SHA256 signature for orderId: {}", orderId);
+
+                JsonObject requestPayload = buildCreateOrderPayload(
+                        orderId,
+                        requestId,
+                        amountVND,
+                        orderInfo,
+                        signature
+                );
+                log.debug("Request payload keys: {}", requestPayload.keySet());
+
+                JsonObject momoResponse = callMomoApi(endpoint, requestPayload.toString());
+                log.debug("Momo response: {}", momoResponse);
+
+                Integer resultCode = momoResponse.get("resultCode").getAsInt();
+                log.info("Momo API response resultCode: {}", resultCode);
+
+                if (resultCode == RESULT_CODE_SUCCESS) {
+                    String payUrl = momoResponse.has("payUrl") ?
+                            momoResponse.get("payUrl").getAsString() : null;
+                    String deeplink = momoResponse.has("deeplink") ?
+                            momoResponse.get("deeplink").getAsString() : null;
+                    String qrCodeUrl = momoResponse.has("qrCodeUrl") ?
+                            momoResponse.get("qrCodeUrl").getAsString() : null;
+
+                    log.info("Payment created successfully - orderId: {}, payUrl available: {}, deeplink available: {}, qrCode available: {}",
+                            orderId, payUrl != null, deeplink != null, qrCodeUrl != null);
+
+                    LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(PAYMENT_EXPIRY_MINUTES);
+
+                    PaymentResponse response = PaymentResponse.builder()
+                            .orderId(orderId)
+                            .payUrl(payUrl)
+                            .deeplink(deeplink)
+                            .qrCodeUrl(qrCodeUrl)
+                            .amount(request.getAmount())
+                            .status("PENDING")
+                            .currency(CURRENCY_VND)
+                            .expiresAt(expiresAt)
+                            .transactionId(null)
+                            .build();
+
+                    log.debug("Returning PaymentResponse with orderId: {}", orderId);
+                    return response;
+                }
+
                 String message = momoResponse.has("message") ?
                         momoResponse.get("message").getAsString() : "Unknown error";
                 log.error("Momo API error: resultCode={}, message={}", resultCode, message);
-                throw new MomoException(
+
+                lastCreateOrderError = new MomoException(
                         String.format("Momo API error: %s (code: %d)", message, resultCode),
                         HttpStatus.BAD_GATEWAY,
                         "MOMO_CREATE_ORDER_FAILED"
                 );
+
+                if (resultCode == RESULT_CODE_QR_TEMPORARY_FAILURE && attempt < MAX_CREATE_ORDER_ATTEMPTS) {
+                    log.warn("Retrying Momo create order for orderId {} after temporary QR failure (attempt {}/{})",
+                            orderId, attempt + 1, MAX_CREATE_ORDER_ATTEMPTS);
+                    continue;
+                }
+
+                throw lastCreateOrderError;
             }
 
-            String payUrl = momoResponse.has("payUrl") ?
-                    momoResponse.get("payUrl").getAsString() : null;
-            String deeplink = momoResponse.has("deeplink") ?
-                    momoResponse.get("deeplink").getAsString() : null;
-            String qrCodeUrl = momoResponse.has("qrCodeUrl") ?
-                    momoResponse.get("qrCodeUrl").getAsString() : null;
-
-            log.info("Payment created successfully - orderId: {}, payUrl available: {}, deeplink available: {}, qrCode available: {}",
-                    orderId, payUrl != null, deeplink != null, qrCodeUrl != null);
-
-            LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(PAYMENT_EXPIRY_MINUTES);
-
-            PaymentResponse response = PaymentResponse.builder()
-                    .orderId(orderId)
-                    .payUrl(payUrl)
-                    .deeplink(deeplink)
-                    .qrCodeUrl(qrCodeUrl)
-                    .amount(request.getAmount())
-                    .status("PENDING")
-                    .currency(CURRENCY_VND)
-                    .expiresAt(expiresAt)
-                    .transactionId(null)
-                    .build();
-
-            log.debug("Returning PaymentResponse with orderId: {}", orderId);
-            return response;
+            throw lastCreateOrderError != null
+                    ? lastCreateOrderError
+                    : new MomoException("Failed to create payment request", HttpStatus.BAD_GATEWAY, "MOMO_CREATE_ORDER_FAILED");
 
         } catch (MomoException e) {
             log.error("MomoException while creating payment request for orderId: {}", orderId, e);
@@ -373,9 +392,10 @@ public class MomoPaymentService implements IMomoPaymentService {
 
     
     private String prepareOrderInfo(CreatePaymentRequest request) {
-        return String.format("Payment for appointment %d - %s",
-                request.getAppointmentId(),
-                request.getDescription() != null ? request.getDescription() : "Clinic appointment");
+        String baseInfo = String.format("Payment for appointment %d", request.getAppointmentId());
+        return baseInfo.length() <= ORDER_INFO_MAX_LENGTH
+                ? baseInfo
+                : baseInfo.substring(0, ORDER_INFO_MAX_LENGTH);
     }
 
     

@@ -1,5 +1,7 @@
 package com.clinicbooking.userservice.repository;
 
+import com.clinicbooking.userservice.entity.NotificationPreferences;
+import com.clinicbooking.userservice.entity.NotificationReminderTiming;
 import com.clinicbooking.userservice.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -345,5 +347,30 @@ class UserRepositoryTest {
         // Assert - Should still return only 3 active doctors
         assertThat(result.getContent()).hasSize(3);
         assertThat(result.getContent()).allMatch(User::getIsActive);
+    }
+
+    @Test
+    void saveAndReload_preservesNotificationPreferences() {
+        User managedPatient = userRepository.findById(patient.getId()).orElseThrow();
+        managedPatient.setNotificationPreferences(NotificationPreferences.builder()
+                .emailReminders(false)
+                .emailPrescription(true)
+                .emailLabResults(false)
+                .emailMarketing(true)
+                .smsReminders(false)
+                .smsUrgent(true)
+                .pushAll(false)
+                .reminderTiming(NotificationReminderTiming.TWO_HOURS)
+                .build());
+        entityManager.persistAndFlush(managedPatient);
+        entityManager.clear();
+
+        User reloadedPatient = userRepository.findById(patient.getId()).orElseThrow();
+
+        assertThat(reloadedPatient.getNotificationPreferences().getEmailReminders()).isFalse();
+        assertThat(reloadedPatient.getNotificationPreferences().getEmailMarketing()).isTrue();
+        assertThat(reloadedPatient.getNotificationPreferences().getPushAll()).isFalse();
+        assertThat(reloadedPatient.getNotificationPreferences().getReminderTiming())
+                .isEqualTo(NotificationReminderTiming.TWO_HOURS);
     }
 }

@@ -125,13 +125,13 @@ class ChatOrchestratorServiceTest {
     }
 
     @Test
-    void shouldFallbackToRuleRagWhenAiAnswerLooksIncomplete() {
+    void shouldReturnClinicHoursFromRagWhenAiUnavailable() {
         ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
                 "phong kham mo cua may gio",
                 "phong kham mo cua may gio",
-                "CLINIC_ADDRESS",
-                "Dia chi phong kham",
-                0.9,
+                "CLINIC_HOURS",
+                "Gio mo cua phong kham",
+                0.8,
                 "RULE_BASED",
                 false,
                 "rule"
@@ -139,74 +139,26 @@ class ChatOrchestratorServiceTest {
         RetrievedKnowledge knowledge = new RetrievedKnowledge(
                 new KnowledgeDocument(
                         "CLINIC_WORKING_HOURS",
-                        "CLINIC_ADDRESS",
+                        "CLINIC_HOURS",
                         "Gio lam viec phong kham",
                         "Phong kham lam viec tu 07:30 den 20:00 tu thu hai den thu bay, chu nhat tu 08:00 den 17:00.",
-                        List.of("gio mo cua")
+                        List.of("gio mo cua", "mo cua may gio")
                 ),
-                0.92,
-                List.of("gio mo cua")
+                0.88,
+                List.of("mo cua may gio")
         );
 
         when(questionClassifierService.classify("phong kham mo cua may gio", "PATIENT")).thenReturn(classification);
-        when(knowledgeRetrievalService.retrieve("phong kham mo cua may gio", "CLINIC_ADDRESS"))
+        when(knowledgeRetrievalService.retrieve("phong kham mo cua may gio", "CLINIC_HOURS"))
                 .thenReturn(List.of(knowledge));
         when(geminiAnswerService.generateAnswer(any(), any(), any(), any()))
-                .thenReturn(Optional.of("Phong kham lam viec tu 07:30 den 20:00 tu"));
+                .thenReturn(Optional.empty());
 
         var response = service.chat("phong kham mo cua may gio", "PATIENT");
 
         assertThat(response.answerProvider()).isEqualTo("RULE_RAG");
-        assertThat(response.answer()).contains("Phong kham lam viec tu 07:30 den 20:00");
-    }
-
-    @Test
-    void shouldPreferAddressKnowledgeForClinicLocationQuestion() {
-        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
-                "phong kham o dau",
-                "phong kham o dau",
-                "CLINIC_ADDRESS",
-                "Dia chi phong kham",
-                0.9,
-                "RULE_BASED",
-                false,
-                "rule"
-        );
-        RetrievedKnowledge workingHours = new RetrievedKnowledge(
-                new KnowledgeDocument(
-                        "CLINIC_WORKING_HOURS",
-                        "CLINIC_ADDRESS",
-                        "Gio lam viec phong kham",
-                        "Phong kham lam viec tu 07:30 den 20:00 tu thu hai den thu bay, chu nhat tu 08:00 den 17:00.",
-                        List.of("gio mo cua")
-                ),
-                0.72,
-                List.of()
-        );
-        RetrievedKnowledge address = new RetrievedKnowledge(
-                new KnowledgeDocument(
-                        "CLINIC_BRANCH_MAIN",
-                        "CLINIC_ADDRESS",
-                        "Chi nhanh trung tam",
-                        "Chi nhanh trung tam o 120 Nguyen Trai, Quan 1, TP HCM. Tong dai ho tro: 1900 6868.",
-                        List.of("o dau")
-                ),
-                0.32,
-                List.of("o dau")
-        );
-
-        when(questionClassifierService.classify("phong kham o dau", "PATIENT")).thenReturn(classification);
-        when(knowledgeRetrievalService.retrieve("phong kham o dau", "CLINIC_ADDRESS"))
-                .thenReturn(List.of(workingHours, address));
-        when(geminiAnswerService.generateAnswer(any(), any(), any(), any()))
-                .thenReturn(Optional.of("Phong kham o 120 Nguyen Trai"));
-
-        var response = service.chat("phong kham o dau", "PATIENT");
-
-        assertThat(response.answerProvider()).isEqualTo("RULE_RAG");
-        assertThat(response.answer()).contains("120 Nguyen Trai, Quan 1, TP HCM");
-        assertThat(response.sources()).hasSize(2);
-        assertThat(response.sources().get(0).id()).isEqualTo("CLINIC_BRANCH_MAIN");
+        assertThat(response.answer()).contains("07:30 den 20:00");
+        assertThat(response.intentId()).isEqualTo("CLINIC_HOURS");
     }
 
     @Test

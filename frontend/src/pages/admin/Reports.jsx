@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BarChart,
@@ -30,8 +30,8 @@ import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
-import { adminApi } from '@/api/adminApiWrapper'
-import { vi } from '@/lib/translations'
+import { adminApi } from '@/api/realApis/adminApi'
+import { extractApiErrorMessage } from '@/api/core/extractApiErrorMessage'
 
 const COLORS = ['#5d7a60', '#bfa094', '#f4c430', '#dc2626', '#6366f1', '#10b981']
 
@@ -56,31 +56,75 @@ const GROUP_BY = [
 ]
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', minimumFractionDigits: 0 }).format(value)
+  new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    minimumFractionDigits: 0,
+  }).format(Number(value ?? 0))
 
-// Mock data generators for when API is unavailable
-const generateAppointmentData = (range) => {
-  const months = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12']
-  const count = range === '7days' ? 7 : range === '30days' ? 30 : range === '3months' ? 3 : range === '6months' ? 6 : 12
-  return Array.from({ length: count }, (_, i) => ({
-    name: months[i % 12],
-    total: Math.floor(Math.random() * 200 + 50),
-    confirmed: Math.floor(Math.random() * 100 + 30),
-    cancelled: Math.floor(Math.random() * 30 + 5),
-    completed: Math.floor(Math.random() * 80 + 20),
-  }))
+const normalizeAppointmentReport = (data) => {
+  if (!data || typeof data !== 'object') return null
+
+  return {
+    totalAppointments: Number(data.totalAppointments ?? 0),
+    confirmed: Number(data.confirmed ?? 0),
+    completed: Number(data.completed ?? 0),
+    cancelled: Number(data.cancelled ?? 0),
+    monthlyTrend: Array.isArray(data.monthlyTrend)
+      ? data.monthlyTrend.map((item) => ({
+          name: item?.month ?? '',
+          total: Number(item?.total ?? 0),
+          confirmed: Number(item?.confirmed ?? 0),
+          completed: Number(item?.completed ?? 0),
+          cancelled: Number(item?.cancelled ?? 0),
+        }))
+      : [],
+  }
 }
 
-const generateRevenueData = (range) => {
-  const months = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12']
-  const count = range === '7days' ? 7 : range === '30days' ? 30 : range === '3months' ? 3 : range === '6months' ? 6 : 12
-  return Array.from({ length: count }, (_, i) => ({
-    name: months[i % 12],
-    revenue: Math.floor(Math.random() * 50000000 + 10000000),
-    cash: Math.floor(Math.random() * 20000000 + 5000000),
-    online: Math.floor(Math.random() * 30000000 + 8000000),
-  }))
+const normalizeRevenueReport = (data) => {
+  if (!data || typeof data !== 'object') return null
+
+  return {
+    totalRevenue: Number(data.totalRevenue ?? 0),
+    onlinePayment: Number(data.onlinePayment ?? 0),
+    cashPayment: Number(data.cashPayment ?? 0),
+    monthlyTrend: Array.isArray(data.monthlyTrend)
+      ? data.monthlyTrend.map((item) => ({
+          name: item?.month ?? '',
+          revenue: Number(item?.revenue ?? 0),
+          online: Number(item?.online ?? 0),
+          cash: Number(item?.cash ?? 0),
+        }))
+      : [],
+  }
 }
+
+const normalizePatientReport = (data) => {
+  if (!data || typeof data !== 'object') return null
+
+  return {
+    totalPatients: Number(data.totalPatients ?? 0),
+    newPatients: Number(data.newPatients ?? 0),
+    activePatients: Number(data.activePatients ?? 0),
+  }
+}
+
+const hasSeriesData = (series, key) =>
+  Array.isArray(series) &&
+  series.length > 0 &&
+  series.some((item) => Number(item?.[key] ?? 0) > 0)
+
+const EmptyChartState = ({ title, message }) => (
+  <Card>
+    <CardContent className="p-6">
+      <h3 className="font-semibold text-sage-900 mb-4">{title}</h3>
+      <div className="flex h-[240px] items-center justify-center rounded-xl border border-dashed border-sage-200 bg-sage-50/70 px-6 text-center text-sm text-sage-500">
+        {message}
+      </div>
+    </CardContent>
+  </Card>
+)
 
 const Reports = () => {
   const { showToast } = useUIStore()
@@ -88,42 +132,62 @@ const Reports = () => {
   const [dateRange, setDateRange] = useState('6months')
   const [groupBy, setGroupBy] = useState('month')
   const [isLoading, setIsLoading] = useState(true)
-  const [appointmentData, setAppointmentData] = useState([])
-  const [revenueData, setRevenueData] = useState([])
-  const [patientData, setPatientData] = useState({ total: 0, newThisPeriod: 0, active: 0 })
-  const [patientDemographics, setPatientDemographics] = useState([
-    { name: 'Nam', value: 55 },
-    { name: 'Nữ', value: 42 },
-    { name: 'Khác', value: 3 },
-  ])
+  const [loadError, setLoadError] = useState('')
+  const [appointmentReport, setAppointmentReport] = useState(null)
+  const [revenueReport, setRevenueReport] = useState(null)
+  const [patientReport, setPatientReport] = useState(null)
 
   useEffect(() => {
     fetchReportData()
-  }, [dateRange, groupBy, activeTab])
+  }, [dateRange, groupBy])
 
   const fetchReportData = async () => {
     setIsLoading(true)
+    setLoadError('')
+
     try {
       const params = { dateRange, groupBy }
-      switch (activeTab) {
-        case 'appointment': {
-          const data = await adminApi.getAppointmentReport(params).catch(() => null)
-          setAppointmentData(data || generateAppointmentData(dateRange))
-          break
-        }
-        case 'revenue': {
-          const data = await adminApi.getRevenueReport(params).catch(() => null)
-          setRevenueData(data || generateRevenueData(dateRange))
-          break
-        }
-        case 'patient': {
-          const data = await adminApi.getPatientReport(params).catch(() => null)
-          if (data) setPatientData(data)
-          break
-        }
+      const [appointmentResult, revenueResult, patientResult] = await Promise.allSettled([
+        adminApi.getAppointmentReport(params),
+        adminApi.getRevenueReport(params),
+        adminApi.getPatientReport(params),
+      ])
+
+      setAppointmentReport(
+        appointmentResult.status === 'fulfilled'
+          ? normalizeAppointmentReport(appointmentResult.value)
+          : null
+      )
+      setRevenueReport(
+        revenueResult.status === 'fulfilled'
+          ? normalizeRevenueReport(revenueResult.value)
+          : null
+      )
+      setPatientReport(
+        patientResult.status === 'fulfilled' ? normalizePatientReport(patientResult.value) : null
+      )
+
+      const failures = [appointmentResult, revenueResult, patientResult].filter(
+        (result) => result.status === 'rejected'
+      )
+
+      if (failures.length === 3) {
+        const message = extractApiErrorMessage(
+          failures[0].reason,
+          'Không thể tải dữ liệu báo cáo'
+        )
+        setLoadError(message)
+        showToast({ type: 'error', message })
+      } else if (failures.length > 0) {
+        setLoadError('Một số phần báo cáo chưa tải được từ backend.')
       }
-    } catch {
-      console.error('Report fetch failed, using mock data')
+    } catch (error) {
+      const message = extractApiErrorMessage(error, 'Không thể tải dữ liệu báo cáo')
+      setAppointmentReport(null)
+      setRevenueReport(null)
+      setPatientReport(null)
+      setLoadError(message)
+      showToast({ type: 'error', message })
     } finally {
       setIsLoading(false)
     }
@@ -132,9 +196,7 @@ const Reports = () => {
   const handleExportPdf = async () => {
     try {
       showToast({ type: 'info', message: 'Đang xuất báo cáo PDF...' })
-      const blob = await adminApi.exportReport('pdf')
-
-      // Create blob URL and trigger download
+      const blob = await adminApi.exportReport('pdf', { dateRange, groupBy })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -142,10 +204,8 @@ const Reports = () => {
       link.style.display = 'none'
       document.body.appendChild(link)
 
-      // Use setTimeout to ensure browser processes download attribute
       setTimeout(() => {
         link.click()
-        // Cleanup after download starts
         setTimeout(() => {
           document.body.removeChild(link)
           URL.revokeObjectURL(url)
@@ -154,8 +214,10 @@ const Reports = () => {
 
       showToast({ type: 'success', message: 'Xuất báo cáo thành công!' })
     } catch (error) {
-      console.error('Export failed:', error)
-      showToast({ type: 'error', message: 'Không thể xuất báo cáo' })
+      showToast({
+        type: 'error',
+        message: extractApiErrorMessage(error, 'Không thể xuất báo cáo'),
+      })
     }
   }
 
@@ -163,15 +225,30 @@ const Reports = () => {
     window.print()
   }
 
-  const appointmentStatusData = (appointmentData || []).length > 0 ? [
-    { name: 'Đã xác nhận', value: (appointmentData || []).reduce((s, d) => s + (d.confirmed || 0), 0) },
-    { name: 'Đã hoàn thành', value: (appointmentData || []).reduce((s, d) => s + (d.completed || 0), 0) },
-    { name: 'Đã hủy', value: (appointmentData || []).reduce((s, d) => s + (d.cancelled || 0), 0) },
-  ] : []
+  const appointmentStatusData = useMemo(() => {
+    if (!appointmentReport) return []
+
+    return [
+      { name: 'Đã xác nhận', value: appointmentReport.confirmed },
+      { name: 'Đã hoàn thành', value: appointmentReport.completed },
+      { name: 'Đã hủy', value: appointmentReport.cancelled },
+    ].filter((item) => item.value > 0)
+  }, [appointmentReport])
+
+  const paymentMethodData = useMemo(() => {
+    if (!revenueReport) return []
+
+    return [
+      { name: 'Trực tuyến', value: revenueReport.onlinePayment },
+      { name: 'Tiền mặt', value: revenueReport.cashPayment },
+    ].filter((item) => item.value > 0)
+  }, [revenueReport])
+
+  const hasAppointmentTrend = hasSeriesData(appointmentReport?.monthlyTrend, 'total')
+  const hasRevenueTrend = hasSeriesData(revenueReport?.monthlyTrend, 'revenue')
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-sage-900 mb-2">Báo cáo</h1>
@@ -189,13 +266,19 @@ const Reports = () => {
         </div>
       </div>
 
-      {/* Report type tabs */}
+      {loadError ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {loadError}
+        </div>
+      ) : null}
+
       <div className="flex gap-2">
         {REPORT_TABS.map((tab) => {
           const Icon = tab.icon
           return (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-sage-600 text-white' : 'bg-sage-100 text-sage-700 hover:bg-sage-200'}`}
             >
@@ -206,7 +289,6 @@ const Reports = () => {
         })}
       </div>
 
-      {/* Controls */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4 items-center">
@@ -214,7 +296,7 @@ const Reports = () => {
               <Calendar className="w-4 h-4 text-sage-500" />
               <Select
                 value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
+                onChange={(event) => setDateRange(event.target.value)}
                 options={DATE_RANGES}
               />
             </div>
@@ -222,7 +304,7 @@ const Reports = () => {
               <BarChart3 className="w-4 h-4 text-sage-500" />
               <Select
                 value={groupBy}
-                onChange={(e) => setGroupBy(e.target.value)}
+                onChange={(event) => setGroupBy(event.target.value)}
                 options={GROUP_BY}
               />
             </div>
@@ -232,24 +314,50 @@ const Reports = () => {
 
       {isLoading ? (
         <div className="grid md:grid-cols-2 gap-4">
-          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : (
         <>
-          {/* Appointment Report */}
           {activeTab === 'appointment' && (
             <div className="space-y-6">
-              {/* KPI Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Tổng lịch hẹn', value: (appointmentData || []).reduce((s, d) => s + (d.total || 0), 0), icon: Calendar, color: 'sage' },
-                  { label: 'Đã xác nhận', value: (appointmentData || []).reduce((s, d) => s + (d.confirmed || 0), 0), icon: TrendingUp, color: 'green' },
-                  { label: 'Đã hoàn thành', value: (appointmentData || []).reduce((s, d) => s + (d.completed || 0), 0), icon: Users, color: 'terra' },
-                  { label: 'Đã hủy', value: (appointmentData || []).reduce((s, d) => s + (d.cancelled || 0), 0), icon: FileText, color: 'red' },
-                ].map((kpi, i) => {
+                  {
+                    label: 'Tổng lịch hẹn',
+                    value: appointmentReport?.totalAppointments ?? 0,
+                    icon: Calendar,
+                    color: 'sage',
+                  },
+                  {
+                    label: 'Đã xác nhận',
+                    value: appointmentReport?.confirmed ?? 0,
+                    icon: TrendingUp,
+                    color: 'green',
+                  },
+                  {
+                    label: 'Đã hoàn thành',
+                    value: appointmentReport?.completed ?? 0,
+                    icon: Users,
+                    color: 'terra',
+                  },
+                  {
+                    label: 'Đã hủy',
+                    value: appointmentReport?.cancelled ?? 0,
+                    icon: FileText,
+                    color: 'red',
+                  },
+                ].map((kpi, index) => {
                   const Icon = kpi.icon
                   return (
-                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                    <motion.div
+                      key={kpi.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
                       <Card>
                         <CardContent className="p-5">
                           <div className="flex items-center gap-3">
@@ -268,27 +376,32 @@ const Reports = () => {
                 })}
               </div>
 
-              {/* Chart */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-sage-900 mb-4">Xu hướng Lịch hẹn</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={appointmentData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="total" name="Tổng" fill={COLORS[0]} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="confirmed" name="Xác nhận" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="cancelled" name="Hủy" fill={COLORS[3]} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              {hasAppointmentTrend ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-sage-900 mb-4">Xu hướng Lịch hẹn</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={appointmentReport.monthlyTrend}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="total" name="Tổng" fill={COLORS[0]} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="confirmed" name="Xác nhận" fill={COLORS[1]} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="cancelled" name="Hủy" fill={COLORS[3]} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              ) : (
+                <EmptyChartState
+                  title="Xu hướng Lịch hẹn"
+                  message="Backend chưa trả về dữ liệu xu hướng lịch hẹn cho bộ lọc hiện tại."
+                />
+              )}
 
-              {/* Status Pie */}
-              {appointmentStatusData.length > 0 && (
+              {appointmentStatusData.length > 0 ? (
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="font-semibold text-sage-900 mb-4">Phân bố theo trạng thái</h3>
@@ -296,15 +409,17 @@ const Reports = () => {
                       <ResponsiveContainer width="100%" height={240}>
                         <PieChart>
                           <Pie data={appointmentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                            {appointmentStatusData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                            {appointmentStatusData.map((item, index) => (
+                              <Cell key={item.name} fill={COLORS[index % COLORS.length]} />
+                            ))}
                           </Pie>
                           <Tooltip />
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="space-y-2 min-w-32">
-                        {appointmentStatusData.map((item, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                        {appointmentStatusData.map((item, index) => (
+                          <div key={item.name} className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                             <span className="text-sm text-sage-700">{item.name}: {item.value}</span>
                           </div>
                         ))}
@@ -312,22 +427,43 @@ const Reports = () => {
                     </div>
                   </CardContent>
                 </Card>
+              ) : (
+                <EmptyChartState
+                  title="Phân bố theo trạng thái"
+                  message="Backend chưa có dữ liệu trạng thái lịch hẹn để hiển thị."
+                />
               )}
             </div>
           )}
 
-          {/* Revenue Report */}
           {activeTab === 'revenue' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {[
-                  { label: 'Tổng doanh thu', value: formatCurrency(revenueData.reduce((s, d) => s + (d.revenue || 0), 0)), icon: DollarSign },
-                  { label: 'Thanh toán trực tuyến', value: formatCurrency(revenueData.reduce((s, d) => s + (d.online || 0), 0)), icon: TrendingUp },
-                  { label: 'Thanh toán tiền mặt', value: formatCurrency(revenueData.reduce((s, d) => s + (d.cash || 0), 0)), icon: Users },
-                ].map((kpi, i) => {
+                  {
+                    label: 'Tổng doanh thu',
+                    value: formatCurrency(revenueReport?.totalRevenue ?? 0),
+                    icon: DollarSign,
+                  },
+                  {
+                    label: 'Thanh toán trực tuyến',
+                    value: formatCurrency(revenueReport?.onlinePayment ?? 0),
+                    icon: TrendingUp,
+                  },
+                  {
+                    label: 'Thanh toán tiền mặt',
+                    value: formatCurrency(revenueReport?.cashPayment ?? 0),
+                    icon: Users,
+                  },
+                ].map((kpi, index) => {
                   const Icon = kpi.icon
                   return (
-                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                    <motion.div
+                      key={kpi.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
                       <Card>
                         <CardContent className="p-5">
                           <div className="flex items-center gap-3">
@@ -346,76 +482,105 @@ const Reports = () => {
                 })}
               </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-sage-900 mb-4">Xu hướng Doanh thu</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-                      <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Legend />
-                      <Line type="monotone" dataKey="revenue" name="Tổng" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="online" name="Trực tuyến" stroke={COLORS[1]} strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="cash" name="Tiền mặt" stroke={COLORS[2]} strokeWidth={2} dot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Revenue by method pie */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-sage-900 mb-4">Phân bố theo phương thức thanh toán</h3>
-                  <div className="flex flex-col sm:flex-row items-center gap-8">
-                    <ResponsiveContainer width="100%" height={240}>
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Trực tuyến', value: revenueData.reduce((s, d) => s + (d.online || 0), 0) },
-                            { name: 'Tiền mặt', value: revenueData.reduce((s, d) => s + (d.cash || 0), 0) },
-                          ]}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          label
-                        >
-                          {[0, 1].map((i) => <Cell key={i} fill={COLORS[i]} />)}
-                        </Pie>
+              {hasRevenueTrend ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-sage-900 mb-4">Xu hướng Doanh thu</h3>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={revenueReport.monthlyTrend}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
                         <Tooltip formatter={(value) => formatCurrency(value)} />
-                      </PieChart>
+                        <Legend />
+                        <Line type="monotone" dataKey="revenue" name="Tổng" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="online" name="Trực tuyến" stroke={COLORS[1]} strokeWidth={2} dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="cash" name="Tiền mặt" stroke={COLORS[2]} strokeWidth={2} dot={{ r: 4 }} />
+                      </LineChart>
                     </ResponsiveContainer>
-                    <div className="space-y-2 min-w-40">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-sage-600" />
-                        <span className="text-sm text-sage-700">Trực tuyến: {formatCurrency(revenueData.reduce((s, d) => s + (d.online || 0), 0))}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[1] }} />
-                        <span className="text-sm text-sage-700">Tiền mặt: {formatCurrency(revenueData.reduce((s, d) => s + (d.cash || 0), 0))}</span>
+                  </CardContent>
+                </Card>
+              ) : (
+                <EmptyChartState
+                  title="Xu hướng Doanh thu"
+                  message="Backend chưa trả về dữ liệu xu hướng doanh thu cho bộ lọc hiện tại."
+                />
+              )}
+
+              {paymentMethodData.length > 0 ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-sage-900 mb-4">Phân bố theo phương thức thanh toán</h3>
+                    <div className="flex flex-col sm:flex-row items-center gap-8">
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={paymentMethodData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label
+                          >
+                            {paymentMethodData.map((item, index) => (
+                              <Cell key={item.name} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="space-y-2 min-w-40">
+                        {paymentMethodData.map((item, index) => (
+                          <div key={item.name} className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                            <span className="text-sm text-sage-700">{item.name}: {formatCurrency(item.value)}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ) : (
+                <EmptyChartState
+                  title="Phân bố theo phương thức thanh toán"
+                  message="Backend chưa cung cấp dữ liệu tách theo phương thức thanh toán."
+                />
+              )}
             </div>
           )}
 
-          {/* Patient Report */}
           {activeTab === 'patient' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {[
-                  { label: 'Tổng bệnh nhân', value: patientData.total || 1245, icon: Users, color: 'sage' },
-                  { label: 'Mới trong kỳ', value: patientData.newThisPeriod || 78, icon: TrendingUp, color: 'green' },
-                  { label: 'Đang điều trị', value: patientData.active || 432, icon: FileText, color: 'terra' },
-                ].map((kpi, i) => {
+                  {
+                    label: 'Tổng bệnh nhân',
+                    value: patientReport?.totalPatients ?? 0,
+                    icon: Users,
+                    color: 'sage',
+                  },
+                  {
+                    label: 'Mới trong kỳ',
+                    value: patientReport?.newPatients ?? 0,
+                    icon: TrendingUp,
+                    color: 'green',
+                  },
+                  {
+                    label: 'Đang điều trị',
+                    value: patientReport?.activePatients ?? 0,
+                    icon: FileText,
+                    color: 'terra',
+                  },
+                ].map((kpi, index) => {
                   const Icon = kpi.icon
                   return (
-                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                    <motion.div
+                      key={kpi.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
                       <Card>
                         <CardContent className="p-5">
                           <div className="flex items-center gap-3">
@@ -434,45 +599,15 @@ const Reports = () => {
                 })}
               </div>
 
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-sage-900 mb-4">Phân bố Giới tính</h3>
-                  <div className="flex flex-col sm:flex-row items-center gap-8">
-                    <ResponsiveContainer width="100%" height={240}>
-                      <PieChart>
-                        <Pie data={patientDemographics} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                          {patientDemographics.map((_, i) => <Cell key={i} fill={COLORS[i + 2]} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-2 min-w-32">
-                      {patientDemographics.map((item, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i + 2] }} />
-                          <span className="text-sm text-sage-700">{item.name}: {item.value}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <EmptyChartState
+                title="Phân bố Giới tính"
+                message="API báo cáo bệnh nhân hiện chưa trả về dữ liệu phân bố giới tính."
+              />
 
-              {/* Registration trend */}
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-sage-900 mb-4">Xu hướng Đăng ký mới</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={generateAppointmentData(dateRange).map((d, i) => ({ name: d.name, mới: Math.floor(Math.random() * 30 + 5) }))}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Bar dataKey="mới" name="Đăng ký mới" fill={COLORS[4]} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <EmptyChartState
+                title="Xu hướng Đăng ký mới"
+                message="API báo cáo bệnh nhân hiện chưa trả về dữ liệu xu hướng đăng ký mới."
+              />
             </div>
           )}
         </>

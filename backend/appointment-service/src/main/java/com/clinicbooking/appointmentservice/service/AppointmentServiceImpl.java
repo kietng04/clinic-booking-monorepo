@@ -4,7 +4,6 @@ import com.clinicbooking.appointmentservice.client.UserServiceClient;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
-import com.clinicbooking.appointmentservice.dto.AppointmentPaymentStatusUpdateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.dto.NotificationCreateDto;
@@ -358,6 +357,50 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
+    public AppointmentResponseDto linkPaymentToAppointment(Long id, AppointmentPaymentLinkDto dto) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        if (dto == null || dto.getPaymentOrderId() == null || dto.getPaymentOrderId().isBlank()) {
+            throw new ValidationException("Thiếu mã đơn thanh toán");
+        }
+
+        appointment.setPaymentOrderId(dto.getPaymentOrderId().trim());
+        appointment.setPaymentMethod(dto.getPaymentMethod());
+        appointment.setPaymentExpiresAt(dto.getPaymentExpiresAt());
+        appointment.setPaymentStatus("PENDING");
+        appointment.setPaidAt(null);
+        appointment = appointmentRepository.save(appointment);
+
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponseDto markPaymentCompleted(
+            Long appointmentId,
+            String paymentOrderId,
+            String paymentMethod,
+            LocalDateTime paidAt
+    ) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        if (paymentOrderId != null && !paymentOrderId.isBlank()) {
+            appointment.setPaymentOrderId(paymentOrderId.trim());
+        }
+        if (paymentMethod != null && !paymentMethod.isBlank()) {
+            appointment.setPaymentMethod(paymentMethod);
+        }
+        appointment.setPaymentStatus("PAID");
+        appointment.setPaidAt(paidAt != null ? paidAt : LocalDateTime.now());
+        appointment = appointmentRepository.save(appointment);
+
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
     public AppointmentResponseDto submitFeedback(Long appointmentId, Long patientId, AppointmentFeedbackDto dto) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
@@ -396,46 +439,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setReviewedAt(LocalDateTime.now());
         appointment = appointmentRepository.save(appointment);
 
-        eventPublisher.publishAppointmentUpdated(appointment);
-        return appointmentMapper.toDto(appointment);
-    }
-
-    @Override
-    @Transactional
-    public AppointmentResponseDto linkPaymentToAppointment(Long appointmentId, AppointmentPaymentLinkDto dto) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
-
-        appointment.setPaymentOrderId(dto.getPaymentOrderId());
-        appointment.setPaymentMethod(dto.getPaymentMethod());
-        appointment.setPaymentStatus("PENDING_PAYMENT");
-        appointment.setPaymentExpiresAt(dto.getPaymentExpiresAt());
-
-        appointment = appointmentRepository.save(appointment);
-        eventPublisher.publishAppointmentUpdated(appointment);
-        return appointmentMapper.toDto(appointment);
-    }
-
-    @Override
-    @Transactional
-    public AppointmentResponseDto updatePaymentStatus(Long appointmentId, AppointmentPaymentStatusUpdateDto dto) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
-
-        if (dto.getPaymentStatus() != null && !dto.getPaymentStatus().isBlank()) {
-            appointment.setPaymentStatus(dto.getPaymentStatus().trim());
-        }
-        if (dto.getPaymentMethod() != null && !dto.getPaymentMethod().isBlank()) {
-            appointment.setPaymentMethod(dto.getPaymentMethod().trim());
-        }
-        if (dto.getPaymentExpiresAt() != null) {
-            appointment.setPaymentExpiresAt(dto.getPaymentExpiresAt());
-        }
-        if (dto.getPaymentCompletedAt() != null) {
-            appointment.setPaymentCompletedAt(dto.getPaymentCompletedAt());
-        }
-
-        appointment = appointmentRepository.save(appointment);
         eventPublisher.publishAppointmentUpdated(appointment);
         return appointmentMapper.toDto(appointment);
     }

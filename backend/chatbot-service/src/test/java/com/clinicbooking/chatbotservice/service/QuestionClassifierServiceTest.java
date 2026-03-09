@@ -41,7 +41,7 @@ class QuestionClassifierServiceTest {
     }
 
     @Test
-    void shouldUseRuleMatchAndSkipGemini() {
+    void shouldUseGeminiWhenAvailable() {
         List<IntentDefinition> intents = List.of(
                 new IntentDefinition("BOOK_APPOINTMENT", "Dat lich", "", List.of("dat lich")),
                 new IntentDefinition("UNKNOWN", "Khong xac dinh", "", List.of())
@@ -49,34 +49,34 @@ class QuestionClassifierServiceTest {
 
         when(intentCatalogService.getIntents()).thenReturn(intents);
         when(intentCatalogService.findById("BOOK_APPOINTMENT")).thenReturn(Optional.of(intents.get(0)));
-        when(ruleBasedClassifierService.classify(any(), eq(intents)))
-                .thenReturn(Optional.of(new IntentClassificationResult("BOOK_APPOINTMENT", 0.8, "RULE_BASED", "rule")));
+        when(geminiClassifierService.classify(any(), any(), any()))
+                .thenReturn(Optional.of(new IntentClassificationResult("BOOK_APPOINTMENT", 0.82, "GEMINI", "llm")));
 
         var response = service.classify("Toi muon dat lich", "PATIENT");
 
         assertThat(response.intentId()).isEqualTo("BOOK_APPOINTMENT");
-        assertThat(response.provider()).isEqualTo("RULE_BASED");
+        assertThat(response.provider()).isEqualTo("GEMINI");
         assertThat(response.fallbackUsed()).isFalse();
-        verify(geminiClassifierService, never()).classify(any(), any(), any());
+        verify(ruleBasedClassifierService, never()).classify(any(), any());
     }
 
     @Test
-    void shouldUseGeminiWhenNoRuleMatch() {
+    void shouldFallbackToRuleWhenGeminiUnavailable() {
         List<IntentDefinition> intents = List.of(
                 new IntentDefinition("SERVICE_PRICE", "Gia dich vu", "", List.of("gia")),
                 new IntentDefinition("UNKNOWN", "Khong xac dinh", "", List.of())
         );
 
         when(intentCatalogService.getIntents()).thenReturn(intents);
-        when(ruleBasedClassifierService.classify(any(), eq(intents))).thenReturn(Optional.empty());
-        when(geminiClassifierService.classify(any(), any(), any()))
-                .thenReturn(Optional.of(new IntentClassificationResult("SERVICE_PRICE", 0.62, "GEMINI", "llm")));
+        when(geminiClassifierService.classify(any(), any(), any())).thenReturn(Optional.empty());
+        when(ruleBasedClassifierService.classify(any(), eq(intents)))
+                .thenReturn(Optional.of(new IntentClassificationResult("SERVICE_PRICE", 0.62, "RULE_BASED", "rule")));
         when(intentCatalogService.findById("SERVICE_PRICE")).thenReturn(Optional.of(intents.get(0)));
 
         var response = service.classify("Phi kham bao nhieu", "PATIENT");
 
         assertThat(response.intentId()).isEqualTo("SERVICE_PRICE");
-        assertThat(response.provider()).isEqualTo("GEMINI");
+        assertThat(response.provider()).isEqualTo("RULE_BASED");
         assertThat(response.fallbackUsed()).isTrue();
     }
 

@@ -33,23 +33,23 @@ public class QuestionClassifierService {
         String normalizedQuestion = TextNormalizer.normalize(question);
         List<IntentDefinition> intents = intentCatalogService.getIntents();
 
-        Optional<IntentClassificationResult> ruleResult =
-                ruleBasedClassifierService.classify(normalizedQuestion, intents);
-
-        if (ruleResult.isPresent()) {
-            return toResponse(question, normalizedQuestion, ruleResult.get(), false);
-        }
-
         Optional<IntentClassificationResult> geminiResult;
         try {
             geminiResult = geminiClassifierService.classify(question, normalizedQuestion, userRole);
         } catch (Exception ex) {
-            log.warn("Gemini fallback failed: {}", ex.getMessage());
+            log.warn("Gemini classify failed: {}", ex.getMessage());
             geminiResult = Optional.empty();
         }
 
         if (geminiResult.isPresent()) {
-            return toResponse(question, normalizedQuestion, geminiResult.get(), true);
+            return toResponse(question, normalizedQuestion, geminiResult.get(), false);
+        }
+
+        Optional<IntentClassificationResult> ruleResult =
+                ruleBasedClassifierService.classify(normalizedQuestion, intents);
+
+        if (ruleResult.isPresent()) {
+            return toResponse(question, normalizedQuestion, ruleResult.get(), true);
         }
 
         IntentClassificationResult fallbackResult = new IntentClassificationResult(

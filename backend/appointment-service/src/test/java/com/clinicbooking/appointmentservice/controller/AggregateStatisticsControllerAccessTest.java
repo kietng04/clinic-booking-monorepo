@@ -31,6 +31,9 @@ class AggregateStatisticsControllerAccessTest {
     @MockBean
     private AggregateStatisticsService aggregateStatisticsService;
 
+    @MockBean
+    private com.clinicbooking.appointmentservice.repository.AppointmentRepository appointmentRepository;
+
     @Test
     @DisplayName("Should allow ADMIN to access doctor analytics for any doctor")
     void shouldAllowAdminToAccessAnyDoctorAnalytics() throws Exception {

@@ -54,6 +54,12 @@
     "keywords": ["dia chi", "address", "o dau", "chi nhanh", "ban do", "tru so", "co so", "gio mo cua", "mo cua may gio", "gio lam viec", "dong cua may gio", "phong kham lam viec", "lam viec tu may gio", "tu may gio den may gio", "mo cua luc nao"]
   },
   {
+    "id": "CLINIC_HOURS",
+    "name": "Gio mo cua phong kham",
+    "description": "Nguoi dung hoi gio mo cua, gio dong cua, hoac lich lam viec cua phong kham",
+    "keywords": ["gio mo cua", "mo cua may gio", "gio lam viec", "gio dong cua", "dong cua may gio", "mo cua luc nao"]
+  },
+  {
     "id": "SERVICE_PRICE",
     "name": "Gia dich vu",
     "description": "Nguoi dung hoi bang gia dich vu",

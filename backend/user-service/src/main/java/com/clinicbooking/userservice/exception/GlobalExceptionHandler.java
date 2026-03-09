@@ -4,6 +4,7 @@ import com.clinicbooking.userservice.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -240,6 +241,42 @@ public class GlobalExceptionHandler {
             correlationId,
             HttpStatus.BAD_REQUEST.value(),
             fieldErrors
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
+
+        String correlationId = getOrCreateCorrelationId(request);
+        String path = request.getRequestURI();
+        String timestamp = LocalDateTime.now().format(DATE_FORMATTER);
+        Throwable cause = ex.getMostSpecificCause();
+        String message = cause != null && cause.getMessage() != null
+                ? cause.getMessage()
+                : ex.getMessage();
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(timestamp)
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message("Request body không hợp lệ")
+                .path(path)
+                .errorCode("HTTP_MESSAGE_NOT_READABLE")
+                .details(Map.of("body", message))
+                .correlationId(correlationId)
+                .build();
+
+        log.error(
+            "HttpMessageNotReadableException - CorrelationID: {}, Path: {}, Message: {}",
+            correlationId,
+            path,
+            message
         );
 
         return ResponseEntity

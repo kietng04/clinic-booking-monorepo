@@ -2,6 +2,7 @@ package com.clinicbooking.userservice.entity;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -89,6 +90,10 @@ public class User {
     @Builder.Default
     private Boolean phoneVerified = false;
 
+    @Embedded
+    @Builder.Default
+    private NotificationPreferences notificationPreferences = NotificationPreferences.defaultPreferences();
+
     // Doctor-specific fields
     @Column(length = 255)
     private String specialization;
@@ -141,5 +146,24 @@ public class User {
 
     public boolean isAdmin() {
         return role == UserRole.ADMIN;
+    }
+
+    public NotificationPreferences getNotificationPreferences() {
+        if (notificationPreferences == null) {
+            notificationPreferences = NotificationPreferences.defaultPreferences();
+        } else if (!notificationPreferences.isComplete()) {
+            notificationPreferences = notificationPreferences.normalized();
+        }
+        return notificationPreferences;
+    }
+
+    public void setNotificationPreferences(NotificationPreferences notificationPreferences) {
+        this.notificationPreferences = notificationPreferences == null
+                ? null
+                : notificationPreferences.normalized();
+    }
+
+    public boolean hasCompleteNotificationPreferences() {
+        return notificationPreferences != null && notificationPreferences.isComplete();
     }
 }

@@ -79,6 +79,7 @@ kafka:
     appointment-updated: appointment.updated
     appointment-cancelled: appointment.cancelled
     appointment-completed: appointment.completed
+    payment-completed: payment.completed
     user-created: user.created
     user-updated: user.updated
     user-deleted: user.deleted
@@ -101,6 +102,10 @@ feign:
         connectTimeout: 10000
         readTimeout: 15000
         loggerLevel: basic
+      payment-service:
+        connectTimeout: 10000
+        readTimeout: 15000
+        loggerLevel: basic
 
 # Enable circuit breaker for Feign fallbacks
 spring.cloud.openfeign.circuitbreaker.enabled: true
@@ -120,4 +125,6 @@ resilience4j:
       user-service:
         baseConfig: default
       medical-service:
+        baseConfig: default
+      payment-service:
         baseConfig: default

@@ -1,5 +1,7 @@
 package com.clinicbooking.userservice.controller;
 
+import com.clinicbooking.userservice.dto.profile.NotificationPreferencesDto;
+import com.clinicbooking.userservice.entity.NotificationReminderTiming;
 import com.clinicbooking.userservice.service.ProfileService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,5 +75,44 @@ class ProfileControllerAvatarUploadTest {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).containsEntry("avatarUrl", "https://legacy.example/avatar.jpg");
     }
-}
 
+    @Test
+    void getNotificationPreferences_returnsTypedPayload() {
+        NotificationPreferencesDto dto = NotificationPreferencesDto.builder()
+                .emailReminders(true)
+                .emailPrescription(true)
+                .emailLabResults(true)
+                .emailMarketing(false)
+                .smsReminders(true)
+                .smsUrgent(true)
+                .pushAll(true)
+                .reminderTiming(NotificationReminderTiming.ONE_DAY)
+                .build();
+        when(profileService.getNotificationPreferences(10L)).thenReturn(dto);
+
+        ResponseEntity<NotificationPreferencesDto> response = profileController.getNotificationPreferences();
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody()).isEqualTo(dto);
+    }
+
+    @Test
+    void updateNotificationPreferences_passesTypedPayloadToService() {
+        NotificationPreferencesDto request = NotificationPreferencesDto.builder()
+                .emailReminders(false)
+                .emailPrescription(true)
+                .emailLabResults(false)
+                .emailMarketing(true)
+                .smsReminders(false)
+                .smsUrgent(true)
+                .pushAll(false)
+                .reminderTiming(NotificationReminderTiming.TWO_HOURS)
+                .build();
+        when(profileService.updateNotificationPreferences(10L, request)).thenReturn(request);
+
+        ResponseEntity<NotificationPreferencesDto> response = profileController.updateNotificationPreferences(request);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody()).isEqualTo(request);
+    }
+}

@@ -21,6 +21,37 @@ describe('profileApi', () => {
     mockPost.mockReset()
   })
 
+  it('loads notification settings from backend profile endpoint', async () => {
+    mockGet.mockResolvedValue({
+      data: { emailReminders: false, reminderTiming: '2_HOURS' },
+    })
+
+    const result = await profileApi.getNotifications()
+
+    expect(mockGet).toHaveBeenCalledWith('/api/profile/notifications')
+    expect(result).toEqual({
+      emailReminders: false,
+      reminderTiming: '2_HOURS',
+    })
+  })
+
+  it('updates notification settings through backend profile endpoint', async () => {
+    const payload = {
+      emailReminders: false,
+      smsUrgent: true,
+      reminderTiming: '1_HOUR',
+    }
+
+    mockPut.mockResolvedValue({
+      data: payload,
+    })
+
+    const result = await profileApi.updateNotifications(payload)
+
+    expect(mockPut).toHaveBeenCalledWith('/api/profile/notifications', payload)
+    expect(result).toEqual(payload)
+  })
+
   it('uploads avatar file as multipart/form-data', async () => {
     const file = new File(['avatar'], 'avatar.png', { type: 'image/png' })
     mockPost.mockResolvedValue({
@@ -40,4 +71,3 @@ describe('profileApi', () => {
     )
   })
 })
-

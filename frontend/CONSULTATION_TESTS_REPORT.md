@@ -242,16 +242,16 @@ Doctor:
 ## 🐛 Known Limitations & TODOs
 
 ### Current Limitations
-1. ⚠️ WebSocket real-time messaging - online indicator detected but actual message delivery not tested
-2. ⚠️ Parallel test execution may timeout (run sequentially for now)
-3. ⚠️ Firefox compatibility - some minor selector differences
-4. ⚠️ Badge component variant mismatch - pages pass color names ('yellow', 'blue') but Badge only defines ('default', 'success', 'warning', 'danger', 'info')
+1. ⚠️ Parallel test execution may timeout (run sequentially for now)
+2. ⚠️ Firefox compatibility - some minor selector differences
+3. ⚠️ Badge component variant mismatch - pages pass color names ('yellow', 'blue') but Badge only defines ('default', 'success', 'warning', 'danger', 'info')
+4. ⚠️ Network interruption and reconnect recovery still not covered end-to-end
 
 ### Potential Improvements
 ```javascript
-// TODO: Add multi-user real-time messaging test (patient + doctor in parallel)
-// TODO: Mock WebSocket STOMP for chat message testing
-// TODO: Add subscription confirmation tests
+// DONE: Add multi-user real-time messaging test (patient + doctor in parallel)
+// TODO: Add reconnect / network recovery assertions
+// TODO: Add subscription confirmation assertions for each topic
 // TODO: Add network error recovery tests
 // TODO: Add file upload tests (if consultation supports attachments)
 // TODO: Performance metrics (message delivery time, load times)

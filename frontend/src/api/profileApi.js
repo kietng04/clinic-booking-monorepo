@@ -6,6 +6,11 @@ export const profileApi = {
     return response.data
   },
 
+  getNotifications: async () => {
+    const response = await apiClient.get('/api/profile/notifications')
+    return response.data
+  },
+
   updateProfile: async (data) => {
     const response = await apiClient.put('/api/profile', data)
     return response.data
@@ -36,9 +41,8 @@ export const profileApi = {
   },
 
   updateNotifications: async (preferences) => {
-    // TODO: Backend endpoint for notification preferences
-    console.log('Notification preferences:', preferences)
-    return { success: true }
+    const response = await apiClient.put('/api/profile/notifications', preferences)
+    return response.data
   },
 }
 

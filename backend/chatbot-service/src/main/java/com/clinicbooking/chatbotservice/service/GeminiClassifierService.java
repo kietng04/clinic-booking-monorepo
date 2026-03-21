@@ -15,7 +15,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,42 +50,71 @@ public class GeminiClassifierService {
     @Value("${ai.gemini.temperature:0.1}")
     private double temperature;
 
+    @Value("${ai.gemini.retry.max-attempts:3}")
+    private int retryMaxAttempts;
+
+    @Value("${ai.gemini.retry.backoff-ms:800}")
+    private long retryBackoffMs;
+
     public Optional<IntentClassificationResult> classify(
             String originalQuestion,
             String normalizedQuestion,
             String userRole
     ) {
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("GEMINI_API_KEY is empty, skip Gemini fallback");
+            log.warn("GEMINI_API_KEY is empty, skip Gemini classification");
             return Optional.empty();
         }
 
         String prompt = buildClassificationPrompt(originalQuestion, normalizedQuestion, userRole);
-        String url = String.format("%s/models/%s:generateContent", baseUrl, model);
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .pathSegment("models", model + ":generateContent")
+                .queryParam("key", apiKey)
+                .toUriString();
 
         Map<String, Object> requestBody = buildRequestBody(prompt);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-goog-api-key", apiKey);
 
-        try {
-            ResponseEntity<JsonNode> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    new HttpEntity<>(requestBody, headers),
-                    JsonNode.class
-            );
+        int attempts = Math.max(1, retryMaxAttempts);
+        for (int attempt = 1; attempt <= attempts; attempt++) {
+            try {
+                ResponseEntity<JsonNode> response = restTemplate.exchange(
+                        url,
+                        HttpMethod.POST,
+                        new HttpEntity<>(requestBody, headers),
+                        JsonNode.class
+                );
 
-            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-                throw new AIProviderException("Gemini classify request failed");
+                if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                    throw new AIProviderException("Gemini classify request failed");
+                }
+
+                String rawPayload = extractGeminiText(response.getBody());
+                Optional<IntentClassificationResult> parsedResult = parseClassificationPayload(rawPayload)
+                        .filter(result -> intentCatalogService.findById(result.intentId()).isPresent());
+
+                if (parsedResult.isPresent()) {
+                    return parsedResult;
+                }
+
+                log.warn("Gemini classify returned unusable payload on attempt {}/{}", attempt, attempts);
+            } catch (RestClientException ex) {
+                if (attempt == attempts) {
+                    throw new AIProviderException("Gemini service is unavailable: " + describeRestClientError(ex), ex);
+                }
+                log.warn(
+                        "Gemini classify attempt {}/{} failed: {}",
+                        attempt,
+                        attempts,
+                        describeRestClientError(ex)
+                );
             }
 
-            String rawPayload = extractGeminiText(response.getBody());
-            return parseClassificationPayload(rawPayload)
-                    .filter(result -> intentCatalogService.findById(result.intentId()).isPresent());
-        } catch (RestClientException ex) {
-            throw new AIProviderException("Gemini service is unavailable", ex);
+            sleepBeforeRetry(attempt, attempts);
         }
+
+        return Optional.empty();
     }
 
     Optional<IntentClassificationResult> parseClassificationPayload(String payload) {
@@ -122,6 +153,7 @@ public class GeminiClassifierService {
         Map<String, Object> generationConfig = new LinkedHashMap<>();
         generationConfig.put("temperature", temperature);
         generationConfig.put("maxOutputTokens", maxOutputTokens);
+        generationConfig.put("responseMimeType", "application/json");
 
         Map<String, Object> part = new LinkedHashMap<>();
         part.put("text", prompt);
@@ -171,5 +203,25 @@ public class GeminiClassifierService {
                 + "Normalized question: " + normalizedQuestion + "\n\n"
                 + "Intent list:\n"
                 + intentsDescription;
+    }
+
+    private void sleepBeforeRetry(int attempt, int attempts) {
+        if (attempt >= attempts || retryBackoffMs <= 0) {
+            return;
+        }
+
+        try {
+            Thread.sleep(retryBackoffMs * attempt);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new AIProviderException("Gemini classify retry interrupted", ex);
+        }
+    }
+
+    private String describeRestClientError(RestClientException ex) {
+        if (ex instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode() + " " + responseException.getResponseBodyAsString();
+        }
+        return ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
     }
 }

@@ -1,6 +1,8 @@
 package com.clinicbooking.appointmentservice.controller;
 
+import com.clinicbooking.appointmentservice.client.PaymentServiceClient;
 import com.clinicbooking.appointmentservice.dto.ReportExportDto;
+import com.clinicbooking.appointmentservice.repository.AppointmentRepository;
 import com.clinicbooking.appointmentservice.service.ReportPdfService;
 import com.clinicbooking.appointmentservice.service.AggregateStatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,8 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RestController
@@ -23,6 +29,8 @@ public class ReportExportController {
 
     private final ReportPdfService reportPdfService;
     private final AggregateStatisticsService statisticsService;
+    private final PaymentServiceClient paymentServiceClient;
+    private final AppointmentRepository appointmentRepository;
 
     @GetMapping("/appointments")
     public ResponseEntity<ReportExportDto.AppointmentReportData> getAppointmentReport() {
@@ -104,9 +112,28 @@ public class ReportExportController {
 
         // Get patient count from dashboard
         int totalPatients = 0;
+        int newPatients = 0;
         if (dashboard.getUserStatistics() != null && dashboard.getUserStatistics().getTotalPatients() != null) {
             totalPatients = dashboard.getUserStatistics().getTotalPatients().intValue();
+            newPatients = dashboard.getUserStatistics().getNewPatientsThisMonth() != null
+                    ? dashboard.getUserStatistics().getNewPatientsThisMonth().intValue()
+                    : 0;
         }
+
+        int activePatients = Math.toIntExact(
+                appointmentRepository.countDistinctActivePatientsSince(LocalDate.now().withDayOfMonth(1))
+        );
+
+        var paymentSummary = paymentServiceClient.getReportSummary();
+        Map<String, com.clinicbooking.appointmentservice.dto.PaymentReportSummaryDto.MonthlyPaymentBreakdownDto> paymentTrendByMonth =
+                paymentSummary != null && paymentSummary.getMonthlyTrend() != null
+                        ? paymentSummary.getMonthlyTrend().stream()
+                                .collect(Collectors.toMap(
+                                        com.clinicbooking.appointmentservice.dto.PaymentReportSummaryDto.MonthlyPaymentBreakdownDto::getMonth,
+                                        Function.identity(),
+                                        (left, right) -> right
+                                ))
+                        : Collections.emptyMap();
 
         return ReportExportDto.builder()
                 .appointmentReport(ReportExportDto.AppointmentReportData.builder()
@@ -127,19 +154,25 @@ public class ReportExportController {
                         .build())
                 .revenueReport(ReportExportDto.RevenueReportData.builder()
                         .totalRevenue(totalRevenue)
-                        .onlinePayment(0L) // TODO: Get from actual payment data
-                        .cashPayment(0L) // TODO: Get from actual payment data
+                        .onlinePayment(paymentSummary != null ? paymentSummary.getOnlinePayment() : 0L)
+                        .cashPayment(paymentSummary != null ? paymentSummary.getCashPayment() : 0L)
                         .monthlyTrend(analytics.getRevenue() != null ? analytics.getRevenue().stream()
                                 .map(r -> ReportExportDto.MonthlyRevenueData.builder()
                                         .month(r.getMonth())
                                         .revenue(r.getThisYear() != null ? r.getThisYear().longValue() : 0L)
+                                        .online(paymentTrendByMonth.containsKey(r.getMonth())
+                                                ? paymentTrendByMonth.get(r.getMonth()).getOnline()
+                                                : 0L)
+                                        .cash(paymentTrendByMonth.containsKey(r.getMonth())
+                                                ? paymentTrendByMonth.get(r.getMonth()).getCash()
+                                                : 0L)
                                         .build())
                                 .collect(Collectors.toList()) : null)
                         .build())
                 .patientReport(ReportExportDto.PatientReportData.builder()
                         .totalPatients(totalPatients)
-                        .newPatients(0) // Would need user service data
-                        .activePatients(0) // Would need user service data
+                        .newPatients(newPatients)
+                        .activePatients(activePatients)
                         .build())
                 .build();
     }

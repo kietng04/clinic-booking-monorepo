@@ -46,6 +46,44 @@ const normalizeRoomPayload = (data = {}) => {
   return payload
 }
 
+const normalizeAppointmentReport = (data = {}) => ({
+  totalAppointments: Number(data?.totalAppointments ?? 0),
+  confirmed: Number(data?.confirmed ?? 0),
+  completed: Number(data?.completed ?? 0),
+  cancelled: Number(data?.cancelled ?? 0),
+  monthlyTrend: Array.isArray(data?.monthlyTrend)
+    ? data.monthlyTrend.map((item) => ({
+        month: item?.month ?? '',
+        name: item?.month ?? '',
+        total: Number(item?.total ?? 0),
+        confirmed: Number(item?.confirmed ?? 0),
+        completed: Number(item?.completed ?? 0),
+        cancelled: Number(item?.cancelled ?? 0),
+      }))
+    : [],
+})
+
+const normalizeRevenueReport = (data = {}) => ({
+  totalRevenue: Number(data?.totalRevenue ?? 0),
+  onlinePayment: Number(data?.onlinePayment ?? 0),
+  cashPayment: Number(data?.cashPayment ?? 0),
+  monthlyTrend: Array.isArray(data?.monthlyTrend)
+    ? data.monthlyTrend.map((item) => ({
+        month: item?.month ?? '',
+        name: item?.month ?? '',
+        revenue: Number(item?.revenue ?? 0),
+        online: Number(item?.online ?? 0),
+        cash: Number(item?.cash ?? 0),
+      }))
+    : [],
+})
+
+const normalizePatientReport = (data = {}) => ({
+  totalPatients: Number(data?.totalPatients ?? 0),
+  newPatients: Number(data?.newPatients ?? 0),
+  activePatients: Number(data?.activePatients ?? 0),
+})
+
 export const adminApi = {
   // Clinics
   getClinics: async (filters = {}) => {
@@ -119,16 +157,15 @@ export const adminApi = {
   // Reports
   getAppointmentReport: async (params = {}) => {
     const response = await adminServiceClient.get('/api/reports/appointments', { params })
-    // Ensure we return an array, not an error object
-    return Array.isArray(response.data) ? response.data : (response.data.content || null)
+    return normalizeAppointmentReport(response.data)
   },
   getRevenueReport: async (params = {}) => {
     const response = await adminServiceClient.get('/api/reports/revenue', { params })
-    return Array.isArray(response.data) ? response.data : (response.data.content || null)
+    return normalizeRevenueReport(response.data)
   },
   getPatientReport: async (params = {}) => {
     const response = await adminServiceClient.get('/api/reports/patients', { params })
-    return response.data && typeof response.data === 'object' ? response.data : null
+    return normalizePatientReport(response.data)
   },
   exportReport: async (format = 'pdf', params = {}) => {
     const response = await adminServiceClient.get(`/api/reports/export/${format}`, {

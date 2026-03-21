@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export const useUIStore = create((set) => ({
   theme: 'light',
-  sidebarOpen: true,
+  sidebarOpen: false,
   modalOpen: false,
   modalContent: null,
   toast: null,

@@ -114,7 +114,7 @@ public class PaymentService implements IPaymentService {
                     .status(PaymentStatus.PENDING)
                     .patientName(request.getPatientName())
                     .patientEmail(request.getPatientEmail())
-                    .patientPhone(request.getPatientPhone())
+                    .patientPhone(normalizePatientPhone(request.getPatientPhone()))
                     .doctorId(request.getDoctorId())
                     .doctorName(request.getDoctorName())
                     .build();
@@ -905,5 +905,12 @@ public class PaymentService implements IPaymentService {
         eventPublisher.publishPaymentRefunded(event);
         log.debug("Published payment.{} event for order {}",
                 isPartial ? "partially_refunded" : "refunded", paymentOrder.getOrderId());
+    }
+
+    private String normalizePatientPhone(String patientPhone) {
+        if (patientPhone == null || patientPhone.trim().isEmpty()) {
+            return "UNKNOWN";
+        }
+        return patientPhone.trim();
     }
 }

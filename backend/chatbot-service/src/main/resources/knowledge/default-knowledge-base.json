@@ -8,10 +8,10 @@
   },
   {
     "id": "CLINIC_WORKING_HOURS",
-    "intentId": "CLINIC_ADDRESS",
+    "intentId": "CLINIC_HOURS",
     "title": "Gio lam viec phong kham",
     "content": "Phong kham lam viec tu 07:30 den 20:00 tu thu hai den thu bay, chu nhat tu 08:00 den 17:00.",
-    "keywords": ["gio mo cua", "gio lam viec", "mo cua may gio", "dong cua", "thu bay", "chu nhat"]
+    "keywords": ["gio mo cua", "gio lam viec", "mo cua may gio", "gio dong cua", "dong cua may gio", "thu bay", "chu nhat"]
   },
   {
     "id": "BOOKING_GUIDE",

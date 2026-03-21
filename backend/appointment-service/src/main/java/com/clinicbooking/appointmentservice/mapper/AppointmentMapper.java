@@ -19,11 +19,11 @@ public interface AppointmentMapper {
     @Mapping(target = "patientRating", ignore = true)
     @Mapping(target = "patientReview", ignore = true)
     @Mapping(target = "reviewedAt", ignore = true)
-    @Mapping(target = "paymentOrderId", ignore = true)
     @Mapping(target = "paymentStatus", ignore = true)
+    @Mapping(target = "paymentOrderId", ignore = true)
     @Mapping(target = "paymentMethod", ignore = true)
     @Mapping(target = "paymentExpiresAt", ignore = true)
-    @Mapping(target = "paymentCompletedAt", ignore = true)
+    @Mapping(target = "paidAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Appointment toEntity(AppointmentCreateDto dto);

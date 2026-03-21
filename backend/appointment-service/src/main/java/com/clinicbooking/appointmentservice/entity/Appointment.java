@@ -113,11 +113,12 @@ public class Appointment {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
-    @Column(name = "payment_order_id", length = 64)
-    private String paymentOrderId;
+    @Column(name = "payment_status", nullable = false, length = 30)
+    @Builder.Default
+    private String paymentStatus = "PENDING";
 
-    @Column(name = "payment_status", length = 32)
-    private String paymentStatus;
+    @Column(name = "payment_order_id", length = 100)
+    private String paymentOrderId;
 
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
@@ -125,8 +126,8 @@ public class Appointment {
     @Column(name = "payment_expires_at")
     private LocalDateTime paymentExpiresAt;
 
-    @Column(name = "payment_completed_at")
-    private LocalDateTime paymentCompletedAt;
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

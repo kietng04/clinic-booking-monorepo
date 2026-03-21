@@ -164,6 +164,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         @Query("SELECT DISTINCT a.patientId FROM Appointment a WHERE a.doctorId = :doctorId")
         List<Long> getDistinctPatientIdsForDoctor(@Param("doctorId") Long doctorId);
 
+        @Query("SELECT COUNT(DISTINCT a.patientId) FROM Appointment a WHERE a.appointmentDate >= :startDate AND a.status <> 'CANCELLED'")
+        long countDistinctActivePatientsSince(@Param("startDate") LocalDate startDate);
+
         // Top doctors by appointment count
         @Query("SELECT new map(a.doctorId as doctorId, a.doctorName as doctorName, " +
                         "COUNT(a) as totalAppointments, " +

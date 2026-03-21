@@ -1,18 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, waitFor } from '@/test/utils'
+import { render, screen, waitFor } from '@/test/utils'
 import DoctorAnalytics from './DoctorAnalytics'
 
 const {
-  mockGetDoctorStatsFromWrapper,
-  mockGetDoctorAnalyticsFromWrapper,
-  mockGetDoctorStatsFromReal,
-  mockGetDoctorAnalyticsFromReal,
+  mockGetDoctorStats,
+  mockGetDoctorAnalytics,
   mockShowToast,
 } = vi.hoisted(() => ({
-  mockGetDoctorStatsFromWrapper: vi.fn(),
-  mockGetDoctorAnalyticsFromWrapper: vi.fn(),
-  mockGetDoctorStatsFromReal: vi.fn(),
-  mockGetDoctorAnalyticsFromReal: vi.fn(),
+  mockGetDoctorStats: vi.fn(),
+  mockGetDoctorAnalytics: vi.fn(),
   mockShowToast: vi.fn(),
 }))
 
@@ -28,56 +24,64 @@ vi.mock('@/store/uiStore', () => ({
   }),
 }))
 
-vi.mock('@/api/statsApiWrapper', () => ({
-  statsApi: {
-    getDoctorStats: mockGetDoctorStatsFromWrapper,
-    getDoctorAnalyticsDashboard: mockGetDoctorAnalyticsFromWrapper,
-  },
-}))
-
 vi.mock('@/api/realApis/statsApi', () => ({
   statsApi: {
-    getDoctorStats: mockGetDoctorStatsFromReal,
-    getDoctorAnalyticsDashboard: mockGetDoctorAnalyticsFromReal,
+    getDoctorStats: mockGetDoctorStats,
+    getDoctorAnalyticsDashboard: mockGetDoctorAnalytics,
   },
 }))
 
-describe('DoctorAnalytics backend selection', () => {
+describe('DoctorAnalytics', () => {
   beforeEach(() => {
     mockShowToast.mockReset()
+    mockGetDoctorStats.mockReset()
+    mockGetDoctorAnalytics.mockReset()
 
-    mockGetDoctorStatsFromWrapper.mockReset()
-    mockGetDoctorAnalyticsFromWrapper.mockReset()
-    mockGetDoctorStatsFromReal.mockReset()
-    mockGetDoctorAnalyticsFromReal.mockReset()
-
-    mockGetDoctorStatsFromWrapper.mockResolvedValue({
+    mockGetDoctorStats.mockResolvedValue({
       totalPatients: 10,
       totalAppointments: 20,
       completionRate: 80,
       avgRating: 4.6,
     })
 
-    mockGetDoctorAnalyticsFromWrapper.mockResolvedValue({
+    mockGetDoctorAnalytics.mockResolvedValue({
       appointments: [{ month: 'Jan', count: 5, completed: 4, revenue: 1000000 }],
       appointmentTypes: [{ name: 'Khám trực tiếp', value: 60 }],
       timeSlots: [{ time: '09:00', bookings: 5 }],
       patientDemographics: {
         ageDistribution: [{ range: '20-30', count: 4 }],
-        genderRatio: [{ name: 'Nam', value: 40 }, { name: 'Nữ', value: 60 }],
+        genderRatio: [{ gender: 'Nam', percentage: 40, count: 4 }],
       },
     })
   })
 
-  it('uses statsApi wrapper for doctor analytics data', async () => {
+  it('loads doctor analytics directly from the real stats API client', async () => {
     render(<DoctorAnalytics />)
 
     await waitFor(() => {
-      expect(mockGetDoctorStatsFromWrapper).toHaveBeenCalledWith('1')
-      expect(mockGetDoctorAnalyticsFromWrapper).toHaveBeenCalledWith('1')
+      expect(mockGetDoctorStats).toHaveBeenCalledWith('1')
+      expect(mockGetDoctorAnalytics).toHaveBeenCalledWith('1')
+    })
+  })
+
+  it('shows truthful empty chart state instead of mock analytics fallback', async () => {
+    mockGetDoctorAnalytics.mockResolvedValue({
+      appointments: [],
+      appointmentTypes: [],
+      timeSlots: [],
+      patientDemographics: {
+        ageDistribution: [],
+        genderRatio: [],
+      },
     })
 
-    expect(mockGetDoctorStatsFromReal).not.toHaveBeenCalled()
-    expect(mockGetDoctorAnalyticsFromReal).not.toHaveBeenCalled()
+    render(<DoctorAnalytics />)
+
+    expect(
+      await screen.findByText(/Chưa có dữ liệu biểu đồ phân tích cho giai đoạn này/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/Chưa có dữ liệu lịch hẹn theo tháng từ backend/i)
+    ).toBeInTheDocument()
   })
 })

@@ -48,6 +48,9 @@ ai:
     temperature: ${GEMINI_TEMPERATURE:0.1}
     answer-max-output-tokens: ${GEMINI_ANSWER_MAX_OUTPUT_TOKENS:512}
     answer-temperature: ${GEMINI_ANSWER_TEMPERATURE:0.2}
+    retry:
+      max-attempts: ${GEMINI_RETRY_MAX_ATTEMPTS:3}
+      backoff-ms: ${GEMINI_RETRY_BACKOFF_MS:800}
     timeout:
       connect-ms: ${GEMINI_CONNECT_TIMEOUT_MS:10000}
       read-ms: ${GEMINI_READ_TIMEOUT_MS:30000}

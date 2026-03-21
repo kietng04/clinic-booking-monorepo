@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bot, Loader2, MessageCircle, Send, User, X } from 'lucide-react'
 import { chatbotApi } from '@/api/chatbotApiWrapper'
 import { useAuthStore } from '@/store/authStore'
@@ -11,77 +11,33 @@ const buildWelcomeMessage = (name) => ({
   sources: [],
 })
 
-const sessionStorageKey = (userId) => `chatbot-session-${userId || 'anonymous'}`
-
 export function ChatbotWidget() {
   const { isAuthenticated, user } = useAuthStore()
   const { showToast } = useUIStore()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
-  const [sessionId, setSessionId] = useState(null)
-  const [initializing, setInitializing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState(() => [buildWelcomeMessage(user?.name)])
+  const messagesContainerRef = useRef(null)
+
+  const disabled = !input.trim() || loading
+  const userLabel = useMemo(() => (user?.role || 'PATIENT').toUpperCase(), [user?.role])
 
   useEffect(() => {
-    if (!isAuthenticated || !user?.id) {
-      setSessionId(null)
-      setMessages([buildWelcomeMessage(user?.name)])
+    if (!open || !messagesContainerRef.current) {
       return
     }
 
-    let cancelled = false
+    const container = messagesContainerRef.current
+    const rafId = window.requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: messages.length > 1 || loading ? 'smooth' : 'auto',
+      })
+    })
 
-    const initSession = async () => {
-      setInitializing(true)
-      try {
-        const storedSessionId = localStorage.getItem(sessionStorageKey(user.id))
-        const sessions = await chatbotApi.getSessions()
-        let selectedSession = sessions.find((session) => session.id === storedSessionId) || sessions[0]
-
-        if (!selectedSession) {
-          selectedSession = await chatbotApi.createSession(`Chat voi ${user.name || 'HealthFlow AI'}`)
-        }
-
-        if (cancelled) return
-
-        localStorage.setItem(sessionStorageKey(user.id), selectedSession.id)
-        setSessionId(selectedSession.id)
-
-        const history = await chatbotApi.getSessionMessages(selectedSession.id)
-        if (cancelled) return
-
-        if (Array.isArray(history) && history.length > 0) {
-          setMessages(history.map((message) => ({
-            id: message.id,
-            role: message.role,
-            text: message.text,
-            sources: message.sources || [],
-            meta: message.answerProvider || 'UNKNOWN',
-          })))
-        } else {
-          setMessages([buildWelcomeMessage(user?.name)])
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setSessionId(null)
-          setMessages([buildWelcomeMessage(user?.name)])
-        }
-      } finally {
-        if (!cancelled) {
-          setInitializing(false)
-        }
-      }
-    }
-
-    initSession()
-
-    return () => {
-      cancelled = true
-    }
-  }, [isAuthenticated, user?.id, user?.name])
-
-  const disabled = !input.trim() || loading
+    return () => window.cancelAnimationFrame(rafId)
+  }, [messages, loading, open])
 
   if (!isAuthenticated) {
     return null
@@ -103,25 +59,7 @@ export function ChatbotWidget() {
     setLoading(true)
 
     try {
-      let activeSessionId = sessionId
-      if (!activeSessionId) {
-        const session = await chatbotApi.createSession(`Chat voi ${user?.name || 'HealthFlow AI'}`)
-        activeSessionId = session.id
-        setSessionId(activeSessionId)
-        if (user?.id) {
-          localStorage.setItem(sessionStorageKey(user.id), activeSessionId)
-        }
-      }
-
-      const response = await chatbotApi.chat(content, { sessionId: activeSessionId })
-
-      if (response.sessionId && response.sessionId !== activeSessionId) {
-        activeSessionId = response.sessionId
-        setSessionId(activeSessionId)
-        if (user?.id) {
-          localStorage.setItem(sessionStorageKey(user.id), activeSessionId)
-        }
-      }
+      const response = await chatbotApi.chat(content, { userRole: userLabel })
 
       setMessages((prev) => [
         ...prev,
@@ -170,7 +108,10 @@ export function ChatbotWidget() {
             </button>
           </div>
 
-          <div className="max-h-[420px] space-y-3 overflow-y-auto bg-cream-50 p-4">
+          <div
+            ref={messagesContainerRef}
+            className="max-h-[420px] space-y-3 overflow-y-auto bg-cream-50 p-4"
+          >
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
@@ -198,14 +139,6 @@ export function ChatbotWidget() {
                 <div className="inline-flex items-center gap-2 rounded-xl border border-sage-200 bg-white px-3 py-2 text-xs text-sage-600">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   Dang phan tich va retrieve du lieu...
-                </div>
-              </div>
-            )}
-            {initializing && (
-              <div className="flex justify-start">
-                <div className="inline-flex items-center gap-2 rounded-xl border border-sage-200 bg-white px-3 py-2 text-xs text-sage-600">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Dang tai lich su tro chuyen...
                 </div>
               </div>
             )}

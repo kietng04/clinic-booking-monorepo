@@ -1,8 +1,10 @@
 package com.clinicbooking.userservice.controller;
 
+import com.clinicbooking.userservice.dto.profile.NotificationPreferencesDto;
 import com.clinicbooking.userservice.dto.user.UserResponseDto;
 import com.clinicbooking.userservice.dto.user.UserUpdateDto;
 import com.clinicbooking.userservice.service.ProfileService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,6 +38,20 @@ public class ProfileController {
     public ResponseEntity<UserResponseDto> updateProfile(@RequestBody UserUpdateDto dto) {
         Long userId = extractUserId();
         return ResponseEntity.ok(profileService.updateProfile(userId, dto));
+    }
+
+    @GetMapping("/notifications")
+    public ResponseEntity<NotificationPreferencesDto> getNotificationPreferences() {
+        Long userId = extractUserId();
+        return ResponseEntity.ok(profileService.getNotificationPreferences(userId));
+    }
+
+    @PutMapping("/notifications")
+    public ResponseEntity<NotificationPreferencesDto> updateNotificationPreferences(
+            @Valid @RequestBody NotificationPreferencesDto dto
+    ) {
+        Long userId = extractUserId();
+        return ResponseEntity.ok(profileService.updateNotificationPreferences(userId, dto));
     }
 
     @PutMapping("/password")

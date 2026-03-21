@@ -201,6 +201,8 @@ public class ChatOrchestratorService {
                     "HealthFlow co nhieu chi nhanh dang hoat dong. Neu can, toi co the liet ke cac co so dang mo va dia chi tung noi.";
             case "CLINIC_ADDRESS" ->
                     "Ban co the xem thong tin chi nhanh trong muc phong kham. Neu can, toi co the chi duong chi tiet.";
+            case "CLINIC_HOURS" ->
+                    "Ban co the hoi gio mo cua phong kham hoac chi nhanh cu the, toi se tra loi theo du lieu noi bo.";
             default ->
                     "Toi chua du thong tin de tra loi chinh xac. Ban co the noi ro hon nhu ten dich vu, bac si, hoac thoi gian mong muon.";
         };

@@ -56,6 +56,30 @@ class RuleBasedClassifierServiceTest {
     }
 
     @Test
+    void shouldMatchClinicHoursIntent() {
+        List<IntentDefinition> intents = List.of(
+                new IntentDefinition(
+                        "CLINIC_ADDRESS",
+                        "Dia chi phong kham",
+                        "Dia chi",
+                        List.of("dia chi", "o dau")
+                ),
+                new IntentDefinition(
+                        "CLINIC_HOURS",
+                        "Gio mo cua phong kham",
+                        "Gio lam viec",
+                        List.of("gio mo cua", "mo cua may gio", "gio lam viec")
+                )
+        );
+
+        var result = service.classify("phong kham mo cua may gio", intents);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().intentId()).isEqualTo("CLINIC_HOURS");
+        assertThat(result.get().reason()).contains("mo cua may gio");
+    }
+
+    @Test
     void shouldNotMatchShortKeywordInsideAnotherWord() {
         List<IntentDefinition> intents = List.of(
                 new IntentDefinition(

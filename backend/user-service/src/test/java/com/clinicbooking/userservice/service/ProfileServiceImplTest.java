@@ -1,5 +1,8 @@
 package com.clinicbooking.userservice.service;
 
+import com.clinicbooking.userservice.dto.profile.NotificationPreferencesDto;
+import com.clinicbooking.userservice.entity.NotificationPreferences;
+import com.clinicbooking.userservice.entity.NotificationReminderTiming;
 import com.clinicbooking.userservice.dto.user.UserResponseDto;
 import com.clinicbooking.userservice.dto.user.UserUpdateDto;
 import com.clinicbooking.userservice.entity.User;
@@ -164,6 +167,77 @@ class ProfileServiceImplTest {
         assertThatThrownBy(() -> profileService.updateProfile(999L, updateDto))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Người dùng không tìm thấy");
+    }
+
+    @Test
+    void getNotificationPreferences_withoutStoredPreferences_returnsDefaults() {
+        testUser.setNotificationPreferences(null);
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        NotificationPreferencesDto result = profileService.getNotificationPreferences(1L);
+
+        assertThat(result.getEmailReminders()).isTrue();
+        assertThat(result.getEmailMarketing()).isFalse();
+        assertThat(result.getReminderTiming()).isEqualTo(NotificationReminderTiming.ONE_DAY);
+        assertThat(testUser.getNotificationPreferences()).isNotNull();
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void updateNotificationPreferences_withValidPayload_persistsPreferences() {
+        NotificationPreferencesDto request = NotificationPreferencesDto.builder()
+                .emailReminders(false)
+                .emailPrescription(true)
+                .emailLabResults(false)
+                .emailMarketing(true)
+                .smsReminders(false)
+                .smsUrgent(true)
+                .pushAll(false)
+                .reminderTiming(NotificationReminderTiming.TWO_HOURS)
+                .build();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        NotificationPreferencesDto result = profileService.updateNotificationPreferences(1L, request);
+
+        assertThat(result.getEmailReminders()).isFalse();
+        assertThat(result.getEmailMarketing()).isTrue();
+        assertThat(result.getReminderTiming()).isEqualTo(NotificationReminderTiming.TWO_HOURS);
+        assertThat(testUser.getNotificationPreferences()).isEqualTo(
+                NotificationPreferences.builder()
+                        .emailReminders(false)
+                        .emailPrescription(true)
+                        .emailLabResults(false)
+                        .emailMarketing(true)
+                        .smsReminders(false)
+                        .smsUrgent(true)
+                        .pushAll(false)
+                        .reminderTiming(NotificationReminderTiming.TWO_HOURS)
+                        .build()
+        );
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void updateNotificationPreferences_withInvalidUserId_throwsException() {
+        NotificationPreferencesDto request = NotificationPreferencesDto.builder()
+                .emailReminders(true)
+                .emailPrescription(true)
+                .emailLabResults(true)
+                .emailMarketing(false)
+                .smsReminders(true)
+                .smsUrgent(true)
+                .pushAll(true)
+                .reminderTiming(NotificationReminderTiming.ONE_DAY)
+                .build();
+        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> profileService.updateNotificationPreferences(999L, request))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Người dùng không tìm thấy");
+
+        verify(userRepository, never()).save(any());
     }
 
     @Test

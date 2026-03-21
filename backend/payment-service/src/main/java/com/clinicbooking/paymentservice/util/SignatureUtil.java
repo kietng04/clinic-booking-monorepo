@@ -13,9 +13,6 @@ import java.security.NoSuchAlgorithmException;
 public final class SignatureUtil {
 
     private static final String ALGORITHM = "HmacSHA256";
-    private static final String HASH_ALGORITHM = "HmacSHA256";
-
-    
     private SignatureUtil() {
         throw new AssertionError("Cannot instantiate utility class");
     }
@@ -40,7 +37,7 @@ public final class SignatureUtil {
             mac.init(secretKeySpec);
 
             byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            String signature = toHex(rawHmac);
+            String signature = bytesToHex(rawHmac);
 
             log.debug("Generated HMAC-SHA256 signature successfully");
             return signature;
@@ -126,11 +123,11 @@ public final class SignatureUtil {
         return java.security.MessageDigest.isEqual(aBytes, bBytes);
     }
 
-    private static String toHex(byte[] bytes) {
-        StringBuilder builder = new StringBuilder(bytes.length * 2);
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
         for (byte value : bytes) {
-            builder.append(String.format("%02x", value));
+            hex.append(String.format("%02x", value));
         }
-        return builder.toString();
+        return hex.toString();
     }
 }

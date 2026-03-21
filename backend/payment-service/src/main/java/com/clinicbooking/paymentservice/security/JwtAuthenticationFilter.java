@@ -98,6 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
     private boolean isPublicEndpoint(String requestURI) {
         return requestURI.startsWith("/api/payments/momo/callback") ||
+               requestURI.startsWith("/api/payments/internal/statistics/") ||
                requestURI.startsWith("/actuator/") ||
                requestURI.startsWith("/swagger-ui") ||
                requestURI.startsWith("/v3/api-docs") ||

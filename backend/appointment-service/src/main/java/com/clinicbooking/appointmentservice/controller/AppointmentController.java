@@ -3,7 +3,6 @@ package com.clinicbooking.appointmentservice.controller;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
-import com.clinicbooking.appointmentservice.dto.AppointmentPaymentStatusUpdateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
@@ -89,6 +88,14 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/{id}/payment-link")
+    public ResponseEntity<AppointmentResponseDto> linkPaymentToAppointment(
+            @PathVariable Long id,
+            @RequestBody AppointmentPaymentLinkDto dto) {
+        AppointmentResponseDto response = appointmentService.linkPaymentToAppointment(id, dto);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}/feedback")
     public ResponseEntity<AppointmentResponseDto> submitFeedback(
             @PathVariable Long id,
@@ -122,22 +129,6 @@ public class AppointmentController {
         } catch (ValidationException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
         }
-    }
-
-    @PatchMapping("/{id}/payment-link")
-    public ResponseEntity<AppointmentResponseDto> linkPaymentToAppointment(
-            @PathVariable Long id,
-            @RequestBody AppointmentPaymentLinkDto dto) {
-        AppointmentResponseDto response = appointmentService.linkPaymentToAppointment(id, dto);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{id}/payment-status")
-    public ResponseEntity<AppointmentResponseDto> updatePaymentStatus(
-            @PathVariable Long id,
-            @RequestBody AppointmentPaymentStatusUpdateDto dto) {
-        AppointmentResponseDto response = appointmentService.updatePaymentStatus(id, dto);
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/search")

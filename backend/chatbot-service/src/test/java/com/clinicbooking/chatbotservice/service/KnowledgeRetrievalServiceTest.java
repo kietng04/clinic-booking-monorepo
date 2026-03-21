@@ -33,7 +33,7 @@ class KnowledgeRetrievalServiceTest {
         List<KnowledgeDocument> documents = List.of(
                 new KnowledgeDocument(
                         "CLINIC_WORKING_HOURS",
-                        "CLINIC_ADDRESS",
+                        "CLINIC_HOURS",
                         "Gio lam viec",
                         "Phong kham mo cua tu 7:30 den 20:00.",
                         List.of("gio mo cua", "mo cua may gio")
@@ -49,11 +49,38 @@ class KnowledgeRetrievalServiceTest {
 
         when(knowledgeBaseService.getDocuments()).thenReturn(documents);
 
-        var results = service.retrieve("phong kham mo cua may gio", "CLINIC_ADDRESS");
+        var results = service.retrieve("phong kham mo cua may gio", "CLINIC_HOURS");
 
         assertThat(results).isNotEmpty();
         assertThat(results.get(0).document().id()).isEqualTo("CLINIC_WORKING_HOURS");
         assertThat(results.get(0).matchedTerms()).contains("mo cua may gio");
+    }
+
+    @Test
+    void shouldFilterOutClinicHoursDocumentForAddressIntent() {
+        List<KnowledgeDocument> documents = List.of(
+                new KnowledgeDocument(
+                        "CLINIC_BRANCH_MAIN",
+                        "CLINIC_ADDRESS",
+                        "Chi nhanh trung tam",
+                        "Chi nhanh trung tam o 120 Nguyen Trai, Quan 1.",
+                        List.of("dia chi", "o dau")
+                ),
+                new KnowledgeDocument(
+                        "CLINIC_WORKING_HOURS",
+                        "CLINIC_HOURS",
+                        "Gio lam viec",
+                        "Phong kham mo cua tu 7:30 den 20:00.",
+                        List.of("gio mo cua", "mo cua may gio")
+                )
+        );
+
+        when(knowledgeBaseService.getDocuments()).thenReturn(documents);
+
+        var results = service.retrieve("phong kham o dau", "CLINIC_ADDRESS");
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).document().id()).isEqualTo("CLINIC_BRANCH_MAIN");
     }
 
     @Test

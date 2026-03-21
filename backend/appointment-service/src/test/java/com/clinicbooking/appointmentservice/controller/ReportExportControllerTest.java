@@ -1,6 +1,8 @@
 package com.clinicbooking.appointmentservice.controller;
 
+import com.clinicbooking.appointmentservice.client.PaymentServiceClient;
 import com.clinicbooking.appointmentservice.dto.*;
+import com.clinicbooking.appointmentservice.repository.AppointmentRepository;
 import com.clinicbooking.appointmentservice.service.AggregateStatisticsService;
 import com.clinicbooking.appointmentservice.service.ReportPdfService;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +33,12 @@ class ReportExportControllerTest {
 
     @Mock
     private AggregateStatisticsService statisticsService;
+
+    @Mock
+    private PaymentServiceClient paymentServiceClient;
+
+    @Mock
+    private AppointmentRepository appointmentRepository;
 
     @InjectMocks
     private ReportExportController controller;
@@ -92,6 +100,8 @@ class ReportExportControllerTest {
 
         when(statisticsService.getAdminDashboardStatistics()).thenReturn(dashboard);
         when(statisticsService.getAdminAnalyticsDashboard()).thenReturn(analytics);
+        when(appointmentRepository.countDistinctActivePatientsSince(any())).thenReturn(120L);
+        when(paymentServiceClient.getReportSummary()).thenReturn(createPaymentSummary());
 
         byte[] mockPdf = "%PDF-1.4".getBytes();
         when(reportPdfService.generateReportPdf(any())).thenReturn(mockPdf);
@@ -106,6 +116,8 @@ class ReportExportControllerTest {
     private void mockStatisticsService() {
         when(statisticsService.getAdminDashboardStatistics()).thenReturn(createMockDashboard());
         when(statisticsService.getAdminAnalyticsDashboard()).thenReturn(createMockAnalytics());
+        when(appointmentRepository.countDistinctActivePatientsSince(any())).thenReturn(120L);
+        when(paymentServiceClient.getReportSummary()).thenReturn(createPaymentSummary());
     }
 
     private AggregatedDashboardStatisticsDto createMockDashboard() {
@@ -140,6 +152,25 @@ class ReportExportControllerTest {
                                 .month("Th1").thisYear(new BigDecimal("99999999.99")).build(),
                         MonthlyRevenueDto.builder()
                                 .month("Th2").thisYear(new BigDecimal("150000000.50")).build()))
+                .build();
+    }
+
+    private PaymentReportSummaryDto createPaymentSummary() {
+        return PaymentReportSummaryDto.builder()
+                .onlinePayment(60000000L)
+                .cashPayment(40000000L)
+                .monthlyTrend(Arrays.asList(
+                        PaymentReportSummaryDto.MonthlyPaymentBreakdownDto.builder()
+                                .month("Th1")
+                                .online(30000000L)
+                                .cash(20000000L)
+                                .build(),
+                        PaymentReportSummaryDto.MonthlyPaymentBreakdownDto.builder()
+                                .month("Th2")
+                                .online(30000000L)
+                                .cash(20000000L)
+                                .build()
+                ))
                 .build();
     }
 }

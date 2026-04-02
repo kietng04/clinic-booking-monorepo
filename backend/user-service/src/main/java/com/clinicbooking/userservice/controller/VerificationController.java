@@ -42,15 +42,30 @@ public class VerificationController {
 
     @PostMapping("/send-sms-verification")
     public ResponseEntity<Map<String, String>> sendSmsVerification(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = jwtService.extractUserId(
+                ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken) org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication())
+                        .getCredentials().toString());
+        verificationService.resendCode(userId, com.clinicbooking.userservice.entity.VerificationCode.VerificationType.SMS);
+        return ResponseEntity.ok(Map.of("message", "Mã SMS đã được gửi"));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Map<String, String>> resendVerification(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> request) {
         Long userId = jwtService.extractUserId(
                 ((org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken) org.springframework.security.core.context.SecurityContextHolder
                         .getContext().getAuthentication())
                         .getCredentials().toString());
-        String phone = request.get("phone");
-        verificationService.sendSmsVerification(userId, phone);
-        return ResponseEntity.ok(Map.of("message", "Mã SMS đã được gửi"));
+        String typeStr = request.getOrDefault("type", "SMS");
+        com.clinicbooking.userservice.entity.VerificationCode.VerificationType type =
+                "EMAIL".equalsIgnoreCase(typeStr)
+                        ? com.clinicbooking.userservice.entity.VerificationCode.VerificationType.EMAIL
+                        : com.clinicbooking.userservice.entity.VerificationCode.VerificationType.SMS;
+        verificationService.resendCode(userId, type);
+        return ResponseEntity.ok(Map.of("message", "Mã xác minh đã được gửi lại"));
     }
 
     @PostMapping("/verify-sms")

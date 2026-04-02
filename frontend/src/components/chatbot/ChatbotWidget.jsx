@@ -150,7 +150,7 @@ export function ChatbotWidget() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Nhap cau hoi ve lich kham, gia dich vu, gio mo cua..."
+                placeholder="Nhập câu hỏi về lịch khám, giá dịch vụ, giờ mở cửa..."
                 className="flex-1 rounded-xl border border-sage-300 px-3 py-2 text-sm outline-none focus:border-sage-500"
               />
               <button

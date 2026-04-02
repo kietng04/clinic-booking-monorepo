@@ -48,8 +48,6 @@ const VerifyPhone = lazyNamed(() => import('./pages/auth/VerifyPhone'), 'VerifyP
 const ProfileSettings = lazy(() => import('./pages/profile/ProfileSettings'))
 const SecuritySettings = lazy(() => import('./pages/profile/SecuritySettings'))
 const NotificationSettings = lazy(() => import('./pages/profile/NotificationSettings'))
-const MedicationPickerDemo = lazy(() => import('./pages/demo/MedicationPickerDemo'))
-const MedicationPickerE2EDemo = lazy(() => import('./pages/demo/MedicationPickerE2EDemo'))
 const DoctorSearch = lazy(() => import('./pages/patient/DoctorSearch'))
 
 function RouteFallback() {
@@ -57,7 +55,7 @@ function RouteFallback() {
     <div className="min-h-screen bg-cream-50 dark:bg-sage-950 flex items-center justify-center px-6">
       <div className="text-center">
         <div className="mx-auto h-10 w-10 rounded-full border-4 border-sage-200 border-t-sage-600 animate-spin" />
-        <p className="mt-4 text-sm text-sage-700 dark:text-sage-300">Dang tai trang...</p>
+        <p className="mt-4 text-sm text-sage-700 dark:text-sage-300">Đang tải trang...</p>
       </div>
     </div>
   )
@@ -89,8 +87,6 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<PublicPage><LandingPage /></PublicPage>} />
-        <Route path="/demo/medication-picker" element={<PublicPage><MedicationPickerDemo /></PublicPage>} />
-        <Route path="/demo/medication-picker-e2e" element={<PublicPage><MedicationPickerE2EDemo /></PublicPage>} />
         <Route path="/login" element={!isAuthenticated ? <PublicPage><LoginPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
         <Route path="/register" element={!isAuthenticated ? <PublicPage><RegisterPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
         <Route path="/forgot-password" element={<PublicPage><ForgotPassword /></PublicPage>} />

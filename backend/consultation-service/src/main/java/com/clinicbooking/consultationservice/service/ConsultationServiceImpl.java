@@ -71,9 +71,9 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         consultationNotificationService.notifyUser(
                 consultation.getDoctorId(),
-                "Yeu cau tu van moi",
-                "Ban co yeu cau tu van moi tu " + consultation.getPatientName() + ": " + consultation.getTopic(),
-                "SYSTEM",
+                "Yêu cầu tư vấn mới",
+                "Bạn có yêu cầu tư vấn mới từ " + consultation.getPatientName() + ": " + consultation.getTopic(),
+                "CONSULTATION_CREATED",
                 consultation.getId()
         );
 
@@ -177,9 +177,9 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         consultationNotificationService.notifyUser(
                 consultation.getPatientId(),
-                "Yeu cau tu van da duoc chap nhan",
-                "Bac si " + consultation.getDoctorName() + " da chap nhan yeu cau tu van cua ban.",
-                "SYSTEM",
+                "Yêu cầu tư vấn đã được chấp nhận",
+                "Bác sĩ " + consultation.getDoctorName() + " đã chấp nhận yêu cầu tư vấn của bạn.",
+                "CONSULTATION_ACCEPTED",
                 consultation.getId()
         );
 
@@ -213,9 +213,9 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         consultationNotificationService.notifyUser(
                 consultation.getPatientId(),
-                "Yeu cau tu van da bi tu choi",
-                "Bac si " + consultation.getDoctorName() + " da tu choi yeu cau tu van cua ban.",
-                "ALERT",
+                "Yêu cầu tư vấn đã bị từ chối",
+                "Bác sĩ " + consultation.getDoctorName() + " đã từ chối yêu cầu tư vấn của bạn.",
+                "CONSULTATION_REJECTED",
                 consultation.getId()
         );
 
@@ -273,9 +273,9 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         consultationNotificationService.notifyUser(
                 consultation.getPatientId(),
-                "Cuoc tu van da hoan thanh",
-                "Cuoc tu van #" + consultation.getId() + " da hoan thanh. Ban co the xem chan doan va ghi chu moi.",
-                "DOCUMENT_READY",
+                "Cuộc tư vấn đã hoàn thành",
+                "Cuộc tư vấn #" + consultation.getId() + " đã hoàn thành. Bạn có thể xem chẩn đoán và ghi chú mới.",
+                "CONSULTATION_COMPLETED",
                 consultation.getId()
         );
 
@@ -308,9 +308,9 @@ public class ConsultationServiceImpl implements ConsultationService {
 
         consultationNotificationService.notifyUser(
                 consultation.getDoctorId(),
-                "Benh nhan da huy tu van",
-                consultation.getPatientName() + " da huy cuoc tu van #" + consultation.getId() + ".",
-                "ALERT",
+                "Bệnh nhân đã hủy tư vấn",
+                consultation.getPatientName() + " đã hủy cuộc tư vấn #" + consultation.getId() + ".",
+                "CONSULTATION_CANCELLED",
                 consultation.getId()
         );
 

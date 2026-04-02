@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -31,6 +32,17 @@ import java.util.Locale;
 public class AggregateStatisticsController {
 
     private final AggregateStatisticsService aggregateStatisticsService;
+    private final com.clinicbooking.appointmentservice.repository.AppointmentRepository appointmentRepository;
+
+    @GetMapping("/doctor/{doctorId}/patient-ids")
+    @Operation(
+            summary = "Get distinct patient IDs for a doctor",
+            description = "Internal endpoint used by user-service to compute patient demographics."
+    )
+    public ResponseEntity<List<Long>> getPatientIdsForDoctor(@PathVariable Long doctorId) {
+        List<Long> patientIds = appointmentRepository.getDistinctPatientIdsForDoctor(doctorId);
+        return ResponseEntity.ok(patientIds != null ? patientIds : List.of());
+    }
 
     @GetMapping("/dashboard")
     @Operation(

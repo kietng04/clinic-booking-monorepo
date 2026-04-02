@@ -75,6 +75,11 @@ public class Notification {
         PAYMENT_REMINDER,
         DOCUMENT_READY,
         SCHEDULE_UPDATE,
+        CONSULTATION_CREATED,
+        CONSULTATION_ACCEPTED,
+        CONSULTATION_REJECTED,
+        CONSULTATION_COMPLETED,
+        CONSULTATION_CANCELLED,
         ALERT,
         SYSTEM
     }

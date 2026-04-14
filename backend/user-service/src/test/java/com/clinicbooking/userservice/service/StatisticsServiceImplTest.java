@@ -1,5 +1,6 @@
 package com.clinicbooking.userservice.service;
 
+import com.clinicbooking.userservice.client.AppointmentServiceClient;
 import com.clinicbooking.userservice.dto.statistics.SpecializationDistributionDto;
 import com.clinicbooking.userservice.dto.statistics.UserGrowthDto;
 import com.clinicbooking.userservice.dto.statistics.UserStatisticsDto;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -28,6 +30,9 @@ class StatisticsServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AppointmentServiceClient appointmentServiceClient;
 
     @InjectMocks
     private StatisticsServiceImpl statisticsService;
@@ -272,18 +277,41 @@ class StatisticsServiceImplTest {
     }
 
     @Test
-    void getPatientDemographics_returnsEmptyDemographics() {
-        // Act - This method returns empty data as it needs appointment service
+    void getPatientDemographics_returnsEmptyWhenNoPatients() {
+        when(appointmentServiceClient.getPatientIdsForDoctor(1L)).thenReturn(List.of());
+
         var result = statisticsService.getPatientDemographics(1L);
 
-        // Assert
         assertThat(result).isNotNull();
         assertThat(result.getAgeDistribution()).isNotEmpty();
         assertThat(result.getGenderRatio()).isNotEmpty();
-
-        // All counts should be zero
         assertThat(result.getAgeDistribution()).allMatch(item -> item.getCount() == 0);
         assertThat(result.getGenderRatio()).allMatch(item -> item.getCount() == 0);
+    }
+
+    @Test
+    void getPatientDemographics_computesRealDemographics() {
+        when(appointmentServiceClient.getPatientIdsForDoctor(1L)).thenReturn(List.of(10L, 20L));
+
+        User young = new User();
+        young.setId(10L);
+        young.setDateOfBirth(LocalDate.now().minusYears(25));
+        young.setGender(User.Gender.MALE);
+
+        User older = new User();
+        older.setId(20L);
+        older.setDateOfBirth(LocalDate.now().minusYears(55));
+        older.setGender(User.Gender.FEMALE);
+
+        when(userRepository.findAllById(List.of(10L, 20L))).thenReturn(List.of(young, older));
+
+        var result = statisticsService.getPatientDemographics(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getAgeDistribution()).anyMatch(i -> "18-30".equals(i.getRange()) && i.getCount() == 1);
+        assertThat(result.getAgeDistribution()).anyMatch(i -> "51-70".equals(i.getRange()) && i.getCount() == 1);
+        assertThat(result.getGenderRatio()).anyMatch(i -> "Nam".equals(i.getGender()) && i.getCount() == 1);
+        assertThat(result.getGenderRatio()).anyMatch(i -> "Nữ".equals(i.getGender()) && i.getCount() == 1);
     }
 
     @Test

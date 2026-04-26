@@ -10,8 +10,11 @@ import java.util.List;
 public class AppointmentServiceClientFallback implements AppointmentServiceClient {
 
     @Override
-    public List<Long> getPatientIdsForDoctor(Long doctorId) {
-        log.warn("Appointment-service unavailable; returning empty patient list for doctorId={}", doctorId);
+    public List<Long> getDistinctPatientIdsForDoctor(Long doctorId) {
+        log.warn(
+                "Fallback: Appointment service is unavailable. Returning empty patient IDs for doctor ID: {}",
+                doctorId
+        );
         return List.of();
     }
 }

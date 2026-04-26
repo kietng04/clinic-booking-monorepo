@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -634,6 +635,7 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                         String doctorName = (String) row.get("doctorName");
                         Integer totalAppointments = toInteger(row.get("totalAppointments"));
                         BigDecimal totalRevenue = toBigDecimal(row.get("totalRevenue"));
+                        Double rating = toRoundedRating(row.get("avgRating"));
                         Integer completedCount = toInteger(row.get("completedCount"));
                         Integer totalCount = toInteger(row.get("totalCount"));
                         if (totalCount == 0)
@@ -659,11 +661,19 @@ public class AggregateStatisticsServiceImpl implements AggregateStatisticsServic
                                         .specialization(specialization)
                                         .appointments(totalAppointments)
                                         .revenue(totalRevenue)
-                                        .rating(4.5) // TODO: Implement actual rating system
+                                        .rating(rating)
                                         .completionRate(completionRate)
                                         .build());
                 }
                 return result;
+        }
+
+        private Double toRoundedRating(Object value) {
+                BigDecimal rating = toBigDecimal(value);
+                if (rating.compareTo(BigDecimal.ZERO) <= 0) {
+                        return 0.0;
+                }
+                return rating.setScale(1, RoundingMode.HALF_UP).doubleValue();
         }
 
         private BigDecimal toBigDecimal(Object value) {

@@ -12,7 +12,6 @@ import {
   Clock,
   Stethoscope,
   UserCog,
-  BarChart3,
   Bell,
   Building2,
   Wrench,
@@ -59,6 +58,61 @@ const adminNav = [
   { name: 'Tài khoản', path: '/profile', icon: Settings },
 ]
 
+function SidebarContent({ navigation, pathname }) {
+  return (
+    <>
+      <nav className="p-4 space-y-2">
+        {navigation.map((item) => {
+          const Icon = item.icon
+          const isActive = pathname === item.path
+          const normalizedPath = item.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              data-testid={`sidebar-link-${normalizedPath}`}
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 rounded-soft transition-all group relative overflow-hidden',
+                isActive
+                  ? 'bg-sage-600 text-white shadow-soft'
+                  : 'text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-800'
+              )}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeNav"
+                  className="absolute inset-0 bg-sage-600"
+                  transition={{ type: 'spring', duration: 0.6 }}
+                />
+              )}
+              <Icon
+                className={cn(
+                  'w-5 h-5 relative z-10',
+                  isActive ? 'text-white' : 'text-sage-500 group-hover:text-sage-700 dark:group-hover:text-sage-200'
+                )}
+              />
+              <span className="font-medium relative z-10">{item.name}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="p-4 mt-4 border-t border-sage-100 dark:border-sage-800">
+        <div className="bg-gradient-to-br from-sage-500 to-terra-400 rounded-soft p-4 text-white">
+          <p className="text-sm font-medium mb-2">Cần hỗ trợ?</p>
+          <p className="text-xs opacity-90 mb-3">
+            Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng 24/7.
+          </p>
+          <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            Liên hệ hỗ trợ
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 export function Sidebar() {
   const { user } = useAuthStore()
   const { sidebarOpen, setSidebarOpen } = useUIStore()
@@ -73,7 +127,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
           <motion.div
@@ -86,66 +139,21 @@ export function Sidebar() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
       <motion.aside
         initial={false}
         animate={{ x: sidebarOpen ? 0 : '-100%' }}
         data-testid={`sidebar-${String(user.role || 'unknown').toLowerCase()}`}
-        className={cn(
-          'fixed left-0 top-16 bottom-0 w-64 glass border-r border-sage-100 dark:border-sage-800 z-40 overflow-y-auto',
-          'lg:sticky lg:translate-x-0'
-        )}
+        className="fixed left-0 top-16 bottom-0 w-64 glass border-r border-sage-100 dark:border-sage-800 z-40 overflow-y-auto lg:hidden"
       >
-        <nav className="p-4 space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
-            const normalizedPath = item.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
-
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                data-testid={`sidebar-link-${normalizedPath}`}
-                className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-soft transition-all group relative overflow-hidden',
-                  isActive
-                    ? 'bg-sage-600 text-white shadow-soft'
-                    : 'text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-800'
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 bg-sage-600"
-                    transition={{ type: 'spring', duration: 0.6 }}
-                  />
-                )}
-                <Icon
-                  className={cn(
-                    'w-5 h-5 relative z-10',
-                    isActive ? 'text-white' : 'text-sage-500 group-hover:text-sage-700 dark:group-hover:text-sage-200'
-                  )}
-                />
-                <span className="font-medium relative z-10">{item.name}</span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Quick stats or info */}
-        <div className="p-4 mt-4 border-t border-sage-100 dark:border-sage-800">
-          <div className="bg-gradient-to-br from-sage-500 to-terra-400 rounded-soft p-4 text-white">
-            <p className="text-sm font-medium mb-2">Cần hỗ trợ?</p>
-            <p className="text-xs opacity-90 mb-3">
-              Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng 24/7.
-            </p>
-            <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              Liên hệ hỗ trợ
-            </button>
-          </div>
-        </div>
+        <SidebarContent navigation={navigation} pathname={location.pathname} />
       </motion.aside>
+
+      <aside
+        data-testid={`sidebar-desktop-${String(user.role || 'unknown').toLowerCase()}`}
+        className="hidden lg:block lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 glass border-r border-sage-100 dark:border-sage-800 overflow-y-auto"
+      >
+        <SidebarContent navigation={navigation} pathname={location.pathname} />
+      </aside>
     </>
   )
 }

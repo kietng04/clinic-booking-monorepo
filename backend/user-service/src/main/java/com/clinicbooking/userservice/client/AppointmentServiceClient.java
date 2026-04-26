@@ -9,6 +9,6 @@ import java.util.List;
 @FeignClient(name = "appointment-service", fallback = AppointmentServiceClientFallback.class)
 public interface AppointmentServiceClient {
 
-    @GetMapping("/api/statistics/aggregate/doctor/{doctorId}/patient-ids")
-    List<Long> getPatientIdsForDoctor(@PathVariable("doctorId") Long doctorId);
+    @GetMapping("/api/appointments/internal/doctor/{doctorId}/patient-ids")
+    List<Long> getDistinctPatientIdsForDoctor(@PathVariable("doctorId") Long doctorId);
 }

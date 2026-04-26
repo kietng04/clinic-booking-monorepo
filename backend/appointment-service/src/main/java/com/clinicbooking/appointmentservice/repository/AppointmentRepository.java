@@ -171,6 +171,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         @Query("SELECT new map(a.doctorId as doctorId, a.doctorName as doctorName, " +
                         "COUNT(a) as totalAppointments, " +
                         "SUM(CASE WHEN a.status = 'COMPLETED' THEN a.serviceFee ELSE 0 END) as totalRevenue, " +
+                        "AVG(a.patientRating) as avgRating, " +
                         "SUM(CASE WHEN a.status = 'COMPLETED' THEN 1 ELSE 0 END) as completedCount, " +
                         "COUNT(a) as totalCount) " +
                         "FROM Appointment a " +

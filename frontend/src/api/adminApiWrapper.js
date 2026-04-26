@@ -2,22 +2,107 @@ import { adminApi as realAdminApi } from './realApis/adminApi'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const buildMockPeriods = (dateRange = '6months', groupBy = 'month') => {
+  const labelsByGroup = {
+    day: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+    week: ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4', 'Tuần 5', 'Tuần 6'],
+    month: ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'],
+  }
+
+  const sizeByRange = {
+    '7days': groupBy === 'day' ? 7 : 4,
+    '30days': groupBy === 'day' ? 7 : 5,
+    '3months': groupBy === 'month' ? 3 : 6,
+    '6months': groupBy === 'month' ? 6 : 6,
+    '12months': groupBy === 'month' ? 12 : 6,
+  }
+
+  const labels = labelsByGroup[groupBy] || labelsByGroup.month
+  const size = Math.min(sizeByRange[dateRange] || 6, labels.length)
+  return labels.slice(labels.length - size)
+}
+
+const buildMockAppointmentReport = (params = {}) => {
+  const periods = buildMockPeriods(params.dateRange, params.groupBy)
+  const monthlyTrend = periods.map((month, index) => {
+    const total = 120 + index * 14
+    const confirmed = total - 28
+    const completed = total - 46
+    const cancelled = 12 + (index % 3)
+
+    return {
+      month,
+      name: month,
+      total,
+      confirmed,
+      completed,
+      cancelled,
+    }
+  })
+
+  return {
+    totalAppointments: monthlyTrend.reduce((sum, item) => sum + item.total, 0),
+    confirmed: monthlyTrend.reduce((sum, item) => sum + item.confirmed, 0),
+    completed: monthlyTrend.reduce((sum, item) => sum + item.completed, 0),
+    cancelled: monthlyTrend.reduce((sum, item) => sum + item.cancelled, 0),
+    monthlyTrend,
+  }
+}
+
+const buildMockRevenueReport = (params = {}) => {
+  const periods = buildMockPeriods(params.dateRange, params.groupBy)
+  const monthlyTrend = periods.map((month, index) => {
+    const revenue = 18_000_000 + index * 2_750_000
+    const online = Math.round(revenue * 0.62)
+    const cash = revenue - online
+
+    return {
+      month,
+      name: month,
+      revenue,
+      online,
+      cash,
+    }
+  })
+
+  return {
+    totalRevenue: monthlyTrend.reduce((sum, item) => sum + item.revenue, 0),
+    onlinePayment: monthlyTrend.reduce((sum, item) => sum + item.online, 0),
+    cashPayment: monthlyTrend.reduce((sum, item) => sum + item.cash, 0),
+    monthlyTrend,
+  }
+}
+
+const buildMockPatientReport = (params = {}) => {
+  const periods = buildMockPeriods(params.dateRange, params.groupBy)
+  const newPatients = periods.length * 18
+  const activePatients = periods.length * 76
+
+  return {
+    totalPatients: 500 + periods.length * 24,
+    newPatients,
+    activePatients,
+  }
+}
+
 // Mock implementations for development
-const mockAdminApi = {
+export const mockAdminApi = {
   getClinics: async () => {
-    await new Promise(r => setTimeout(r, 500))
+    await wait(500)
     return [
       { id: '1', name: 'Phòng khám Trung tâm', address: '123 Đường Đinh Tiên Hoàng, Q1, TP.HCM', phone: '028-1234-5678', email: 'center@clinic.com', active: true, servicesCount: 12, doctorsCount: 8, roomsCount: 5 },
       { id: '2', name: 'Chi nhánh Quận 3', address: '456 Đường Trần Phú, Q3, TP.HCM', phone: '028-8765-4321', email: 'q3@clinic.com', active: true, servicesCount: 8, doctorsCount: 5, roomsCount: 3 },
       { id: '3', name: 'Chi nhánh Bình Thạnh', address: '789 Đường Đinh Tiên Hoàng, BT, TP.HCM', phone: '028-1111-2222', email: 'bt@clinic.com', active: false, servicesCount: 6, doctorsCount: 4, roomsCount: 2 },
     ]
   },
-  createClinic: async (data) => { await new Promise(r => setTimeout(r, 800)); return { id: Date.now().toString(), ...data, active: true, servicesCount: 0, doctorsCount: 0, roomsCount: 0 } },
-  updateClinic: async (id, data) => { await new Promise(r => setTimeout(r, 800)); return { id, ...data } },
-  toggleClinic: async () => { await new Promise(r => setTimeout(r, 500)); return { success: true } },
+  createClinic: async (data) => { await wait(800); return { id: Date.now().toString(), ...data, active: true, servicesCount: 0, doctorsCount: 0, roomsCount: 0 } },
+  updateClinic: async (id, data) => { await wait(800); return { id, ...data } },
+  toggleClinic: async () => { await wait(500); return { success: true } },
 
   getServices: async () => {
-    await new Promise(r => setTimeout(r, 500))
+    await wait(500)
     return [
       { id: '1', name: 'Khám sức khỏe tổng quát', clinicId: '1', clinicName: 'Phòng khám Trung tâm', category: 'General', duration: 45, basePrice: 200000, active: true },
       { id: '2', name: 'Xét nghiệm máu toàn phần', clinicId: '1', clinicName: 'Phòng khám Trung tâm', category: 'Lab', duration: 30, basePrice: 350000, active: true },
@@ -27,11 +112,11 @@ const mockAdminApi = {
       { id: '6', name: 'Siêu âm ổ bụng', clinicId: '3', clinicName: 'Chi nhánh Bình Thạnh', category: 'Imaging', duration: 40, basePrice: 250000, active: true },
     ]
   },
-  createService: async (data) => { await new Promise(r => setTimeout(r, 800)); return { id: Date.now().toString(), ...data } },
-  updateService: async (id, data) => { await new Promise(r => setTimeout(r, 800)); return { id, ...data } },
+  createService: async (data) => { await wait(800); return { id: Date.now().toString(), ...data } },
+  updateService: async (id, data) => { await wait(800); return { id, ...data } },
 
   getAllRooms: async () => {
-    await new Promise(r => setTimeout(r, 500))
+    await wait(500)
     return [
       { id: '1', name: 'Phòng tư vấn A', roomNumber: '101', clinicId: '1', clinicName: 'Phòng khám Trung tâm', type: 'Consultation', capacity: 3, active: true },
       { id: '2', name: 'Phòng xét nghiệm', roomNumber: '102', clinicId: '1', clinicName: 'Phòng khám Trung tâm', type: 'Lab', capacity: 5, active: true },
@@ -43,14 +128,23 @@ const mockAdminApi = {
     const all = await mockAdminApi.getAllRooms()
     return all.filter(r => r.clinicId === clinicId)
   },
-  createRoom: async (data) => { await new Promise(r => setTimeout(r, 800)); return { id: Date.now().toString(), ...data } },
-  updateRoom: async (id, data) => { await new Promise(r => setTimeout(r, 800)); return { id, ...data } },
+  createRoom: async (data) => { await wait(800); return { id: Date.now().toString(), ...data } },
+  updateRoom: async (id, data) => { await wait(800); return { id, ...data } },
 
-  getAppointmentReport: async () => { throw new Error('Use mock') },
-  getRevenueReport: async () => { throw new Error('Use mock') },
-  getPatientReport: async () => { throw new Error('Use mock') },
+  getAppointmentReport: async (params = {}) => {
+    await wait(300)
+    return buildMockAppointmentReport(params)
+  },
+  getRevenueReport: async (params = {}) => {
+    await wait(300)
+    return buildMockRevenueReport(params)
+  },
+  getPatientReport: async (params = {}) => {
+    await wait(300)
+    return buildMockPatientReport(params)
+  },
   exportReport: async (format) => {
-    await new Promise(r => setTimeout(r, 300))
+    await wait(300)
 
     // Generate professional PDF using jsPDF + autoTable
     const { jsPDF } = await import('jspdf')

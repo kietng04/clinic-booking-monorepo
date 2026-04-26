@@ -168,18 +168,12 @@ const AdminDashboard = () => {
       })
     } finally {
       // Avoid clobbering state for a newer in-flight request (StrictMode double effects).
-      if (abortControllerRef.current !== controller) {
-        return
+      // For auto-retry 503, keep loading state so UI shows the blue retry banner + skeletons.
+      if (abortControllerRef.current === controller && !shouldAutoRetry503) {
+        setIsLoading(false)
+        setIsRetrying(false)
+        setRetryAttempt(0)
       }
-
-      if (shouldAutoRetry503) {
-        // Keep loading state so UI shows the blue retry banner + skeletons.
-        return
-      }
-
-      setIsLoading(false)
-      setIsRetrying(false)
-      setRetryAttempt(0)
     }
   }
 

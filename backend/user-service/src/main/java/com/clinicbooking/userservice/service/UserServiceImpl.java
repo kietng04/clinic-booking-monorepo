@@ -221,10 +221,10 @@ public class UserServiceImpl implements UserService {
         log.info("Searching doctors - keyword: {}, specialization: {}, minRating: {}, maxFee: {}", keyword, specialization, minRating, maxFee);
         String kw = (keyword != null && !keyword.isBlank())
                 ? keyword.trim().toLowerCase(Locale.ROOT)
-                : "";
+                : null;
         String spec = (specialization != null && !specialization.isBlank())
-                ? specialization.trim().toLowerCase(Locale.ROOT)
-                : "";
+                ? specialization.trim()
+                : null;
         Page<User> doctors = userRepository.searchDoctors(User.UserRole.DOCTOR, kw, spec, minRating, maxFee, pageable);
         return doctors.map(userMapper::toDto);
     }

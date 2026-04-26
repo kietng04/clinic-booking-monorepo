@@ -9,6 +9,7 @@ const ProtectedRoute = lazyNamed(() => import('./components/layout/ProtectedRout
 const DashboardLayout = lazyNamed(() => import('./components/layout/DashboardLayout'), 'DashboardLayout')
 
 const LandingPage = lazyNamed(() => import('./pages/LandingPage'), 'LandingPage')
+const StudentManagementDemo = lazy(() => import('./pages/StudentManagementDemo'))
 const LoginPage = lazyNamed(() => import('./pages/auth/LoginPage'), 'LoginPage')
 const RegisterPage = lazyNamed(() => import('./pages/auth/RegisterPage'), 'RegisterPage')
 const PatientDashboard = lazyNamed(() => import('./pages/patient/PatientDashboard'), 'PatientDashboard')
@@ -87,6 +88,7 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<PublicPage><LandingPage /></PublicPage>} />
+        <Route path="/student-management" element={<PublicPage><StudentManagementDemo /></PublicPage>} />
         <Route path="/login" element={!isAuthenticated ? <PublicPage><LoginPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
         <Route path="/register" element={!isAuthenticated ? <PublicPage><RegisterPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
         <Route path="/forgot-password" element={<PublicPage><ForgotPassword /></PublicPage>} />

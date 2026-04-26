@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.service;
 
 import com.clinicbooking.appointmentservice.dto.RoomCreateDto;
 import com.clinicbooking.appointmentservice.dto.RoomResponseDto;
+import com.clinicbooking.appointmentservice.entity.Clinic;
 import com.clinicbooking.appointmentservice.entity.Room;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.repository.RoomRepository;
@@ -57,6 +58,12 @@ class RoomServiceTest {
         createDto.setRoomNumber("C101");
         createDto.setType(Room.RoomType.CONSULTATION);
         createDto.setCapacity(2);
+
+        lenient().when(clinicRepository.findById(1L)).thenReturn(Optional.of(Clinic.builder()
+                .id(1L)
+                .name("Main Clinic")
+                .isActive(true)
+                .build()));
     }
 
     @Test
@@ -96,7 +103,7 @@ class RoomServiceTest {
         // When/Then
         assertThatThrownBy(() -> roomService.getRoomById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Phòng không tồn tại");
+                .hasMessageContaining("Phòng không tìm thấy");
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.clinicbooking.appointmentservice.client.UserServiceClient;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentRescheduleDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.dto.NotificationCreateDto;
@@ -326,6 +327,68 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
+    public AppointmentResponseDto rescheduleAppointment(Long id, AppointmentRescheduleDto dto) {
+        if (dto == null || dto.getNewDate() == null || dto.getNewTime() == null) {
+            throw new ValidationException("Ngày và giờ khám mới không được để trống");
+        }
+
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        if (appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED ||
+                appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
+            throw new ValidationException("Không thể đổi lịch hẹn đã hoàn thành hoặc đã hủy");
+        }
+
+        AppointmentUpdateDto updateDto = AppointmentUpdateDto.builder()
+                .appointmentDate(dto.getNewDate())
+                .appointmentTime(dto.getNewTime())
+                .notes(buildRescheduleNotes(appointment.getNotes(), dto.getReason()))
+                .build();
+
+        AppointmentResponseDto response = updateAppointment(id, updateDto);
+
+        createPatientNotification(
+                appointment,
+                "Lịch hẹn đã được đổi",
+                "Lịch hẹn #" + appointment.getId() + " đã được đổi sang " + dto.getNewDate() + " " + dto.getNewTime() + ".",
+                Notification.NotificationType.APPOINTMENT_RESCHEDULED
+        );
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponseDto checkInAppointment(Long id) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+
+        if (appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED ||
+                appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED) {
+            throw new ValidationException("Không thể check-in lịch hẹn đã hủy hoặc đã hoàn thành");
+        }
+
+        LocalDate today = LocalDate.now();
+        if (appointment.getAppointmentDate().isAfter(today)) {
+            throw new ValidationException("Chỉ có thể check-in trong ngày khám");
+        }
+        if (appointment.getAppointmentDate().isBefore(today)) {
+            throw new ValidationException("Lịch hẹn đã qua, không thể check-in");
+        }
+
+        if (appointment.getStatus() == Appointment.AppointmentStatus.PENDING) {
+            appointment.setStatus(Appointment.AppointmentStatus.CONFIRMED);
+        }
+
+        appointment = appointmentRepository.save(appointment);
+        eventPublisher.publishAppointmentUpdated(appointment);
+
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
     public AppointmentResponseDto completeAppointment(Long id) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
@@ -541,5 +604,17 @@ public class AppointmentServiceImpl implements AppointmentService {
         } catch (RuntimeException ex) {
             log.warn("Failed to create notification for appointmentId={}: {}", appointment.getId(), ex.getMessage());
         }
+    }
+
+    private String buildRescheduleNotes(String currentNotes, String reason) {
+        if (reason == null || reason.isBlank()) {
+            return currentNotes;
+        }
+
+        String rescheduleNote = "Lý do đổi lịch: " + reason.trim();
+        if (currentNotes == null || currentNotes.isBlank()) {
+            return rescheduleNote;
+        }
+        return currentNotes + "\n" + rescheduleNote;
     }
 }

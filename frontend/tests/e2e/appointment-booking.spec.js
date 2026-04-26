@@ -395,7 +395,7 @@ async function fillBookingDetails(page) {
   const serviceSelect = page.locator('label:has-text("Dịch vụ *")').locator('..').locator('select');
   const roomSelect = page.locator('label:has-text("Phòng khám cụ thể *")').locator('..').locator('select');
   const reasonInput = page.locator('label:has-text("Lý do khám bệnh")').locator('..').locator('input');
-  const notesInput = page.locator('textarea[placeholder*=\"additional information\"]').first();
+  const notesInput = page.locator('textarea[placeholder*="additional information"]').first();
 
   await expect(clinicSelect).toBeVisible();
   await clinicSelect.selectOption({ label: 'HealthFlow Clinic 1' });

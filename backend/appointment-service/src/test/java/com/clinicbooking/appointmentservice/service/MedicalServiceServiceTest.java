@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.service;
 
 import com.clinicbooking.appointmentservice.dto.MedicalServiceCreateDto;
 import com.clinicbooking.appointmentservice.dto.MedicalServiceResponseDto;
+import com.clinicbooking.appointmentservice.entity.Clinic;
 import com.clinicbooking.appointmentservice.entity.MedicalService;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.repository.MedicalServiceRepository;
@@ -60,6 +61,14 @@ class MedicalServiceServiceTest {
         createDto.setDescription("General medical consultation");
         createDto.setCategory(MedicalService.ServiceCategory.GENERAL);
         createDto.setDurationMinutes(30);
+
+        lenient().when(clinicRepository.findById(1L)).thenReturn(Optional.of(Clinic.builder()
+                .id(1L)
+                .name("Main Clinic")
+                .isActive(true)
+                .build()));
+        lenient().when(servicePriceRepository.findCurrentPrice(any(), any(), any()))
+                .thenReturn(Optional.empty());
     }
 
     @Test
@@ -99,7 +108,7 @@ class MedicalServiceServiceTest {
         // When/Then
         assertThatThrownBy(() -> medicalServiceService.getServiceById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Dịch vụ không tồn tại");
+                .hasMessageContaining("Dịch vụ không tìm thấy");
     }
 
     @Test

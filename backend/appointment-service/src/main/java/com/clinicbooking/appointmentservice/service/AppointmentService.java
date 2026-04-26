@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.service;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentRescheduleDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,8 @@ public interface AppointmentService {
     Page<AppointmentResponseDto> getAppointmentsByDoctor(Long doctorId, Pageable pageable);
     AppointmentResponseDto confirmAppointment(Long id);
     AppointmentResponseDto cancelAppointment(Long id, String reason);
+    AppointmentResponseDto rescheduleAppointment(Long id, AppointmentRescheduleDto dto);
+    AppointmentResponseDto checkInAppointment(Long id);
     AppointmentResponseDto completeAppointment(Long id);
     AppointmentResponseDto linkPaymentToAppointment(Long id, AppointmentPaymentLinkDto dto);
     AppointmentResponseDto markPaymentCompleted(Long appointmentId, String paymentOrderId, String paymentMethod, LocalDateTime paidAt);

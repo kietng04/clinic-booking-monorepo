@@ -55,6 +55,9 @@ class MessageServiceImplTest {
     private ConsultationService consultationService;
 
     @Mock
+    private ConsultationNotificationService consultationNotificationService;
+
+    @Mock
     private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks

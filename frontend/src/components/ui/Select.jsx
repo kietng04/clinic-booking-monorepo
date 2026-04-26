@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 
 export const Select = forwardRef(({
   label,
@@ -11,16 +11,23 @@ export const Select = forwardRef(({
   containerClassName,
   ...props
 }, ref) => {
+  const generatedId = useId()
+  const selectId = props.id || generatedId
+
   return (
     <div className={cn('w-full', containerClassName)}>
       {label && (
-        <label className="block text-sm font-medium text-sage-700 dark:text-cream-300 mb-2">
+        <label
+          htmlFor={selectId}
+          className="block text-sm font-medium text-sage-700 dark:text-cream-300 mb-2"
+        >
           {label}
         </label>
       )}
       <div className="relative">
         <select
           ref={ref}
+          id={selectId}
           className={cn(
             'w-full px-4 py-3 pr-10 rounded-soft border transition-all focus-ring appearance-none',
             'bg-white dark:bg-sage-800',

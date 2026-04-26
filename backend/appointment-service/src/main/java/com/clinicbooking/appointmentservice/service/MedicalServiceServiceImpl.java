@@ -77,18 +77,29 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
         @Override
         @Transactional(readOnly = true)
         public Page<MedicalServiceResponseDto> getAllServices(String name, String category, Pageable pageable) {
+                String normalizedName = name != null && !name.isBlank() ? name : null;
+                String normalizedCategory = category != null && !category.isBlank() ? category : null;
                 Page<MedicalService> page;
-                if (category != null && !category.isEmpty()) {
+                if (normalizedCategory != null) {
                         try {
-                                MedicalService.ServiceCategory cat = MedicalService.ServiceCategory.valueOf(category);
-                                page = medicalServiceRepository.findByNameContainingIgnoreCaseAndCategory(name, cat,
-                                                pageable);
+                                MedicalService.ServiceCategory cat = MedicalService.ServiceCategory.valueOf(normalizedCategory);
+                                if (normalizedName != null) {
+                                        page = medicalServiceRepository.findByNameContainingIgnoreCaseAndCategory(normalizedName, cat, pageable);
+                                } else {
+                                        page = medicalServiceRepository.findByCategoryAndIsActiveTrue(cat, pageable);
+                                }
                         } catch (IllegalArgumentException e) {
-                                log.warn("Invalid category: {}", category);
-                                page = medicalServiceRepository.findByNameContainingIgnoreCase(name, pageable);
+                                log.warn("Invalid category: {}", normalizedCategory);
+                                if (normalizedName != null) {
+                                        page = medicalServiceRepository.findByNameContainingIgnoreCase(normalizedName, pageable);
+                                } else {
+                                        page = medicalServiceRepository.findAll(pageable);
+                                }
                         }
+                } else if (normalizedName != null) {
+                        page = medicalServiceRepository.findByNameContainingIgnoreCase(normalizedName, pageable);
                 } else {
-                        page = medicalServiceRepository.findByNameContainingIgnoreCase(name, pageable);
+                        page = medicalServiceRepository.findAll(pageable);
                 }
                 return page.map(this::mapToResponse);
         }

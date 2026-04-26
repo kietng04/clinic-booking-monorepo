@@ -51,10 +51,17 @@ export const healthMetricsApi = {
    * @returns {Promise} Historical metrics for the specified period
    */
   getMetricsHistory: async (patientId, type, days = 30) => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - days)
     const response = await healthMetricsServiceClient.get(
-      `/api/health-metrics/patient/${patientId}/history`,
+      `/api/health-metrics/patient/${patientId}/range`,
       {
-        params: { type, days },
+        params: {
+          type,
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
       }
     )
     return response.data

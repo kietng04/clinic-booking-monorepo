@@ -50,6 +50,9 @@ class ConsultationServiceImplTest {
     @Mock
     private UserServiceClient userServiceClient;
 
+    @Mock
+    private ConsultationNotificationService consultationNotificationService;
+
     @InjectMocks
     private ConsultationServiceImpl consultationService;
 

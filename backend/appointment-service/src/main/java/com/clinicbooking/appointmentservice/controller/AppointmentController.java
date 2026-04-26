@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.controller;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentRescheduleDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
@@ -13,13 +14,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Locale;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/appointments")
@@ -82,6 +88,31 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{id}/reschedule")
+    public ResponseEntity<AppointmentResponseDto> rescheduleAppointment(
+            @PathVariable Long id,
+            @Valid @RequestBody AppointmentRescheduleDto dto) {
+        AppointmentResponseDto response = appointmentService.rescheduleAppointment(id, dto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/check-in")
+    public ResponseEntity<AppointmentResponseDto> checkInAppointment(@PathVariable Long id) {
+        AppointmentResponseDto response = appointmentService.checkInAppointment(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/{id}/calendar.ics", produces = "text/calendar")
+    public ResponseEntity<byte[]> downloadCalendar(@PathVariable Long id) {
+        AppointmentResponseDto appointment = appointmentService.getAppointmentById(id);
+        byte[] calendar = buildCalendarFile(appointment).getBytes(StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/calendar; charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"appointment-" + id + ".ics\"")
+                .body(calendar);
+    }
+
     @PutMapping("/{id}/complete")
     public ResponseEntity<AppointmentResponseDto> completeAppointment(@PathVariable Long id) {
         AppointmentResponseDto response = appointmentService.completeAppointment(id);
@@ -142,5 +173,51 @@ public class AppointmentController {
         Page<AppointmentResponseDto> response = appointmentService.searchAppointments(
                 patientId, doctorId, status, fromDate, toDate, pageable);
         return ResponseEntity.ok(response);
+    }
+
+    private String buildCalendarFile(AppointmentResponseDto appointment) {
+        int durationMinutes = appointment.getDurationMinutes() != null ? appointment.getDurationMinutes() : 30;
+        LocalDateTime start = LocalDateTime.of(appointment.getAppointmentDate(), appointment.getAppointmentTime());
+        LocalDateTime end = start.plusMinutes(durationMinutes);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
+
+        String summary = "Lịch khám với " + nullToFallback(appointment.getDoctorName(), "bác sĩ");
+        String description = "Mã lịch hẹn: " + appointment.getId()
+                + "\\nBệnh nhân: " + nullToFallback(appointment.getPatientName(), "N/A")
+                + "\\nTrạng thái: " + nullToFallback(appointment.getStatus(), "N/A");
+
+        return String.join("\r\n",
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//Clinic Booking//Appointment//VI",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
+                "BEGIN:VEVENT",
+                "UID:appointment-" + appointment.getId() + "@clinic-booking",
+                "DTSTAMP:" + LocalDateTime.now().format(formatter),
+                "DTSTART:" + start.format(formatter),
+                "DTEND:" + end.format(formatter),
+                "SUMMARY:" + escapeCalendarText(summary),
+                "DESCRIPTION:" + escapeCalendarText(description),
+                "END:VEVENT",
+                "END:VCALENDAR",
+                ""
+        );
+    }
+
+    private String escapeCalendarText(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace("\r", "")
+                .replace(",", "\\,")
+                .replace(";", "\\;");
+    }
+
+    private String nullToFallback(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

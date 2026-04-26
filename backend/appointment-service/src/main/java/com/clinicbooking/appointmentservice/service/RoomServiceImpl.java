@@ -63,7 +63,9 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public Page<RoomResponseDto> getAllRooms(String name, Pageable pageable) {
-        Page<Room> page = roomRepository.findByNameContainingIgnoreCase(name, pageable);
+        Page<Room> page = (name == null || name.isBlank())
+                ? roomRepository.findAll(pageable)
+                : roomRepository.findByNameContainingIgnoreCase(name, pageable);
         return page.map(this::mapToResponse);
     }
 

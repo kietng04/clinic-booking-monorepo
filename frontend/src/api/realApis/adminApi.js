@@ -138,7 +138,7 @@ export const adminApi = {
     }))
   },
   getRooms: async (clinicId) => {
-    const response = await adminServiceClient.get(`/api/clinics/${clinicId}/rooms`)
+    const response = await adminServiceClient.get(`/api/rooms/clinic/${clinicId}`)
     const rooms = response.data.content || response.data
     return rooms.map(room => ({
       ...room,
@@ -168,7 +168,10 @@ export const adminApi = {
     return normalizePatientReport(response.data)
   },
   exportReport: async (format = 'pdf', params = {}) => {
-    const response = await adminServiceClient.get(`/api/reports/export/${format}`, {
+    if (format !== 'pdf') {
+      throw new Error('Backend currently supports PDF report export only')
+    }
+    const response = await adminServiceClient.get('/api/reports/export/pdf', {
       params,
       responseType: 'blob',
     })

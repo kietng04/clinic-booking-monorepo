@@ -35,11 +35,11 @@ let aiAnalyses = [...mockAIAnalyses]
 
 // Auth API
 export const authApi = {
-  login: async (credentials) => {
+  login: async (credentials, passwordArg) => {
     await delay(800)
     // Support both object format { email, password } and separate parameters
     const email = typeof credentials === 'string' ? credentials : credentials?.email
-    const password = typeof credentials === 'string' ? arguments[1] : credentials?.password
+    const password = typeof credentials === 'string' ? passwordArg : credentials?.password
 
     const user = users.find(u => u.email === email)
 

@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.service;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleCreateDto;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleResponseDto;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleUpdateDto;
+import com.clinicbooking.appointmentservice.dto.UserDto;
 import com.clinicbooking.appointmentservice.entity.DoctorSchedule;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.repository.DoctorScheduleRepository;
@@ -68,6 +69,37 @@ class DoctorScheduleServiceTest {
         updateDto.setStartTime(LocalTime.of(10, 0));
         updateDto.setEndTime(LocalTime.of(18, 0));
         updateDto.setIsAvailable(false);
+
+        lenient().when(userServiceClient.getUserById(1L)).thenReturn(UserDto.builder()
+                .id(1L)
+                .fullName("Dr. Smith")
+                .role("DOCTOR")
+                .isActive(true)
+                .build());
+        lenient().when(doctorScheduleMapper.toEntity(any(DoctorScheduleCreateDto.class)))
+                .thenAnswer(invocation -> {
+                    DoctorScheduleCreateDto dto = invocation.getArgument(0);
+                    return DoctorSchedule.builder()
+                            .doctorId(dto.getDoctorId())
+                            .dayOfWeek(dto.getDayOfWeek())
+                            .startTime(dto.getStartTime())
+                            .endTime(dto.getEndTime())
+                            .isAvailable(dto.getIsAvailable())
+                            .build();
+                });
+        lenient().when(doctorScheduleMapper.toDto(any(DoctorSchedule.class)))
+                .thenAnswer(invocation -> {
+                    DoctorSchedule s = invocation.getArgument(0);
+                    return DoctorScheduleResponseDto.builder()
+                            .id(s.getId())
+                            .doctorId(s.getDoctorId())
+                            .doctorName(s.getDoctorName())
+                            .dayOfWeek(s.getDayOfWeek())
+                            .startTime(s.getStartTime())
+                            .endTime(s.getEndTime())
+                            .isAvailable(s.getIsAvailable())
+                            .build();
+                });
     }
 
     @Test

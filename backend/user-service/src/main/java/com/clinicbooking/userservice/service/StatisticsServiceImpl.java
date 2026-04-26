@@ -22,9 +22,13 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -177,82 +181,27 @@ public class StatisticsServiceImpl implements StatisticsService {
         log.info("Fetching patient demographics for doctor: {}", doctorId);
 
         try {
-            List<Long> patientIds = appointmentServiceClient.getPatientIdsForDoctor(doctorId);
+            List<Long> patientIds = appointmentServiceClient.getDistinctPatientIdsForDoctor(doctorId);
             if (patientIds == null || patientIds.isEmpty()) {
-                return emptyDemographics();
+                return emptyPatientDemographics();
             }
 
-            List<User> patients = userRepository.findAllById(patientIds);
+            Set<Long> uniquePatientIds = new LinkedHashSet<>(patientIds);
+            List<User> patients = userRepository.findAllById(uniquePatientIds).stream()
+                    .filter(Objects::nonNull)
+                    .filter(User::isPatient)
+                    .collect(Collectors.toList());
 
-            Map<String, Integer> ageBuckets = new HashMap<>();
-            ageBuckets.put("0-17", 0);
-            ageBuckets.put("18-30", 0);
-            ageBuckets.put("31-50", 0);
-            ageBuckets.put("51-70", 0);
-            ageBuckets.put("70+", 0);
-
-            Map<String, Integer> genderCounts = new HashMap<>();
-            genderCounts.put("Nam", 0);
-            genderCounts.put("Nữ", 0);
-            genderCounts.put("Khác", 0);
-
-            LocalDate today = LocalDate.now();
-            for (User u : patients) {
-                if (u.getDateOfBirth() != null) {
-                    int age = Period.between(u.getDateOfBirth(), today).getYears();
-                    String bucket = age < 18 ? "0-17"
-                            : age <= 30 ? "18-30"
-                            : age <= 50 ? "31-50"
-                            : age <= 70 ? "51-70"
-                            : "70+";
-                    ageBuckets.merge(bucket, 1, Integer::sum);
-                }
-
-                String gender = u.getGender() != null ? u.getGender().name() : "OTHER";
-                String label = switch (gender) {
-                    case "MALE" -> "Nam";
-                    case "FEMALE" -> "Nữ";
-                    default -> "Khác";
-                };
-                genderCounts.merge(label, 1, Integer::sum);
+            if (patients.isEmpty()) {
+                return emptyPatientDemographics();
             }
 
-            List<PatientDemographicsDto.AgeDistributionItem> ageDistribution = ageBuckets.entrySet().stream()
-                    .map(e -> PatientDemographicsDto.AgeDistributionItem.builder()
-                            .range(e.getKey()).count(e.getValue()).build())
-                    .collect(Collectors.toList());
-
-            int genderTotal = genderCounts.values().stream().mapToInt(Integer::intValue).sum();
-            List<PatientDemographicsDto.GenderRatioItem> genderRatio = genderCounts.entrySet().stream()
-                    .map(e -> PatientDemographicsDto.GenderRatioItem.builder()
-                            .gender(e.getKey())
-                            .count(e.getValue())
-                            .percentage(genderTotal > 0 ? (int) Math.round(e.getValue() * 100.0 / genderTotal) : 0)
-                            .build())
-                    .collect(Collectors.toList());
-
-            return PatientDemographicsDto.builder()
-                    .ageDistribution(ageDistribution)
-                    .genderRatio(genderRatio)
-                    .build();
+            return buildPatientDemographics(patients);
 
         } catch (Exception e) {
             log.error("Error fetching patient demographics for doctorId: {}", doctorId, e);
             throw new RuntimeException("Failed to fetch patient demographics", e);
         }
-    }
-
-    private PatientDemographicsDto emptyDemographics() {
-        return PatientDemographicsDto.builder()
-                .ageDistribution(List.of(
-                        PatientDemographicsDto.AgeDistributionItem.builder().range("18-30").count(0).build(),
-                        PatientDemographicsDto.AgeDistributionItem.builder().range("31-50").count(0).build(),
-                        PatientDemographicsDto.AgeDistributionItem.builder().range("51-70").count(0).build(),
-                        PatientDemographicsDto.AgeDistributionItem.builder().range("70+").count(0).build()))
-                .genderRatio(List.of(
-                        PatientDemographicsDto.GenderRatioItem.builder().gender("Nam").count(0).percentage(0).build(),
-                        PatientDemographicsDto.GenderRatioItem.builder().gender("Nữ").count(0).percentage(0).build()))
-                .build();
     }
 
     /**
@@ -263,5 +212,90 @@ public class StatisticsServiceImpl implements StatisticsService {
         Pageable pageable = PageRequest.of(0, 1);
         Page<User> page = userRepository.findByRole(role, pageable);
         return page.getTotalElements();
+    }
+
+    private PatientDemographicsDto buildPatientDemographics(List<User> patients) {
+        Map<String, Integer> ageBuckets = new LinkedHashMap<>();
+        ageBuckets.put("0-17", 0);
+        ageBuckets.put("18-30", 0);
+        ageBuckets.put("31-50", 0);
+        ageBuckets.put("51-70", 0);
+        ageBuckets.put("70+", 0);
+
+        Map<String, Integer> genderCounts = new LinkedHashMap<>();
+        genderCounts.put("Nam", 0);
+        genderCounts.put("Nữ", 0);
+        genderCounts.put("Khác", 0);
+
+        LocalDate now = LocalDate.now();
+        for (User patient : patients) {
+            if (patient.getDateOfBirth() != null) {
+                int age = Period.between(patient.getDateOfBirth(), now).getYears();
+                String bucket = age < 18 ? "0-17"
+                        : age <= 30 ? "18-30"
+                        : age <= 50 ? "31-50"
+                        : age <= 70 ? "51-70"
+                        : "70+";
+                ageBuckets.put(bucket, ageBuckets.get(bucket) + 1);
+            }
+
+            String genderLabel = patient.getGender() == null
+                    ? "Khác"
+                    : switch (patient.getGender()) {
+                        case MALE -> "Nam";
+                        case FEMALE -> "Nữ";
+                        default -> "Khác";
+                    };
+            genderCounts.put(genderLabel, genderCounts.get(genderLabel) + 1);
+        }
+
+        List<PatientDemographicsDto.AgeDistributionItem> ageDistribution = ageBuckets.entrySet().stream()
+                .map(entry -> PatientDemographicsDto.AgeDistributionItem.builder()
+                        .range(entry.getKey())
+                        .count(entry.getValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        int genderTotal = genderCounts.values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
+
+        List<PatientDemographicsDto.GenderRatioItem> genderRatio = genderCounts.entrySet().stream()
+                .map(entry -> {
+                    int count = entry.getValue();
+                    int percentage = genderTotal > 0 ? (int) Math.round((count * 100.0) / genderTotal) : 0;
+                    return PatientDemographicsDto.GenderRatioItem.builder()
+                            .gender(entry.getKey())
+                            .count(count)
+                            .percentage(percentage)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return PatientDemographicsDto.builder()
+                .ageDistribution(ageDistribution)
+                .genderRatio(genderRatio)
+                .build();
+    }
+
+    private PatientDemographicsDto emptyPatientDemographics() {
+        List<PatientDemographicsDto.AgeDistributionItem> ageDistribution = List.of(
+                PatientDemographicsDto.AgeDistributionItem.builder().range("0-17").count(0).build(),
+                PatientDemographicsDto.AgeDistributionItem.builder().range("18-30").count(0).build(),
+                PatientDemographicsDto.AgeDistributionItem.builder().range("31-50").count(0).build(),
+                PatientDemographicsDto.AgeDistributionItem.builder().range("51-70").count(0).build(),
+                PatientDemographicsDto.AgeDistributionItem.builder().range("70+").count(0).build()
+        );
+
+        List<PatientDemographicsDto.GenderRatioItem> genderRatio = List.of(
+                PatientDemographicsDto.GenderRatioItem.builder().gender("Nam").count(0).percentage(0).build(),
+                PatientDemographicsDto.GenderRatioItem.builder().gender("Nữ").count(0).percentage(0).build(),
+                PatientDemographicsDto.GenderRatioItem.builder().gender("Khác").count(0).percentage(0).build()
+        );
+
+        return PatientDemographicsDto.builder()
+                .ageDistribution(ageDistribution)
+                .genderRatio(genderRatio)
+                .build();
     }
 }

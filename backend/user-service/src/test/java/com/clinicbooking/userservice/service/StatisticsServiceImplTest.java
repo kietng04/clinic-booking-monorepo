@@ -169,14 +169,15 @@ class StatisticsServiceImplTest {
     void getUserGrowthByMonth_fillsMissingMonths() {
         // Arrange
         List<Map<String, Object>> queryResults = new ArrayList<>();
+        String currentMonth = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
 
         Map<String, Object> month1 = new HashMap<>();
-        month1.put("month", "2026-01");
+        month1.put("month", currentMonth);
         month1.put("patients", 10);
         month1.put("doctors", 2);
         month1.put("total", 12);
         queryResults.add(month1);
-        // Missing month 2026-02
+        // Missing the other month in the requested 2-month window.
 
         when(userRepository.getUserGrowthByMonth(any(LocalDateTime.class))).thenReturn(queryResults);
 
@@ -277,33 +278,75 @@ class StatisticsServiceImplTest {
     }
 
     @Test
-    void getPatientDemographics_returnsEmptyWhenNoPatients() {
-        when(appointmentServiceClient.getPatientIdsForDoctor(1L)).thenReturn(List.of());
+    void getPatientDemographics_returnsComputedDemographics() {
+        User patient1 = User.builder()
+                .id(101L)
+                .role(User.UserRole.PATIENT)
+                .fullName("Patient One")
+                .dateOfBirth(java.time.LocalDate.now().minusYears(24))
+                .gender(User.Gender.MALE)
+                .build();
+        User patient2 = User.builder()
+                .id(102L)
+                .role(User.UserRole.PATIENT)
+                .fullName("Patient Two")
+                .dateOfBirth(java.time.LocalDate.now().minusYears(43))
+                .gender(User.Gender.FEMALE)
+                .build();
+        User patient3 = User.builder()
+                .id(103L)
+                .role(User.UserRole.PATIENT)
+                .fullName("Patient Three")
+                .dateOfBirth(java.time.LocalDate.now().minusYears(72))
+                .gender(User.Gender.OTHER)
+                .build();
+
+        when(appointmentServiceClient.getDistinctPatientIdsForDoctor(1L))
+                .thenReturn(List.of(101L, 102L, 103L, 103L));
+        when(userRepository.findAllById(any(Iterable.class)))
+                .thenReturn(List.of(patient1, patient2, patient3));
 
         var result = statisticsService.getPatientDemographics(1L);
 
         assertThat(result).isNotNull();
         assertThat(result.getAgeDistribution()).isNotEmpty();
         assertThat(result.getGenderRatio()).isNotEmpty();
+        assertThat(result.getAgeDistribution()).anyMatch(item -> "18-30".equals(item.getRange()) && item.getCount() == 1);
+        assertThat(result.getAgeDistribution()).anyMatch(item -> "31-50".equals(item.getRange()) && item.getCount() == 1);
+        assertThat(result.getAgeDistribution()).anyMatch(item -> "70+".equals(item.getRange()) && item.getCount() == 1);
+        assertThat(result.getGenderRatio()).anyMatch(item -> "Nam".equals(item.getGender()) && item.getCount() == 1 && item.getPercentage() == 33);
+        assertThat(result.getGenderRatio()).anyMatch(item -> "Nữ".equals(item.getGender()) && item.getCount() == 1 && item.getPercentage() == 33);
+        assertThat(result.getGenderRatio()).anyMatch(item -> "Khác".equals(item.getGender()) && item.getCount() == 1 && item.getPercentage() == 33);
+    }
+
+    @Test
+    void getPatientDemographics_withoutAppointments_returnsEmptyDemographics() {
+        when(appointmentServiceClient.getDistinctPatientIdsForDoctor(1L)).thenReturn(List.of());
+
+        var result = statisticsService.getPatientDemographics(1L);
+
+        assertThat(result).isNotNull();
         assertThat(result.getAgeDistribution()).allMatch(item -> item.getCount() == 0);
         assertThat(result.getGenderRatio()).allMatch(item -> item.getCount() == 0);
     }
 
     @Test
     void getPatientDemographics_computesRealDemographics() {
-        when(appointmentServiceClient.getPatientIdsForDoctor(1L)).thenReturn(List.of(10L, 20L));
+        when(appointmentServiceClient.getDistinctPatientIdsForDoctor(1L)).thenReturn(List.of(10L, 20L));
 
         User young = new User();
         young.setId(10L);
+        young.setRole(User.UserRole.PATIENT);
         young.setDateOfBirth(LocalDate.now().minusYears(25));
         young.setGender(User.Gender.MALE);
 
         User older = new User();
         older.setId(20L);
+        older.setRole(User.UserRole.PATIENT);
         older.setDateOfBirth(LocalDate.now().minusYears(55));
         older.setGender(User.Gender.FEMALE);
 
-        when(userRepository.findAllById(List.of(10L, 20L))).thenReturn(List.of(young, older));
+        when(userRepository.findAllById(any(Iterable.class))).thenReturn(List.of(young, older));
 
         var result = statisticsService.getPatientDemographics(1L);
 

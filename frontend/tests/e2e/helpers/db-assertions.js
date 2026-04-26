@@ -77,7 +77,7 @@ const waitForValue = async (callback, { timeoutMs = 20_000, intervalMs = 500, la
   throw new Error(`DB wait timeout for ${label}`)
 }
 
-const findUserByEmail = async (email) => {
+export const findUserByEmail = async (email) => {
   return queryOne(
     'user',
     `
@@ -103,6 +103,79 @@ const findAppointmentBySymptoms = async ({ patientId, symptoms }) => {
     `,
     [patientId, symptoms],
   )
+}
+
+export async function findLatestConsultationForParticipants({
+  patientEmail,
+  doctorEmail,
+  statuses = ['ACCEPTED', 'IN_PROGRESS'],
+}) {
+  if (!isDbVerificationEnabled()) return null
+
+  const [patient, doctor] = await Promise.all([
+    waitForValue(() => findUserByEmail(patientEmail), {
+      label: `patient user by email ${patientEmail}`,
+    }),
+    waitForValue(() => findUserByEmail(doctorEmail), {
+      label: `doctor user by email ${doctorEmail}`,
+    }),
+  ])
+
+  return waitForValue(
+    () =>
+      queryOne(
+        'consultation',
+        `
+          SELECT id, patient_id, doctor_id, status, topic, created_at
+          FROM consultations
+          WHERE patient_id = $1
+            AND doctor_id = $2
+            AND status = ANY($3)
+          ORDER BY created_at DESC
+          LIMIT 1
+        `,
+        [patient.id, doctor.id, statuses],
+      ),
+    {
+      label: `latest consultation for ${patientEmail} and ${doctorEmail}`,
+    },
+  )
+}
+
+export async function assertConsultationMessagePersisted({
+  consultationId,
+  senderEmail,
+  content,
+}) {
+  if (!isDbVerificationEnabled()) return
+
+  const sender = await waitForValue(() => findUserByEmail(senderEmail), {
+    label: `sender user by email ${senderEmail}`,
+  })
+
+  const message = await waitForValue(
+    () =>
+      queryOne(
+        'consultation',
+        `
+          SELECT id, consultation_id, sender_id, content, sent_at
+          FROM messages
+          WHERE consultation_id = $1
+            AND sender_id = $2
+            AND content = $3
+          ORDER BY sent_at DESC
+          LIMIT 1
+        `,
+        [consultationId, sender.id, content],
+      ),
+    {
+      label: `consultation message consultation=${consultationId} content=${content}`,
+    },
+  )
+
+  expect(Number(message.consultation_id)).toBe(Number(consultationId))
+  expect(Number(message.sender_id)).toBe(Number(sender.id))
+  expect(message.content).toBe(content)
 }
 
 export async function assertAppointmentPersisted({ patientEmail, symptoms, notesContains }) {

@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -45,6 +46,8 @@ class PasswordResetServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "https://frontend.example");
+
         testUser = User.builder()
                 .id(1L)
                 .email("test@example.com")
@@ -82,7 +85,10 @@ class PasswordResetServiceImplTest {
         assertThat(savedToken.getToken()).isNotNull();
         assertThat(savedToken.getIsUsed()).isFalse();
 
-        verify(emailService).sendPasswordResetEmail(eq("test@example.com"), anyString());
+        verify(emailService).sendPasswordResetEmail(
+                eq("test@example.com"),
+                eq("https://frontend.example/reset-password?token=" + savedToken.getToken())
+        );
     }
 
     @Test

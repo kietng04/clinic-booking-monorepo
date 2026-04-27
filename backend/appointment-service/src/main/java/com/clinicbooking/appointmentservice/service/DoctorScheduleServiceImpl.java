@@ -6,6 +6,7 @@ import com.clinicbooking.appointmentservice.dto.DoctorScheduleResponseDto;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleUpdateDto;
 import com.clinicbooking.appointmentservice.dto.UserDto;
 import com.clinicbooking.appointmentservice.entity.DoctorSchedule;
+import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.mapper.DoctorScheduleMapper;
 import com.clinicbooking.appointmentservice.repository.DoctorScheduleRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,9 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
         // Fetch doctor data from User Service
         UserDto doctor = userServiceClient.getUserById(dto.getDoctorId());
+        if (doctor == null) {
+            throw new ResourceNotFoundException("Bác sĩ không tồn tại");
+        }
 
         // Validate doctor role
         if (!"DOCTOR".equals(doctor.getRole())) {
@@ -61,7 +65,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     @Override
     public DoctorScheduleResponseDto getScheduleById(Long id) {
         DoctorSchedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lịch làm việc không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch làm việc không tồn tại"));
         return scheduleMapper.toDto(schedule);
     }
 
@@ -97,7 +101,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         log.info("Updating schedule with ID: {}", id);
 
         DoctorSchedule schedule = scheduleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lịch làm việc không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch làm việc không tồn tại"));
 
         if (dto.getDayOfWeek() != null) schedule.setDayOfWeek(dto.getDayOfWeek());
         if (dto.getStartTime() != null) schedule.setStartTime(dto.getStartTime());
@@ -114,7 +118,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     @Transactional
     public void deleteSchedule(Long id) {
         if (!scheduleRepository.existsById(id)) {
-            throw new RuntimeException("Lịch làm việc không tồn tại");
+            throw new ResourceNotFoundException("Lịch làm việc không tồn tại");
         }
         scheduleRepository.deleteById(id);
     }

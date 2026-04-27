@@ -39,7 +39,7 @@ public class HealthMetric {
     @NotBlank(message = "Loại chỉ số không được để trống")
     private String metricType;
 
-    @Column(length = 100, nullable = false)
+    @Column(name = "metric_value", length = 100, nullable = false)
     @NotBlank(message = "Giá trị không được để trống")
     private String value;
 

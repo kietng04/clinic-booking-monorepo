@@ -61,7 +61,7 @@ const adminNav = [
 function SidebarContent({ navigation, pathname }) {
   return (
     <>
-      <nav className="p-4 space-y-2">
+      <nav className="space-y-1 p-4">
         {navigation.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.path
@@ -73,42 +73,30 @@ function SidebarContent({ navigation, pathname }) {
               to={item.path}
               data-testid={`sidebar-link-${normalizedPath}`}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-soft transition-all group relative overflow-hidden',
+                'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
                 isActive
-                  ? 'bg-sage-600 text-white shadow-soft'
-                  : 'text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-800'
+                  ? 'bg-brand-600 text-white shadow-soft'
+                  : 'text-sage-700 hover:bg-sage-100 dark:text-sage-200 dark:hover:bg-sage-800'
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeNav"
-                  className="absolute inset-0 bg-sage-600"
+                  className="absolute inset-y-2 left-0 w-1 rounded-full bg-white/80"
                   transition={{ type: 'spring', duration: 0.6 }}
                 />
               )}
               <Icon
                 className={cn(
-                  'w-5 h-5 relative z-10',
-                  isActive ? 'text-white' : 'text-sage-500 group-hover:text-sage-700 dark:group-hover:text-sage-200'
+                  'relative z-10 h-5 w-5',
+                  isActive ? 'text-white' : 'text-sage-400 group-hover:text-sage-700 dark:group-hover:text-cream-100'
                 )}
               />
-              <span className="font-medium relative z-10">{item.name}</span>
+              <span className="relative z-10 font-medium">{item.name}</span>
             </Link>
           )
         })}
       </nav>
-
-      <div className="p-4 mt-4 border-t border-sage-100 dark:border-sage-800">
-        <div className="bg-gradient-to-br from-sage-500 to-terra-400 rounded-soft p-4 text-white">
-          <p className="text-sm font-medium mb-2">Cần hỗ trợ?</p>
-          <p className="text-xs opacity-90 mb-3">
-            Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng 24/7.
-          </p>
-          <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            Liên hệ hỗ trợ
-          </button>
-        </div>
-      </div>
     </>
   )
 }
@@ -134,7 +122,7 @@ export function Sidebar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+            className="fixed inset-0 z-30 bg-sage-950/40 lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -143,14 +131,14 @@ export function Sidebar() {
         initial={false}
         animate={{ x: sidebarOpen ? 0 : '-100%' }}
         data-testid={`sidebar-${String(user.role || 'unknown').toLowerCase()}`}
-        className="fixed left-0 top-16 bottom-0 w-64 glass border-r border-sage-100 dark:border-sage-800 z-40 overflow-y-auto lg:hidden"
+        className="fixed bottom-0 left-0 top-16 z-40 w-64 overflow-y-auto border-r border-sage-100 bg-white/95 backdrop-blur-sm dark:border-sage-800 dark:bg-sage-950 lg:hidden"
       >
         <SidebarContent navigation={navigation} pathname={location.pathname} />
       </motion.aside>
 
       <aside
         data-testid={`sidebar-desktop-${String(user.role || 'unknown').toLowerCase()}`}
-        className="hidden lg:block lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 glass border-r border-sage-100 dark:border-sage-800 overflow-y-auto"
+        className="hidden overflow-y-auto border-r border-sage-100 bg-white/80 backdrop-blur-sm dark:border-sage-800 dark:bg-sage-950 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:w-64"
       >
         <SidebarContent navigation={navigation} pathname={location.pathname} />
       </aside>

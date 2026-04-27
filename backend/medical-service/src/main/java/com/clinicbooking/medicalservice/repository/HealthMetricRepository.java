@@ -33,7 +33,17 @@ public interface HealthMetricRepository extends JpaRepository<HealthMetric, Long
     /**
      * Find the latest health metric for a specific patient and metric type
      */
-    @Query("SELECT h FROM HealthMetric h WHERE h.patientId = :patientId AND h.metricType = :metricType ORDER BY h.measuredAt DESC LIMIT 1")
+    @Query(
+            value = """
+                    SELECT *
+                    FROM health_metrics
+                    WHERE patient_id = :patientId
+                      AND metric_type = :metricType
+                    ORDER BY measured_at DESC
+                    LIMIT 1
+                    """,
+            nativeQuery = true
+    )
     Optional<HealthMetric> findLatestByPatientIdAndMetricType(
             @Param("patientId") Long patientId,
             @Param("metricType") String metricType);

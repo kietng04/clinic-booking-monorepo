@@ -54,6 +54,8 @@ public interface IPaymentService {
      */
     Page<PaymentResponse> getPendingCounterPayments(Pageable pageable);
 
+    int expireOverduePayments();
+
     
     class RefundResponse {
         public String refundId;

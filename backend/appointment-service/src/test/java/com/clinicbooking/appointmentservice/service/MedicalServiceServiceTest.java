@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.service;
 
 import com.clinicbooking.appointmentservice.dto.MedicalServiceCreateDto;
 import com.clinicbooking.appointmentservice.dto.MedicalServiceResponseDto;
+import com.clinicbooking.appointmentservice.entity.Clinic;
 import com.clinicbooking.appointmentservice.entity.MedicalService;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.repository.MedicalServiceRepository;
@@ -65,6 +66,7 @@ class MedicalServiceServiceTest {
     @Test
     void testCreateService_Success() {
         // Given
+        when(clinicRepository.findById(1L)).thenReturn(Optional.of(Clinic.builder().id(1L).name("Clinic").build()));
         when(medicalServiceRepository.save(any())).thenReturn(medicalService);
 
         // When
@@ -99,7 +101,7 @@ class MedicalServiceServiceTest {
         // When/Then
         assertThatThrownBy(() -> medicalServiceService.getServiceById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Dịch vụ không tồn tại");
+                .hasMessageContaining("Dịch vụ không tìm thấy");
     }
 
     @Test
@@ -140,8 +142,8 @@ class MedicalServiceServiceTest {
         // Given
         Pageable pageable = PageRequest.of(0, 10);
         Page<MedicalService> servicePage = new PageImpl<>(List.of(medicalService));
-        when(medicalServiceRepository.findByCategoryAndIsActiveTrue(
-                MedicalService.ServiceCategory.GENERAL, pageable))
+        when(medicalServiceRepository.findByNameContainingIgnoreCaseAndCategory(
+                "", MedicalService.ServiceCategory.GENERAL, pageable))
                 .thenReturn(servicePage);
 
         // When
@@ -151,8 +153,8 @@ class MedicalServiceServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
-        verify(medicalServiceRepository).findByCategoryAndIsActiveTrue(
-                MedicalService.ServiceCategory.GENERAL, pageable);
+        verify(medicalServiceRepository).findByNameContainingIgnoreCaseAndCategory(
+                "", MedicalService.ServiceCategory.GENERAL, pageable);
     }
 
     @Test
@@ -180,7 +182,7 @@ class MedicalServiceServiceTest {
         // Given
         Pageable pageable = PageRequest.of(0, 10);
         Page<MedicalService> servicePage = new PageImpl<>(List.of(medicalService));
-        when(medicalServiceRepository.findAll(pageable)).thenReturn(servicePage);
+        when(medicalServiceRepository.findByNameContainingIgnoreCase("", pageable)).thenReturn(servicePage);
 
         // When
         Page<MedicalServiceResponseDto> result = medicalServiceService
@@ -189,7 +191,7 @@ class MedicalServiceServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
-        verify(medicalServiceRepository).findAll(pageable);
+        verify(medicalServiceRepository).findByNameContainingIgnoreCase("", pageable);
     }
 
     @Test

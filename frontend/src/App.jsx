@@ -52,10 +52,10 @@ const DoctorSearch = lazy(() => import('./pages/patient/DoctorSearch'))
 
 function RouteFallback() {
   return (
-    <div className="min-h-screen bg-cream-50 dark:bg-sage-950 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-6">
       <div className="text-center">
-        <div className="mx-auto h-10 w-10 rounded-full border-4 border-sage-200 border-t-sage-600 animate-spin" />
-        <p className="mt-4 text-sm text-sage-700 dark:text-sage-300">Đang tải trang...</p>
+        <div className="mx-auto h-10 w-10 rounded-full border-4 border-slate-200 border-t-brand-600 animate-spin dark:border-slate-700 dark:border-t-brand-400" />
+        <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">Đang tải trang...</p>
       </div>
     </div>
   )

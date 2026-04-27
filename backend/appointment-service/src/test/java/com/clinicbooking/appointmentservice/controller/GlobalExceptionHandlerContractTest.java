@@ -5,6 +5,7 @@ import com.clinicbooking.appointmentservice.exception.ValidationException;
 import com.clinicbooking.appointmentservice.service.AppointmentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -79,5 +80,25 @@ class GlobalExceptionHandlerContractTest {
                 .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"))
                 .andExpect(jsonPath("$.path").value("/api/appointments/12/feedback"))
                 .andExpect(jsonPath("$.correlationId").value("corr-forbidden-403"));
+    }
+
+    @Test
+    @DisplayName("Should map appointment overlap constraint violations to 409 conflict")
+    void shouldMapAppointmentOverlapConstraintViolationToConflict() throws Exception {
+        when(appointmentService.createAppointment(any()))
+                .thenThrow(new DataIntegrityViolationException(
+                        "ERROR: conflicting key value violates exclusion constraint \"appointments_no_active_overlap\""));
+
+        mockMvc.perform(post("/api/appointments")
+                        .header("X-Correlation-Id", "corr-slot-conflict-409")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"patientId\":26,\"doctorId\":2,\"appointmentDate\":\"2099-02-10\",\"appointmentTime\":\"09:00\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Khung giờ này vừa được người khác đặt. Vui lòng chọn khung giờ khác."))
+                .andExpect(jsonPath("$.errorCode").value("APPOINTMENT_SLOT_CONFLICT"))
+                .andExpect(jsonPath("$.details.constraint").value("appointments_no_active_overlap"))
+                .andExpect(jsonPath("$.path").value("/api/appointments"))
+                .andExpect(jsonPath("$.correlationId").value("corr-slot-conflict-409"));
     }
 }

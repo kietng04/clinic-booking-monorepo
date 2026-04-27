@@ -77,18 +77,19 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
         @Override
         @Transactional(readOnly = true)
         public Page<MedicalServiceResponseDto> getAllServices(String name, String category, Pageable pageable) {
+                String normalizedName = name == null ? "" : name.trim();
                 Page<MedicalService> page;
                 if (category != null && !category.isEmpty()) {
                         try {
                                 MedicalService.ServiceCategory cat = MedicalService.ServiceCategory.valueOf(category);
-                                page = medicalServiceRepository.findByNameContainingIgnoreCaseAndCategory(name, cat,
+                                page = medicalServiceRepository.findByNameContainingIgnoreCaseAndCategory(normalizedName, cat,
                                                 pageable);
                         } catch (IllegalArgumentException e) {
                                 log.warn("Invalid category: {}", category);
-                                page = medicalServiceRepository.findByNameContainingIgnoreCase(name, pageable);
+                                page = medicalServiceRepository.findByNameContainingIgnoreCase(normalizedName, pageable);
                         }
                 } else {
-                        page = medicalServiceRepository.findByNameContainingIgnoreCase(name, pageable);
+                        page = medicalServiceRepository.findByNameContainingIgnoreCase(normalizedName, pageable);
                 }
                 return page.map(this::mapToResponse);
         }

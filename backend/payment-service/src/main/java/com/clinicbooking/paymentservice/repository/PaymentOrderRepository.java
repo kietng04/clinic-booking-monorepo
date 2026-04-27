@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +30,8 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
 
     
     Optional<PaymentOrder> findByAppointmentId(Long appointmentId);
+
+    Optional<PaymentOrder> findTopByAppointmentIdOrderByCreatedAtDesc(Long appointmentId);
 
     
     Page<PaymentOrder> findByPatientId(Long patientId, Pageable pageable);
@@ -95,6 +98,8 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
 
     
     boolean existsByAppointmentId(Long appointmentId);
+
+    boolean existsByAppointmentIdAndStatusIn(Long appointmentId, Collection<PaymentStatus> statuses);
 
     
     long countByPatientIdAndStatus(Long patientId, PaymentStatus status);

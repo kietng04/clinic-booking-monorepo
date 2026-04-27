@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
@@ -361,6 +362,86 @@ class AppointmentServiceTest {
         verify(eventPublisher).publishAppointmentUpdated(any());
         verify(eventPublisher).publishAppointmentCompleted(any());
         verify(notificationService, times(2)).createNotification(any());
+    }
+
+    @Test
+    void testUpdatePaymentStatus_ExpiresPaymentAndCancelsAppointment() {
+        AppointmentPaymentStatusUpdateDto dto = AppointmentPaymentStatusUpdateDto.builder()
+                .paymentStatus("PAYMENT_EXPIRED")
+                .paymentMethod("MOMO_WALLET")
+                .paymentExpiresAt(LocalDateTime.now())
+                .build();
+
+        when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(any())).thenReturn(appointment);
+        when(appointmentMapper.toDto(any())).thenReturn(responseDto);
+
+        AppointmentResponseDto result = appointmentService.updatePaymentStatus(1L, dto);
+
+        assertThat(result).isNotNull();
+        verify(appointmentRepository).save(any());
+        verify(eventPublisher).publishAppointmentCancelled(any());
+        verify(notificationService).createNotification(any());
+    }
+
+    @Test
+    void testUpdatePaymentStatus_PaidMarksPaidAt() {
+        AppointmentPaymentStatusUpdateDto dto = AppointmentPaymentStatusUpdateDto.builder()
+                .paymentStatus("PAID")
+                .paymentMethod("MOMO_WALLET")
+                .paymentCompletedAt(LocalDateTime.now())
+                .build();
+
+        when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(any())).thenReturn(appointment);
+        when(appointmentMapper.toDto(any())).thenReturn(responseDto);
+
+        AppointmentResponseDto result = appointmentService.updatePaymentStatus(1L, dto);
+
+        assertThat(result).isNotNull();
+        verify(appointmentRepository).save(any());
+        verify(eventPublisher, never()).publishAppointmentCancelled(any());
+    }
+
+    @Test
+    void testUpdatePaymentStatus_AlreadyCancelledDoesNotDuplicateSideEffects() {
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+
+        AppointmentPaymentStatusUpdateDto dto = AppointmentPaymentStatusUpdateDto.builder()
+                .paymentStatus("PAYMENT_EXPIRED")
+                .paymentMethod("MOMO_WALLET")
+                .paymentExpiresAt(LocalDateTime.now())
+                .build();
+
+        when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(any())).thenReturn(appointment);
+        when(appointmentMapper.toDto(any())).thenReturn(responseDto);
+
+        AppointmentResponseDto result = appointmentService.updatePaymentStatus(1L, dto);
+
+        assertThat(result).isNotNull();
+        verify(appointmentRepository).save(any());
+        verify(eventPublisher, never()).publishAppointmentCancelled(any());
+        verify(notificationService, never()).createNotification(any());
+    }
+
+    @Test
+    void testLinkPaymentToAppointment_SetsPendingPaymentStatus() {
+        AppointmentPaymentLinkDto dto = AppointmentPaymentLinkDto.builder()
+                .paymentOrderId("ORDER-NEW")
+                .paymentMethod("MOMO_WALLET")
+                .paymentExpiresAt(LocalDateTime.now().plusMinutes(15))
+                .build();
+
+        when(appointmentRepository.findById(1L)).thenReturn(Optional.of(appointment));
+        when(appointmentRepository.save(any())).thenReturn(appointment);
+        when(appointmentMapper.toDto(any())).thenReturn(responseDto);
+
+        AppointmentResponseDto result = appointmentService.linkPaymentToAppointment(1L, dto);
+
+        assertThat(result).isNotNull();
+        assertThat(appointment.getPaymentStatus()).isEqualTo("PENDING_PAYMENT");
+        verify(appointmentRepository).save(any());
     }
 
     @Test

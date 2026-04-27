@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { Loading, SkeletonCard } from '@/components/ui/Loading'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
@@ -204,13 +205,10 @@ const Appointments = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-display font-bold text-sage-900 mb-2">
-          {vi.appointments.title}
-        </h1>
-        <p className="text-sage-600">Quản lý và theo dõi các lịch hẹn của bạn</p>
-      </div>
+      <PageHeader
+        title={vi.appointments.title}
+        description="Quản lý lịch hẹn theo trạng thái, tìm kiếm nhanh theo bác sĩ và thực hiện các thao tác chính trong cùng một màn hình."
+      />
 
       {/* Filters and Search */}
       <Card>

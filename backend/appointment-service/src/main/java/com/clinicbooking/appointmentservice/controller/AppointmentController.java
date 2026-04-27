@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.controller;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentPaymentStatusUpdateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
@@ -93,6 +94,14 @@ public class AppointmentController {
             @PathVariable Long id,
             @RequestBody AppointmentPaymentLinkDto dto) {
         AppointmentResponseDto response = appointmentService.linkPaymentToAppointment(id, dto);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/payment-status")
+    public ResponseEntity<AppointmentResponseDto> updatePaymentStatus(
+            @PathVariable Long id,
+            @RequestBody AppointmentPaymentStatusUpdateDto dto) {
+        AppointmentResponseDto response = appointmentService.updatePaymentStatus(id, dto);
         return ResponseEntity.ok(response);
     }
 

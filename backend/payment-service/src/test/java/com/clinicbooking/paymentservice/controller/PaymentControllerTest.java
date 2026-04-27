@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -155,6 +156,32 @@ class PaymentControllerTest {
                         .header("X-User-Id", "100")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Should get payment by appointment ID")
+    void testGetPaymentByAppointmentId_Success() throws Exception {
+        when(paymentService.getPaymentByAppointmentId(1L))
+                .thenReturn(paymentResponse);
+
+        mockMvc.perform(get("/api/payments/appointment/1")
+                        .header("X-User-Id", "100")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").value("ORDER123456789"))
+                .andExpect(jsonPath("$.patientId").value(100));
+    }
+
+    @Test
+    @DisplayName("Should cancel payment successfully")
+    void testCancelPayment_Success() throws Exception {
+        when(paymentService.getPaymentByOrderId("ORDER123456789"))
+                .thenReturn(paymentResponse);
+
+        mockMvc.perform(delete("/api/payments/ORDER123456789")
+                        .with(csrf())
+                        .header("X-User-Id", "100"))
+                .andExpect(status().isNoContent());
     }
 
     @Test

@@ -30,7 +30,7 @@ export function Avatar({ src, name, size = 'md', className }) {
       ) : (
         <div
           className={cn(
-            'rounded-full bg-gradient-to-br from-sage-400 to-terra-400 flex items-center justify-center text-white font-semibold',
+            'flex items-center justify-center rounded-full bg-gradient-to-br from-brand-300 to-terra-300 text-white font-semibold',
             sizes[size]
           )}
         >

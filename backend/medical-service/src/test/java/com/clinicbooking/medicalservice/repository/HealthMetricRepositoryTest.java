@@ -17,12 +17,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.Disabled;
-
 @DataJpaTest
 @ActiveProfiles("test")
 @DisplayName("HealthMetric Repository Tests")
-@Disabled("Disabled due to H2 'value' keyword issue - works fine with PostgreSQL in production")
 class HealthMetricRepositoryTest {
 
     @Autowired

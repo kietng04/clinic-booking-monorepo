@@ -4,6 +4,7 @@ import com.clinicbooking.appointmentservice.client.UserServiceClient;
 import com.clinicbooking.appointmentservice.dto.AppointmentCreateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentFeedbackDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentPaymentLinkDto;
+import com.clinicbooking.appointmentservice.dto.AppointmentPaymentStatusUpdateDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentResponseDto;
 import com.clinicbooking.appointmentservice.dto.AppointmentUpdateDto;
 import com.clinicbooking.appointmentservice.dto.NotificationCreateDto;
@@ -368,9 +369,60 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setPaymentOrderId(dto.getPaymentOrderId().trim());
         appointment.setPaymentMethod(dto.getPaymentMethod());
         appointment.setPaymentExpiresAt(dto.getPaymentExpiresAt());
-        appointment.setPaymentStatus("PENDING");
+        appointment.setPaymentStatus("PENDING_PAYMENT");
         appointment.setPaidAt(null);
         appointment = appointmentRepository.save(appointment);
+
+        return appointmentMapper.toDto(appointment);
+    }
+
+    @Override
+    @Transactional
+    public AppointmentResponseDto updatePaymentStatus(Long id, AppointmentPaymentStatusUpdateDto dto) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Lịch hẹn không tồn tại"));
+        Appointment.AppointmentStatus previousStatus = appointment.getStatus();
+
+        if (dto == null || dto.getPaymentStatus() == null || dto.getPaymentStatus().isBlank()) {
+            throw new ValidationException("Thiếu trạng thái thanh toán");
+        }
+
+        String normalizedPaymentStatus = dto.getPaymentStatus().trim().toUpperCase();
+        appointment.setPaymentStatus(normalizedPaymentStatus);
+
+        if (dto.getPaymentMethod() != null && !dto.getPaymentMethod().isBlank()) {
+            appointment.setPaymentMethod(dto.getPaymentMethod().trim());
+        }
+
+        if (dto.getPaymentExpiresAt() != null || "PAYMENT_EXPIRED".equals(normalizedPaymentStatus)) {
+            appointment.setPaymentExpiresAt(dto.getPaymentExpiresAt());
+        }
+
+        if (dto.getPaymentCompletedAt() != null || "PAID".equals(normalizedPaymentStatus)) {
+            appointment.setPaidAt(dto.getPaymentCompletedAt() != null ? dto.getPaymentCompletedAt() : LocalDateTime.now());
+        }
+
+        if ("PAYMENT_EXPIRED".equals(normalizedPaymentStatus) && appointment.canBeCancelled()) {
+            appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+            appointment.setCancelReason("Tự động hủy do quá hạn thanh toán");
+        }
+
+        appointment = appointmentRepository.save(appointment);
+
+        boolean autoCancelledNow =
+                "PAYMENT_EXPIRED".equals(normalizedPaymentStatus)
+                        && previousStatus != Appointment.AppointmentStatus.CANCELLED
+                        && Appointment.AppointmentStatus.CANCELLED == appointment.getStatus();
+
+        if (autoCancelledNow) {
+            eventPublisher.publishAppointmentCancelled(appointment);
+            createPatientNotification(
+                    appointment,
+                    "Lịch hẹn đã bị hủy do quá hạn thanh toán",
+                    "Lịch hẹn #" + appointment.getId() + " đã bị hủy vì quá thời hạn thanh toán.",
+                    Notification.NotificationType.APPOINTMENT_CANCELLED
+            );
+        }
 
         return appointmentMapper.toDto(appointment);
     }

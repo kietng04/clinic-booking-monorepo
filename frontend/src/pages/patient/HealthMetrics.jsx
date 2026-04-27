@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Modal } from '@/components/ui/Modal'
 import { SkeletonCard } from '@/components/ui/Loading'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { healthMetricsApi } from '@/api/healthMetricsApiWrapper'
@@ -209,18 +210,15 @@ const HealthMetrics = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-sage-900 mb-2">
-            {vi.healthMetrics.title}
-          </h1>
-          <p className="text-sage-600">Theo dõi các chỉ số sức khỏe của bạn</p>
-        </div>
-        <Button onClick={() => setShowLogModal(true)} leftIcon={<Plus />}>
-          {vi.healthMetrics.logNew}
-        </Button>
-      </div>
+      <PageHeader
+        title={vi.healthMetrics.title}
+        description="Theo dõi các chỉ số sức khỏe theo thời gian, lọc theo loại dữ liệu và thêm bản ghi mới khi cần."
+        action={(
+          <Button onClick={() => setShowLogModal(true)} leftIcon={<Plus />}>
+            {vi.healthMetrics.logNew}
+          </Button>
+        )}
+      />
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -239,7 +237,7 @@ const HealthMetrics = () => {
                 hover
                 onClick={() => setSelectedType(metricType.id)}
                 className={`cursor-pointer ${
-                  selectedType === metricType.id ? 'ring-2 ring-sage-600' : ''
+                  selectedType === metricType.id ? 'ring-2 ring-brand-600' : ''
                 }`}
               >
                 <CardContent className="p-6">

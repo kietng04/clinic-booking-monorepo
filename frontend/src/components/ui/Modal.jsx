@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', showClose
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 z-50 bg-slate-950/50"
           />
 
           {/* Modal */}
@@ -44,24 +44,24 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', showClose
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: 'spring', duration: 0.5 }}
               className={cn(
-                'bg-white dark:bg-sage-900 rounded-soft shadow-float w-full pointer-events-auto max-h-[90vh] overflow-hidden flex flex-col',
+                'pointer-events-auto flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-float dark:border-slate-800 dark:bg-slate-900',
                 sizes[size]
               )}
             >
               {/* Header */}
               {(title || showCloseButton) && (
-                <div className="flex items-center justify-between p-6 border-b border-sage-100 dark:border-sage-800">
+                <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-slate-800">
                   {title && (
-                    <h2 className="text-2xl font-display font-semibold text-sage-900 dark:text-cream-100">
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
                       {title}
                     </h2>
                   )}
                   {showCloseButton && (
                     <button
                       onClick={onClose}
-                      className="p-2 rounded-full hover:bg-sage-100 dark:hover:bg-sage-800 transition-colors"
+                      className="rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
-                      <X className="w-5 h-5 text-sage-600 dark:text-sage-400" />
+                      <X className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                     </button>
                   )}
                 </div>

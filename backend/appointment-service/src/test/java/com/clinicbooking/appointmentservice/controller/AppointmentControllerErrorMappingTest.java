@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,5 +42,20 @@ class AppointmentControllerErrorMappingTest {
                 .andExpect(jsonPath("$.message").value("Bác sĩ không làm việc vào ngày này"))
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.path").value("/api/appointments"));
+    }
+
+    @Test
+    @DisplayName("Should return 400 when payment status update is invalid")
+    void shouldReturnBadRequestWhenPaymentStatusUpdateFailsValidation() throws Exception {
+        when(appointmentService.updatePaymentStatus(any(), any()))
+                .thenThrow(new ValidationException("Thiếu trạng thái thanh toán"));
+
+        mockMvc.perform(patch("/api/appointments/1/payment-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentMethod\":\"MOMO_WALLET\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Thiếu trạng thái thanh toán"))
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.path").value("/api/appointments/1/payment-status"));
     }
 }

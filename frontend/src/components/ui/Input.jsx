@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { forwardRef } from 'react'
+import { forwardRef, useId } from 'react'
 
 export const Input = forwardRef(({
   label,
@@ -11,10 +11,12 @@ export const Input = forwardRef(({
   containerClassName,
   ...props
 }, ref) => {
+  const inputId = useId()
+
   return (
     <div className={cn('w-full', containerClassName)}>
       {label && (
-        <label className="block text-sm font-medium text-sage-700 dark:text-cream-300 mb-2">
+        <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-sage-700 dark:text-cream-200">
           {label}
         </label>
       )}
@@ -25,10 +27,11 @@ export const Input = forwardRef(({
           </div>
         )}
         <input
+          id={inputId}
           ref={ref}
           className={cn(
-            'w-full px-4 py-3 rounded-soft border transition-all focus-ring',
-            'bg-white dark:bg-sage-800',
+            'w-full rounded-xl border px-4 py-2.5 transition-all focus-ring',
+            'bg-white dark:bg-sage-900',
             'border-sage-200 dark:border-sage-700',
             'text-sage-900 dark:text-cream-100',
             'placeholder:text-sage-400 dark:placeholder:text-sage-500',

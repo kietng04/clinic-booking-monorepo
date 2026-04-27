@@ -45,6 +45,34 @@ const normalizeDoctor = (doctor) => ({
   yearsOfExperience: doctor?.yearsOfExperience ?? doctor?.experienceYears ?? 0,
 })
 
+const MAX_BOOKING_DAYS_AHEAD = 90
+
+const parseDateOnly = (value) => {
+  if (!value) return null
+  const [year, month, day] = value.split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+const formatDateOnly = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getToday = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+}
+
+const addDays = (date, days) => {
+  const nextDate = new Date(date)
+  nextDate.setDate(nextDate.getDate() + days)
+  return nextDate
+}
+
 export function BookAppointment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -77,6 +105,8 @@ export function BookAppointment() {
   const [availableSlots, setAvailableSlots] = useState([])
   const [selectedDate, setSelectedDate] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const minBookingDate = formatDateOnly(addDays(getToday(), 1))
+  const maxBookingDate = formatDateOnly(addDays(getToday(), MAX_BOOKING_DAYS_AHEAD))
 
   useEffect(() => {
     const preselectedDoctorId = searchParams.get('doctorId')
@@ -166,7 +196,15 @@ export function BookAppointment() {
 
   const selectDoctor = (doctor) => {
     setSubmitError('')
-    setBookingData((prev) => ({ ...prev, doctorId: doctor.id, doctor }))
+    setSelectedDate('')
+    setAvailableSlots([])
+    setBookingData((prev) => ({
+      ...prev,
+      doctorId: doctor.id,
+      doctor,
+      date: '',
+      time: '',
+    }))
     setCurrentStep(2)
   }
 
@@ -189,11 +227,30 @@ export function BookAppointment() {
 
   const isFutureDate = (dateStr) => {
     if (!dateStr) return false
-    const selected = new Date(dateStr)
-    const today = new Date()
-    selected.setHours(0, 0, 0, 0)
-    today.setHours(0, 0, 0, 0)
+    const selected = parseDateOnly(dateStr)
+    const today = getToday()
+    if (!selected || Number.isNaN(selected.getTime())) return false
     return selected > today
+  }
+
+  const handleDateSelection = async (date) => {
+    if (!date) {
+      setSelectedDate('')
+      setAvailableSlots([])
+      setBookingData((prev) => ({ ...prev, date: '', time: '' }))
+      return
+    }
+
+    if (!isFutureDate(date)) {
+      showToast('NgÃ y khÃ¡m pháº£i lÃ  ngÃ y trong tÆ°Æ¡ng lai', 'error')
+      return
+    }
+
+    setSubmitError('')
+    setSelectedDate(date)
+    setAvailableSlots([])
+    setBookingData((prev) => ({ ...prev, date: '', time: '' }))
+    await loadAvailableSlots(date)
   }
 
   const selectDateTime = (date, time) => {
@@ -357,7 +414,10 @@ export function BookAppointment() {
 
       // For overlapping slot validation, return user to time selection
       // and refresh available slots so user can immediately re-pick.
-      if (/trùng với lịch hẹn khác/i.test(errorMessage)) {
+      const isSlotConflict =
+        error?.response?.status === 409 &&
+        error?.response?.data?.errorCode === 'APPOINTMENT_SLOT_CONFLICT'
+      if (isSlotConflict || /(trùng với lịch hẹn khác|vừa được người khác đặt)/i.test(errorMessage)) {
         setCurrentStep(2)
         if (bookingData.date) {
           await loadAvailableSlots(bookingData.date)
@@ -384,17 +444,6 @@ export function BookAppointment() {
   const selectedRoom = rooms.find(
     (room) => String(room?.id) === String(bookingData.roomId)
   )
-
-  // Get next 7 days for date selection
-  const getNextDays = () => {
-    const days = []
-    for (let i = 1; i <= 7; i++) {
-      const date = new Date()
-      date.setDate(date.getDate() + i)
-      days.push(date)
-    }
-    return days
-  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -551,35 +600,22 @@ export function BookAppointment() {
                   <h4 className="text-sm font-medium text-sage-700 dark:text-sage-300 mb-3">
                     Chọn Ngày
                   </h4>
-                  <div className="grid grid-cols-7 gap-2">
-                    {getNextDays().map((day) => {
-                      const dateStr = day.toISOString().split('T')[0]
-                      const isSelected = selectedDate === dateStr
-                      return (
-                        <button
-                          key={dateStr}
-                          data-testid={`booking-day-${dateStr}`}
-                          onClick={() => {
-                            setSubmitError('')
-                            setSelectedDate(dateStr)
-                            loadAvailableSlots(dateStr)
-                          }}
-                          className={`p-3 rounded-soft border-2 transition-all ${
-                            isSelected
-                              ? 'border-sage-600 bg-sage-50 dark:bg-sage-900'
-                              : 'border-sage-200 dark:border-sage-800 hover:border-sage-400'
-                          }`}
-                        >
-                          <div className="text-xs text-sage-500 dark:text-sage-400">
-                            {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                          </div>
-                          <div className="text-lg font-bold text-sage-900 dark:text-cream-100">
-                            {day.getDate()}
-                          </div>
-                        </button>
-                      )
-                    })}
+                  <div className="mb-4">
+                    <Input
+                      label="Chá»n ngÃ y linh hoáº¡t"
+                      type="date"
+                      data-testid="booking-date-input"
+                      min={minBookingDate}
+                      max={maxBookingDate}
+                      value={selectedDate}
+                      onChange={(e) => handleDateSelection(e.target.value)}
+                      leftIcon={<CalendarIcon className="w-5 h-5" />}
+                      helperText={`Báº¡n cÃ³ thá»ƒ chá»n báº¥t ká»³ ngÃ y nÃ o trong ${MAX_BOOKING_DAYS_AHEAD} ngÃ y tá»›i.`}
+                    />
                   </div>
+                  <p className="mb-3 text-xs text-sage-500 dark:text-sage-400">
+                    Gá»£i Ã½ ngÃ y gáº§n nháº¥t
+                  </p>
                 </div>
 
                 {/* Time Slots */}
@@ -824,7 +860,7 @@ export function BookAppointment() {
                     <div className="p-4 rounded-soft bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700">
                       <div className="text-sm text-sage-600 dark:text-sage-400 mb-1">Date</div>
                       <div className="font-semibold text-sage-900 dark:text-cream-100">
-                        {new Date(bookingData.date).toLocaleDateString('en-US', {
+                        {parseDateOnly(bookingData.date)?.toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',

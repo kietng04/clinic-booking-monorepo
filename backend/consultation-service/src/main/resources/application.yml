@@ -96,7 +96,7 @@ management:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=}
+  secret: ${JWT_SECRET}
   expiration: 86400000  # 24 hours
 
 # Feign Client Configuration

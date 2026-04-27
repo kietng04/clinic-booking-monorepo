@@ -124,7 +124,7 @@ class UserServiceImplTest {
         verify(userRepository).searchDoctors(
                 eq(User.UserRole.DOCTOR),
                 eq("sarah"),
-                eq("Cardiology"),
+                eq("cardiology"),
                 eq(BigDecimal.valueOf(4.0)),
                 eq(BigDecimal.valueOf(1000000)),
                 eq(pageable)
@@ -143,11 +143,11 @@ class UserServiceImplTest {
         // Act
         userService.searchDoctors("   ", null, null, null, pageable);
 
-        // Assert - Blank keyword should be converted to null
+        // Assert - Blank filters are normalized to empty strings
         verify(userRepository).searchDoctors(
                 eq(User.UserRole.DOCTOR),
-                isNull(),
-                isNull(),
+                eq(""),
+                eq(""),
                 isNull(),
                 isNull(),
                 eq(pageable)
@@ -165,11 +165,11 @@ class UserServiceImplTest {
         // Act
         userService.searchDoctors(null, "  ", null, null, pageable);
 
-        // Assert - Blank specialization should be converted to null
+        // Assert - Blank filters are normalized to empty strings
         verify(userRepository).searchDoctors(
                 eq(User.UserRole.DOCTOR),
-                isNull(),
-                isNull(),
+                eq(""),
+                eq(""),
                 isNull(),
                 isNull(),
                 eq(pageable)
@@ -187,11 +187,11 @@ class UserServiceImplTest {
         // Act
         userService.searchDoctors("  sarah  ", "  Cardiology  ", null, null, pageable);
 
-        // Assert - Should trim whitespace
+        // Assert - Should trim and normalize to lowercase
         verify(userRepository).searchDoctors(
                 eq(User.UserRole.DOCTOR),
                 eq("sarah"),
-                eq("Cardiology"),
+                eq("cardiology"),
                 isNull(),
                 isNull(),
                 eq(pageable)
@@ -275,11 +275,11 @@ class UserServiceImplTest {
         // Act
         userService.searchDoctors(null, null, null, null, pageable);
 
-        // Assert - All filter params should be null
+        // Assert - Missing text filters are normalized to empty strings
         verify(userRepository).searchDoctors(
                 eq(User.UserRole.DOCTOR),
-                isNull(),
-                isNull(),
+                eq(""),
+                eq(""),
                 isNull(),
                 isNull(),
                 eq(pageable)

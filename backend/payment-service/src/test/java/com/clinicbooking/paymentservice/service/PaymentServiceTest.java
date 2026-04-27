@@ -129,7 +129,7 @@ class PaymentServiceTest {
     @Test
     @DisplayName("Should create payment successfully for online payment")
     void testCreatePayment_Success() throws Exception {
-        when(paymentOrderRepository.existsByAppointmentId(1L)).thenReturn(false);
+        when(paymentOrderRepository.existsByAppointmentIdAndStatusIn(eq(1L), any())).thenReturn(false);
 
         PaymentResponse momoResponse = PaymentResponse.builder()
                 .orderId("ORDER123456789")
@@ -150,7 +150,7 @@ class PaymentServiceTest {
         assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("50000.00"));
         assertThat(result.getStatus()).isEqualTo("PENDING");
 
-        verify(paymentOrderRepository).existsByAppointmentId(1L);
+        verify(paymentOrderRepository).existsByAppointmentIdAndStatusIn(eq(1L), any());
         verify(momoPaymentService).createPaymentRequest(any(), anyString());
         verify(paymentOrderRepository).save(any(PaymentOrder.class));
         verify(eventPublisher).publishPaymentCreated(any());
@@ -159,15 +159,38 @@ class PaymentServiceTest {
     @Test
     @DisplayName("Should prevent duplicate payment for same appointment")
     void testCreatePayment_DuplicateAppointment() {
-        when(paymentOrderRepository.existsByAppointmentId(1L)).thenReturn(true);
+        when(paymentOrderRepository.existsByAppointmentIdAndStatusIn(eq(1L), any())).thenReturn(true);
 
         assertThatThrownBy(() -> paymentService.createPayment(createPaymentRequest, 100L))
                 .isInstanceOf(DuplicatePaymentException.class)
                 .hasMessageContaining("Payment already exists for appointment");
 
-        verify(paymentOrderRepository).existsByAppointmentId(1L);
+        verify(paymentOrderRepository).existsByAppointmentIdAndStatusIn(eq(1L), any());
         verify(momoPaymentService, never()).createPaymentRequest(any(), anyString());
         verify(paymentOrderRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should allow new payment when previous payment is expired")
+    void testCreatePayment_AllowsRetryAfterExpiredPayment() throws Exception {
+        when(paymentOrderRepository.existsByAppointmentIdAndStatusIn(eq(1L), any())).thenReturn(false);
+
+        PaymentResponse momoResponse = PaymentResponse.builder()
+                .orderId("ORDER123456789")
+                .payUrl("http://momo.vn/pay")
+                .deeplink("momo://pay")
+                .qrCodeUrl("http://momo.vn/qr")
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .build();
+
+        when(momoPaymentService.createPaymentRequest(any(), anyString())).thenReturn(momoResponse);
+        when(paymentOrderRepository.save(any(PaymentOrder.class))).thenReturn(paymentOrder);
+        when(paymentTransactionRepository.save(any(PaymentTransaction.class))).thenReturn(paymentTransaction);
+
+        PaymentResponse result = paymentService.createPayment(createPaymentRequest, 100L);
+
+        assertThat(result).isNotNull();
+        verify(paymentOrderRepository).save(any(PaymentOrder.class));
     }
 
     @Test
@@ -210,7 +233,7 @@ class PaymentServiceTest {
     @DisplayName("Should create counter payment without calling Momo API")
     void testCreatePayment_CounterPayment() {
         createPaymentRequest.setPaymentMethod("CASH");
-        when(paymentOrderRepository.existsByAppointmentId(1L)).thenReturn(false);
+        when(paymentOrderRepository.existsByAppointmentIdAndStatusIn(eq(1L), any())).thenReturn(false);
 
         PaymentOrder cashOrder = PaymentOrder.builder()
                 .orderId("CASH123456")
@@ -296,6 +319,32 @@ class PaymentServiceTest {
         assertThat(savedOrder.getStatus()).isEqualTo(PaymentStatus.FAILED);
 
         verify(eventPublisher).publishPaymentFailed(any());
+    }
+
+    @Test
+    @DisplayName("Should ignore successful callback for expired payment")
+    void testHandleMomoCallback_ExpiredOrderDoesNotReopen() {
+        paymentOrder.setStatus(PaymentStatus.EXPIRED);
+
+        MomoCallbackResponse callback = MomoCallbackResponse.builder()
+                .orderId("ORDER123456789")
+                .transactionId(999888777L)
+                .requestId("REQ123")
+                .amount(50000000L)
+                .resultCode(0)
+                .message("Success")
+                .partnerCode("MOMO")
+                .signature("valid_signature")
+                .build();
+
+        when(momoPaymentService.verifyCallback(callback)).thenReturn(true);
+        when(paymentOrderRepository.findByOrderIdWithLock("ORDER123456789"))
+                .thenReturn(Optional.of(paymentOrder));
+
+        paymentService.handleMomoCallback(callback);
+
+        verify(paymentOrderRepository, never()).save(any(PaymentOrder.class));
+        verify(eventPublisher, never()).publishPaymentCompleted(any());
     }
 
     @Test
@@ -563,6 +612,61 @@ class PaymentServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getOrderId()).isEqualTo("ORDER123456789");
         assertThat(result.getAmount()).isEqualByComparingTo(new BigDecimal("50000.00"));
+    }
+
+    @Test
+    @DisplayName("Should get latest payment by appointment ID")
+    void testGetPaymentByAppointmentId_ReturnsLatestOrder() {
+        when(paymentOrderRepository.findTopByAppointmentIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(paymentOrder));
+        when(paymentTransactionRepository.findByPaymentOrderId(1L))
+                .thenReturn(Optional.of(paymentTransaction));
+
+        PaymentResponse result = paymentService.getPaymentByAppointmentId(1L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getOrderId()).isEqualTo("ORDER123456789");
+    }
+
+    @Test
+    @DisplayName("Should expire overdue pending payments")
+    void testExpireOverduePayments_Success() {
+        paymentOrder.setExpiredAt(LocalDateTime.now().minusMinutes(1));
+        when(paymentOrderRepository.findExpiredOrders()).thenReturn(List.of(paymentOrder));
+        when(paymentOrderRepository.save(any(PaymentOrder.class))).thenReturn(paymentOrder);
+
+        int expiredCount = paymentService.expireOverduePayments();
+
+        assertThat(expiredCount).isEqualTo(1);
+        verify(paymentOrderRepository).save(any(PaymentOrder.class));
+        verify(appointmentPaymentSyncClient).updatePaymentStatus(eq(1L), eq("PAYMENT_EXPIRED"), eq("MOMO_WALLET"), any(), isNull());
+        verify(eventPublisher).publishPaymentFailed(any());
+    }
+
+    @Test
+    @DisplayName("Should not expire payments that are no longer pending")
+    void testExpireOverduePayments_IgnoresNonPendingOrders() {
+        paymentOrder.setStatus(PaymentStatus.EXPIRED);
+        paymentOrder.setExpiredAt(LocalDateTime.now().minusMinutes(1));
+        when(paymentOrderRepository.findExpiredOrders()).thenReturn(List.of(paymentOrder));
+
+        int expiredCount = paymentService.expireOverduePayments();
+
+        assertThat(expiredCount).isEqualTo(0);
+        verify(paymentOrderRepository, never()).save(any(PaymentOrder.class));
+        verify(appointmentPaymentSyncClient, never()).updatePaymentStatus(anyLong(), any(), any(), any(), any());
+        verify(eventPublisher, never()).publishPaymentFailed(any());
+    }
+
+    @Test
+    @DisplayName("Should return payment not found when appointment has no payment")
+    void testGetPaymentByAppointmentId_NotFound() {
+        when(paymentOrderRepository.findTopByAppointmentIdOrderByCreatedAtDesc(999L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> paymentService.getPaymentByAppointmentId(999L))
+                .isInstanceOf(PaymentNotFoundException.class)
+                .hasMessageContaining("Payment not found for appointment 999");
     }
 
     @Test

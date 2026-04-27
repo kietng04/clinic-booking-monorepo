@@ -59,37 +59,65 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+    <div className="min-h-screen bg-cream-100 dark:bg-sage-950">
+      <div className="mx-auto grid min-h-screen max-w-7xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
+        <div className="hidden lg:flex lg:flex-col lg:justify-between">
+          <div className="max-w-xl pt-12">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-700 dark:text-brand-300">
+              Patient-first booking experience
+            </p>
+            <h2 className="mt-4 text-5xl font-semibold tracking-tight text-sage-900 dark:text-cream-100">
+              Đăng nhập để tiếp tục quản lý lịch hẹn, hồ sơ và chỉ số sức khỏe.
+            </h2>
+            <p className="mt-5 text-lg leading-8 text-sage-600 dark:text-sage-300">
+              HealthFlow ưu tiên giao diện gọn gàng, trạng thái minh bạch và các hành động chính luôn ở đúng chỗ cần thiết.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { value: 'Một tài khoản', label: 'cho đặt lịch, thanh toán và hồ sơ' },
+              { value: 'Nhắc lịch rõ ràng', label: 'cho bệnh nhân và gia đình' },
+              { value: 'Theo dõi sức khỏe', label: 'với dữ liệu lịch sử gọn gàng' },
+              { value: 'Hỗ trợ nhiều vai trò', label: 'bệnh nhân, bác sĩ, quản trị' },
+            ].map((item) => (
+              <div key={item.value} className="rounded-2xl border border-sage-100 bg-white/80 p-5 shadow-soft dark:border-sage-800 dark:bg-sage-900/70">
+                <div className="text-base font-semibold text-sage-900 dark:text-cream-100">{item.value}</div>
+                <div className="mt-1 text-sm text-sage-600 dark:text-sage-300">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+            className="w-full max-w-md rounded-3xl border border-sage-100 bg-white/88 p-8 shadow-float dark:border-sage-800 dark:bg-sage-900/88"
         >
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sage-500 to-terra-400 flex items-center justify-center">
-              <span className="text-white font-bold text-xl">H</span>
+            <Link to="/" className="mb-8 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-terra-400 text-white shadow-soft">
+                <span className="text-lg font-semibold">H</span>
             </div>
-            <span className="font-display font-bold text-2xl text-sage-900 dark:text-cream-100">
+            <span className="text-xl font-semibold tracking-tight text-sage-900 dark:text-cream-100">
               HealthFlow
             </span>
           </Link>
 
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-display font-bold text-sage-900 dark:text-cream-100 mb-2">
+            <h1 className="mb-2 text-3xl font-semibold tracking-tight text-sage-900 dark:text-cream-100">
               Chào mừng trở lại
             </h1>
-            <p className="text-sage-600 dark:text-sage-400">
+            <p className="text-sage-600 dark:text-sage-300">
               Đăng nhập vào tài khoản của bạn để tiếp tục
             </p>
           </div>
 
           {/* Quick login buttons */}
-          <div className="mb-6 p-4 bg-sage-50 dark:bg-sage-900/50 rounded-soft border border-sage-200 dark:border-sage-800">
-            <p className="text-xs font-medium text-sage-600 dark:text-sage-400 mb-3">Đăng nhập nhanh để Demo:</p>
+            <div className="mb-6 rounded-2xl border border-sage-100 bg-gradient-to-r from-sage-50 to-cream-50 p-4 dark:border-sage-800 dark:from-sage-900 dark:to-sage-950">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-sage-500 dark:text-sage-300">Đăng nhập nhanh để demo</p>
             <div className="flex flex-wrap gap-2">
               {quickDemoLogins.map((demo) => (
                 <button
@@ -97,7 +125,7 @@ export function LoginPage() {
                   data-testid={`quick-login-${String(demo.role).toLowerCase()}`}
                   onClick={() => handleQuickLogin(demo)}
                   disabled={quickLoginLoading !== null}
-                  className="px-3 py-1.5 bg-white dark:bg-sage-800 border border-sage-200 dark:border-sage-700 rounded-lg text-xs font-medium text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                    className="flex items-center gap-1 rounded-xl border border-sage-200 bg-white px-3 py-2 text-xs font-medium text-sage-700 transition-colors hover:bg-sage-50 disabled:opacity-50 dark:border-sage-700 dark:bg-sage-900 dark:text-sage-200 dark:hover:bg-sage-800"
                 >
                   {quickLoginLoading === demo.role && <Loader2 className="w-3 h-3 animate-spin" />}
                   {demo.label}
@@ -132,10 +160,10 @@ export function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded border-sage-300" />
-                <span className="text-sm text-sage-600 dark:text-sage-400">Ghi nhớ đăng nhập</span>
+                  <input type="checkbox" className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
+                <span className="text-sm text-sage-600 dark:text-sage-300">Ghi nhớ đăng nhập</span>
               </label>
-              <Link to="/forgot-password" className="text-sm text-sage-600 dark:text-sage-400 hover:text-sage-900 dark:hover:text-cream-100">
+                <Link to="/forgot-password" className="text-sm text-sage-600 hover:text-sage-900 dark:text-sage-300 dark:hover:text-cream-100">
                 Quên mật khẩu?
               </Link>
             </div>
@@ -153,64 +181,15 @@ export function LoginPage() {
           </form>
 
           {/* Sign up link */}
-          <p className="mt-6 text-center text-sage-600 dark:text-sage-400">
+            <p className="mt-6 text-center text-sage-600 dark:text-sage-300">
             Chưa có tài khoản?{' '}
-            <Link to="/register" className="font-semibold text-sage-900 dark:text-cream-100 hover:text-sage-700">
+              <Link to="/register" className="font-semibold text-sage-900 hover:text-brand-700 dark:text-cream-100 dark:hover:text-brand-300">
               Đăng ký
             </Link>
           </p>
         </motion.div>
       </div>
-
-      {/* Right side - Decorative */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.2 }}
-        className="hidden lg:flex flex-1 bg-gradient-to-br from-sage-500 via-sage-600 to-terra-500 p-12 items-center justify-center relative overflow-hidden"
-      >
-        {/* Decorative circles */}
-        <div className="absolute top-20 right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-terra-400/20 rounded-full blur-3xl"></div>
-
-        <div className="relative z-10 max-w-lg text-white">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="text-5xl font-display font-bold mb-6"
-          >
-            Sức khỏe của bạn, ưu tiên của chúng tôi
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="text-xl text-white/90 leading-relaxed"
-          >
-            Kết nối với các chuyên gia y tế, quản lý lịch hẹn và kiểm soát hành trình chăm sóc sức khỏe của bạn.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="mt-12 grid grid-cols-2 gap-6"
-          >
-            {[
-              { value: '50K+', label: 'Bệnh nhân hài lòng' },
-              { value: '200+', label: 'Bác sĩ chuyên gia' },
-              { value: '98%', label: 'Tỷ lệ hài lòng' },
-              { value: '24/7', label: 'Hỗ trợ luôn sẵn sàng' },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white/10 backdrop-blur rounded-soft p-4">
-                <div className="text-3xl font-display font-bold">{stat.value}</div>
-                <div className="text-sm text-white/80">{stat.label}</div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

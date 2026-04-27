@@ -33,7 +33,7 @@ public class AppointmentPaymentSyncClient {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("paymentOrderId", paymentOrderId);
         payload.put("paymentMethod", paymentMethod);
-        payload.put("paymentExpiresAt", paymentExpiresAt);
+        payload.put("paymentExpiresAt", paymentExpiresAt != null ? paymentExpiresAt.toString() : null);
 
         patchAppointment(appointmentId, "/payment-link", payload);
     }
@@ -48,8 +48,8 @@ public class AppointmentPaymentSyncClient {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("paymentStatus", paymentStatus);
         payload.put("paymentMethod", paymentMethod);
-        payload.put("paymentExpiresAt", paymentExpiresAt);
-        payload.put("paymentCompletedAt", paymentCompletedAt);
+        payload.put("paymentExpiresAt", paymentExpiresAt != null ? paymentExpiresAt.toString() : null);
+        payload.put("paymentCompletedAt", paymentCompletedAt != null ? paymentCompletedAt.toString() : null);
 
         patchAppointment(appointmentId, "/payment-status", payload);
     }

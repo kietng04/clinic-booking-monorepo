@@ -17,7 +17,7 @@ import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class AppointmentRepositorySearchAppointmentsPostgresTest {
@@ -74,4 +74,3 @@ class AppointmentRepositorySearchAppointmentsPostgresTest {
         assertThat(page.getTotalElements()).isGreaterThanOrEqualTo(1);
     }
 }
-

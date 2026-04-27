@@ -7,6 +7,7 @@ import com.clinicbooking.userservice.repository.PasswordResetTokenRepository;
 import com.clinicbooking.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final EmailService emailService;
 
     private static final long TOKEN_EXPIRY_HOURS = 24;
-    private static final String FRONTEND_URL = "http://localhost:5173";
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Override
     @Transactional
@@ -55,7 +58,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 .build();
         tokenRepository.save(resetToken);
 
-        String resetLink = FRONTEND_URL + "/reset-password?token=" + token;
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
         emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
         log.info("Password reset token generated for user: {}", user.getId());
     }

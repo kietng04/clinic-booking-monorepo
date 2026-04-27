@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,6 +18,10 @@ import java.util.UUID;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    private static final String APPOINTMENT_OVERLAP_CONSTRAINT = "appointments_no_active_overlap";
+    private static final String APPOINTMENT_SLOT_CONFLICT_MESSAGE =
+            "Khung giờ này vừa được người khác đặt. Vui lòng chọn khung giờ khác.";
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationException(
@@ -77,6 +82,32 @@ public class GlobalExceptionHandler {
         return buildError(status, message, status.name(), request, null);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+        if (containsConstraint(ex, APPOINTMENT_OVERLAP_CONSTRAINT)) {
+            log.info("Appointment slot conflict rejected by database constraint: {}", APPOINTMENT_OVERLAP_CONSTRAINT);
+            return buildError(
+                    HttpStatus.CONFLICT,
+                    APPOINTMENT_SLOT_CONFLICT_MESSAGE,
+                    "APPOINTMENT_SLOT_CONFLICT",
+                    request,
+                    Map.of("constraint", APPOINTMENT_OVERLAP_CONSTRAINT)
+            );
+        }
+
+        String correlationId = resolveCorrelationId(request);
+        log.warn("Data integrity violation (correlationId={}, path={})", correlationId, request.getRequestURI(), ex);
+        return buildError(
+                HttpStatus.CONFLICT,
+                "Dữ liệu bị trùng hoặc vi phạm ràng buộc",
+                "DATA_INTEGRITY_VIOLATION",
+                request,
+                null
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGenericException(
             Exception ex,
@@ -121,5 +152,23 @@ public class GlobalExceptionHandler {
             correlationId = UUID.randomUUID().toString();
         }
         return correlationId;
+    }
+
+    private boolean containsConstraint(Throwable throwable, String constraintName) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof org.hibernate.exception.ConstraintViolationException constraintViolation
+                    && constraintName.equals(constraintViolation.getConstraintName())) {
+                return true;
+            }
+
+            String message = current.getMessage();
+            if (message != null && message.contains(constraintName)) {
+                return true;
+            }
+
+            current = current.getCause();
+        }
+        return false;
     }
 }

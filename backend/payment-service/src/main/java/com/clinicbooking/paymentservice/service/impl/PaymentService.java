@@ -38,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -69,7 +70,7 @@ public class PaymentService implements IPaymentService {
     public PaymentResponse createPayment(CreatePaymentRequest request, Long patientId) {
         log.info("Creating payment for appointment {} by patient {}", request.getAppointmentId(), patientId);
 
-        if (paymentOrderRepository.existsByAppointmentId(request.getAppointmentId())) {
+        if (hasBlockingPayment(request.getAppointmentId())) {
             log.warn("Duplicate payment creation attempt for appointment {}", request.getAppointmentId());
             throw new DuplicatePaymentException(
                 String.format("Payment already exists for appointment %d", request.getAppointmentId()),
@@ -251,6 +252,7 @@ public class PaymentService implements IPaymentService {
 
             if (paymentOrder.getStatus() == PaymentStatus.COMPLETED ||
                     paymentOrder.getStatus() == PaymentStatus.FAILED ||
+                    paymentOrder.getStatus() == PaymentStatus.EXPIRED ||
                     paymentOrder.getStatus() == PaymentStatus.REFUNDED) {
                 log.warn("Callback for order {} already processed with status {}",
                         callback.getOrderId(), paymentOrder.getStatus());
@@ -414,12 +416,51 @@ public class PaymentService implements IPaymentService {
     public PaymentResponse getPaymentByAppointmentId(Long appointmentId) {
         log.debug("Fetching payment by appointment ID: {}", appointmentId);
 
-        PaymentOrder paymentOrder = paymentOrderRepository.findByAppointmentId(appointmentId)
+        PaymentOrder paymentOrder = paymentOrderRepository.findTopByAppointmentIdOrderByCreatedAtDesc(appointmentId)
                 .orElseThrow(() -> new PaymentNotFoundException(
                         String.format("Payment not found for appointment %d", appointmentId)
                 ));
 
         return mapToPaymentResponse(paymentOrder);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = CACHE_NAME, allEntries = true)
+    public int expireOverduePayments() {
+        List<PaymentOrder> overdueOrders = paymentOrderRepository.findExpiredOrders();
+        if (overdueOrders.isEmpty()) {
+            return 0;
+        }
+
+        int expiredCount = 0;
+        for (PaymentOrder paymentOrder : overdueOrders) {
+            if (!paymentOrder.isPending()) {
+                continue;
+            }
+
+            paymentOrder.setStatus(PaymentStatus.EXPIRED);
+            paymentOrder.setExpiredAt(LocalDateTime.now());
+            paymentOrderRepository.save(paymentOrder);
+            syncAppointmentPaymentState(paymentOrder, paymentOrder.getExpiredAt());
+
+            PaymentEvent expiredEvent = PaymentEvent.builder()
+                    .eventType("payment.expired")
+                    .data(PaymentEvent.PaymentEventData.builder()
+                            .orderId(paymentOrder.getOrderId())
+                            .appointmentId(paymentOrder.getAppointmentId())
+                            .patientId(paymentOrder.getPatientId())
+                            .doctorId(paymentOrder.getDoctorId())
+                            .amount(paymentOrder.getAmount())
+                            .status(PaymentStatus.EXPIRED.name())
+                            .errorMessage("Payment expired before completion")
+                            .build())
+                    .build();
+            eventPublisher.publishPaymentFailed(expiredEvent);
+            expiredCount++;
+        }
+
+        return expiredCount;
     }
 
     
@@ -805,6 +846,13 @@ public class PaymentService implements IPaymentService {
             case REFUNDED -> "REFUNDED";
             case PARTIALLY_REFUNDED -> "PARTIALLY_REFUNDED";
         };
+    }
+
+    private boolean hasBlockingPayment(Long appointmentId) {
+        return paymentOrderRepository.existsByAppointmentIdAndStatusIn(
+                appointmentId,
+                EnumSet.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING, PaymentStatus.COMPLETED)
+        );
     }
 
 

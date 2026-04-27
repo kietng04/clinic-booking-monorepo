@@ -24,6 +24,9 @@ jwt:
   secret: dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=
   expiration: 86400000
 
+app:
+  frontend-url: http://localhost:5173
+
 logging:
   level:
     com.clinicbooking.userservice: DEBUG

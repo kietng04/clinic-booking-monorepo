@@ -12,10 +12,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +46,8 @@ class VerificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(verificationService, "frontendUrl", "https://frontend.example");
+
         testUser = User.builder()
                 .id(1L)
                 .email("test@example.com")
@@ -98,7 +99,10 @@ class VerificationServiceImplTest {
         assertThat(savedCode.getType()).isEqualTo(VerificationCode.VerificationType.EMAIL);
         assertThat(savedCode.getCode()).isNotNull();
 
-        verify(emailService).sendVerificationEmail(eq("test@example.com"), anyString());
+        verify(emailService).sendVerificationEmail(
+                eq("test@example.com"),
+                eq("https://frontend.example/verify-email?token=" + savedCode.getCode())
+        );
     }
 
     @Test
@@ -153,10 +157,8 @@ class VerificationServiceImplTest {
     @Test
     void verifyEmail_withValidToken_verifiesEmail() {
         // Arrange
-        List<VerificationCode> allCodes = Arrays.asList(emailCode);
-        when(verificationCodeRepository.findByUserIdAndCode(anyLong(), anyString()))
-                .thenReturn(Optional.empty());
-        when(verificationCodeRepository.findAll()).thenReturn(allCodes);
+        when(verificationCodeRepository.findByCodeAndType("token-123", VerificationCode.VerificationType.EMAIL))
+                .thenReturn(Optional.of(emailCode));
         when(verificationCodeRepository.save(any(VerificationCode.class))).thenReturn(emailCode);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
@@ -175,10 +177,8 @@ class VerificationServiceImplTest {
     void verifyEmail_withExpiredToken_returnsFalse() {
         // Arrange
         emailCode.setExpiryDate(LocalDateTime.now().minusHours(1));
-        List<VerificationCode> allCodes = Arrays.asList(emailCode);
-        when(verificationCodeRepository.findByUserIdAndCode(anyLong(), anyString()))
-                .thenReturn(Optional.empty());
-        when(verificationCodeRepository.findAll()).thenReturn(allCodes);
+        when(verificationCodeRepository.findByCodeAndType("token-123", VerificationCode.VerificationType.EMAIL))
+                .thenReturn(Optional.of(emailCode));
 
         // Act
         boolean result = verificationService.verifyEmail("token-123");
@@ -193,10 +193,8 @@ class VerificationServiceImplTest {
     void verifyEmail_withAlreadyVerifiedToken_returnsFalse() {
         // Arrange
         emailCode.setIsVerified(true);
-        List<VerificationCode> allCodes = Arrays.asList(emailCode);
-        when(verificationCodeRepository.findByUserIdAndCode(anyLong(), anyString()))
-                .thenReturn(Optional.empty());
-        when(verificationCodeRepository.findAll()).thenReturn(allCodes);
+        when(verificationCodeRepository.findByCodeAndType("token-123", VerificationCode.VerificationType.EMAIL))
+                .thenReturn(Optional.of(emailCode));
 
         // Act
         boolean result = verificationService.verifyEmail("token-123");
@@ -208,9 +206,8 @@ class VerificationServiceImplTest {
     @Test
     void verifyEmail_withInvalidToken_returnsFalse() {
         // Arrange
-        when(verificationCodeRepository.findByUserIdAndCode(anyLong(), anyString()))
+        when(verificationCodeRepository.findByCodeAndType("invalid-token", VerificationCode.VerificationType.EMAIL))
                 .thenReturn(Optional.empty());
-        when(verificationCodeRepository.findAll()).thenReturn(Arrays.asList());
 
         // Act
         boolean result = verificationService.verifyEmail("invalid-token");

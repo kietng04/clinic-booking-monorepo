@@ -8,12 +8,12 @@ export function DashboardLayout({ children }) {
   const { toast, hideToast } = useUIStore()
 
   return (
-    <div className="min-h-screen bg-cream-50 dark:bg-sage-950">
+    <div className="min-h-screen bg-cream-100 dark:bg-sage-950">
       <Navbar />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
             {children}
           </div>
         </main>

@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { SkeletonCard } from '@/components/ui/Loading'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { notificationApi } from '@/api/notificationApiWrapper'
@@ -216,26 +217,23 @@ const NotificationCenter = () => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Quay lại
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-display font-bold text-sage-900">
-              Trung tâm Thông báo
-            </h1>
-            {unreadCount > 0 && (
-              <Badge className="bg-sage-100 text-sage-800 mt-1">
-                {unreadCount} chưa đọc
-              </Badge>
-            )}
+      <PageHeader
+        title="Thông báo"
+        description="Theo dõi các cập nhật về lịch hẹn, hồ sơ và thanh toán trong danh sách ưu tiên khả năng đọc."
+        action={(
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {unreadCount} chưa đọc
           </div>
-        </div>
+        )}
+      />
+
+      <div className="flex items-center justify-between">
+        <Link to="/dashboard">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="mr-1 h-4 w-4" />
+            Quay lại
+          </Button>
+        </Link>
 
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (

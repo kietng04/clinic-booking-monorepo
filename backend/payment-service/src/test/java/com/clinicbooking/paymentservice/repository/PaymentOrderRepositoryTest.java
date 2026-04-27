@@ -79,6 +79,38 @@ class PaymentOrderRepositoryTest {
     }
 
     @Test
+    @DisplayName("Should return latest payment order for appointment")
+    void testFindTopByAppointmentIdOrderByCreatedAtDesc() {
+        PaymentOrder olderOrder = paymentOrderRepository.save(testPaymentOrder);
+        entityManager.flush();
+
+        PaymentOrder latestOrder = PaymentOrder.builder()
+                .orderId("ORDER-LATEST-1")
+                .appointmentId(1L)
+                .patientId(100L)
+                .doctorId(200L)
+                .patientName("John Doe")
+                .patientEmail("john@example.com")
+                .patientPhone("0123456789")
+                .doctorName("Dr. Smith")
+                .amount(new BigDecimal("55000.00"))
+                .currency("VND")
+                .description("Latest payment")
+                .paymentMethod(PaymentMethod.MOMO_WALLET)
+                .status(PaymentStatus.PENDING)
+                .build();
+        paymentOrderRepository.save(latestOrder);
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<PaymentOrder> found = paymentOrderRepository.findTopByAppointmentIdOrderByCreatedAtDesc(1L);
+
+        assertThat(found).isPresent();
+        assertThat(found.get().getOrderId()).isEqualTo("ORDER-LATEST-1");
+        assertThat(found.get().getOrderId()).isNotEqualTo(olderOrder.getOrderId());
+    }
+
+    @Test
     @DisplayName("Should find payment orders by patient ID with pagination")
     void testFindByPatientId() {
         paymentOrderRepository.save(testPaymentOrder);

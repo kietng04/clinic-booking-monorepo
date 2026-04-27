@@ -7,6 +7,7 @@ import com.clinicbooking.userservice.repository.UserRepository;
 import com.clinicbooking.userservice.repository.VerificationCodeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +25,9 @@ public class VerificationServiceImpl implements VerificationService {
     private final EmailService emailService;
     private final SmsService smsService;
 
-    private static final String FRONTEND_URL = "http://localhost:5173";
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     private static final long CODE_EXPIRY_MINUTES = 30;
     private static final int MAX_ATTEMPTS = 5;
 
@@ -48,7 +51,7 @@ public class VerificationServiceImpl implements VerificationService {
                 .build();
         verificationCodeRepository.save(code);
 
-        String verificationLink = FRONTEND_URL + "/verify-email?token=" + token;
+        String verificationLink = frontendUrl + "/verify-email?token=" + token;
         emailService.sendVerificationEmail(user.getEmail(), verificationLink);
         log.info("Email verification code sent for user: {}", userId);
     }
@@ -73,27 +76,9 @@ public class VerificationServiceImpl implements VerificationService {
     @Override
     @Transactional
     public boolean verifyEmail(String token) {
-        VerificationCode code = verificationCodeRepository
-                .findByUserIdAndCode(0L, token)
-                .orElse(null);
-
-        // Search across all users for this token
-        if (code == null) {
-            // Find by code directly (token is the code field)
-            return verifyByToken(token);
-        }
-        return doVerify(code);
-    }
-
-    private boolean verifyByToken(String token) {
-        // Find the verification code by searching all users
-        var allCodes = verificationCodeRepository.findAll();
-        for (var code : allCodes) {
-            if (code.getCode().equals(token) && code.getType() == VerificationCode.VerificationType.EMAIL) {
-                return doVerify(code);
-            }
-        }
-        return false;
+        return verificationCodeRepository.findByCodeAndType(token, VerificationCode.VerificationType.EMAIL)
+                .map(this::doVerify)
+                .orElse(false);
     }
 
     private boolean doVerify(VerificationCode code) {

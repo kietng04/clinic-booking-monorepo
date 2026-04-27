@@ -3,6 +3,7 @@ package com.clinicbooking.appointmentservice.service;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleCreateDto;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleResponseDto;
 import com.clinicbooking.appointmentservice.dto.DoctorScheduleUpdateDto;
+import com.clinicbooking.appointmentservice.dto.UserDto;
 import com.clinicbooking.appointmentservice.entity.DoctorSchedule;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.repository.DoctorScheduleRepository;
@@ -42,12 +43,23 @@ class DoctorScheduleServiceTest {
     private DoctorSchedule schedule;
     private DoctorScheduleCreateDto createDto;
     private DoctorScheduleUpdateDto updateDto;
+    private DoctorScheduleResponseDto responseDto;
 
     @BeforeEach
     void setUp() {
         doctorScheduleService = new DoctorScheduleServiceImpl(doctorScheduleRepository, doctorScheduleMapper, userServiceClient);
 
         schedule = DoctorSchedule.builder()
+                .id(1L)
+                .doctorId(1L)
+                .doctorName("Dr. Smith")
+                .dayOfWeek(1)
+                .startTime(LocalTime.of(9, 0))
+                .endTime(LocalTime.of(17, 0))
+                .isAvailable(true)
+                .build();
+
+        responseDto = DoctorScheduleResponseDto.builder()
                 .id(1L)
                 .doctorId(1L)
                 .doctorName("Dr. Smith")
@@ -73,7 +85,15 @@ class DoctorScheduleServiceTest {
     @Test
     void testCreateSchedule_Success() {
         // Given
+        when(userServiceClient.getUserById(1L)).thenReturn(UserDto.builder()
+                .id(1L)
+                .fullName("Dr. Smith")
+                .role("DOCTOR")
+                .build());
+        when(doctorScheduleRepository.existsByDoctorIdAndDayOfWeek(1L, 1)).thenReturn(false);
+        when(doctorScheduleMapper.toEntity(createDto)).thenReturn(schedule);
         when(doctorScheduleRepository.save(any())).thenReturn(schedule);
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         DoctorScheduleResponseDto result = doctorScheduleService.createSchedule(createDto);
@@ -89,6 +109,7 @@ class DoctorScheduleServiceTest {
     void testGetScheduleById_Success() {
         // Given
         when(doctorScheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         DoctorScheduleResponseDto result = doctorScheduleService.getScheduleById(1L);
@@ -114,6 +135,7 @@ class DoctorScheduleServiceTest {
     void testGetSchedulesByDoctorId() {
         // Given
         when(doctorScheduleRepository.findByDoctorId(1L)).thenReturn(List.of(schedule));
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         List<DoctorScheduleResponseDto> result = doctorScheduleService.getSchedulesByDoctorId(1L);
@@ -130,6 +152,7 @@ class DoctorScheduleServiceTest {
         // Given
         when(doctorScheduleRepository.findByDoctorIdAndDayOfWeek(1L, 1))
                 .thenReturn(List.of(schedule));
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         List<DoctorScheduleResponseDto> result = doctorScheduleService
@@ -148,6 +171,7 @@ class DoctorScheduleServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<DoctorSchedule> schedulePage = new PageImpl<>(List.of(schedule));
         when(doctorScheduleRepository.findAll(pageable)).thenReturn(schedulePage);
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         Page<DoctorScheduleResponseDto> result = doctorScheduleService.getAllSchedules(pageable);
@@ -163,6 +187,7 @@ class DoctorScheduleServiceTest {
         // Given
         when(doctorScheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
         when(doctorScheduleRepository.save(any())).thenReturn(schedule);
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         DoctorScheduleResponseDto result = doctorScheduleService.updateSchedule(1L, updateDto);
@@ -191,6 +216,7 @@ class DoctorScheduleServiceTest {
 
         when(doctorScheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
         when(doctorScheduleRepository.save(any())).thenReturn(schedule);
+        when(doctorScheduleMapper.toDto(schedule)).thenReturn(responseDto);
 
         // When
         DoctorScheduleResponseDto result = doctorScheduleService.updateSchedule(1L, partialUpdate);
@@ -203,20 +229,20 @@ class DoctorScheduleServiceTest {
     @Test
     void testDeleteSchedule_Success() {
         // Given
-        when(doctorScheduleRepository.findById(1L)).thenReturn(Optional.of(schedule));
+        when(doctorScheduleRepository.existsById(1L)).thenReturn(true);
 
         // When
         doctorScheduleService.deleteSchedule(1L);
 
         // Then
-        verify(doctorScheduleRepository).findById(1L);
+        verify(doctorScheduleRepository).existsById(1L);
         verify(doctorScheduleRepository).deleteById(1L);
     }
 
     @Test
     void testDeleteSchedule_NotFound() {
         // Given
-        when(doctorScheduleRepository.findById(999L)).thenReturn(Optional.empty());
+        when(doctorScheduleRepository.existsById(999L)).thenReturn(false);
 
         // When/Then
         assertThatThrownBy(() -> doctorScheduleService.deleteSchedule(999L))

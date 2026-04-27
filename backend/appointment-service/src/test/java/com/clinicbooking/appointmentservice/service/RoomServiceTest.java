@@ -2,6 +2,7 @@ package com.clinicbooking.appointmentservice.service;
 
 import com.clinicbooking.appointmentservice.dto.RoomCreateDto;
 import com.clinicbooking.appointmentservice.dto.RoomResponseDto;
+import com.clinicbooking.appointmentservice.entity.Clinic;
 import com.clinicbooking.appointmentservice.entity.Room;
 import com.clinicbooking.appointmentservice.exception.ResourceNotFoundException;
 import com.clinicbooking.appointmentservice.repository.RoomRepository;
@@ -62,6 +63,7 @@ class RoomServiceTest {
     @Test
     void testCreateRoom_Success() {
         // Given
+        when(clinicRepository.findById(1L)).thenReturn(Optional.of(Clinic.builder().id(1L).name("Clinic").build()));
         when(roomRepository.save(any())).thenReturn(room);
 
         // When
@@ -96,7 +98,7 @@ class RoomServiceTest {
         // When/Then
         assertThatThrownBy(() -> roomService.getRoomById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Phòng không tồn tại");
+                .hasMessageContaining("Phòng không tìm thấy");
     }
 
     @Test
@@ -135,7 +137,7 @@ class RoomServiceTest {
         // Given
         Pageable pageable = PageRequest.of(0, 10);
         Page<Room> roomPage = new PageImpl<>(List.of(room));
-        when(roomRepository.findAll(pageable)).thenReturn(roomPage);
+        when(roomRepository.findByNameContainingIgnoreCase("", pageable)).thenReturn(roomPage);
 
         // When
         Page<RoomResponseDto> result = roomService.getAllRooms(null, pageable);
@@ -143,7 +145,7 @@ class RoomServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
-        verify(roomRepository).findAll(pageable);
+        verify(roomRepository).findByNameContainingIgnoreCase("", pageable);
     }
 
     @Test

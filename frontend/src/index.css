@@ -18,11 +18,13 @@
 
 @layer components {
   .glass {
-    @apply bg-white/88 backdrop-blur-md border border-sage-100 shadow-soft;
+    background-color: rgb(255 255 255 / 0.88);
+    @apply backdrop-blur-md border border-sage-100 shadow-soft;
   }
 
   .glass-dark {
-    @apply bg-sage-950/90 backdrop-blur-md border border-sage-800;
+    background-color: rgb(28 36 31 / 0.9);
+    @apply backdrop-blur-md border border-sage-800;
   }
 
   ::-webkit-scrollbar {

@@ -1,6 +1,7 @@
 import SockJS from 'sockjs-client'
 import { Stomp } from '@stomp/stompjs'
 import { API_BASE_URL, createApiClient } from '../core/createApiClient'
+import { devLog } from '../../utils/devLogger'
 
 /**
  * Consultation API - Real backend integration
@@ -275,7 +276,7 @@ class WebSocketManager {
     this.stompClient.connect(
       { Authorization: `Bearer ${token}` },
       () => {
-        console.log('WebSocket connected')
+        devLog('WebSocket connected')
         this.connected = true
         this.reconnectAttempts = 0
         if (onConnected) onConnected()
@@ -289,7 +290,7 @@ class WebSocketManager {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++
           setTimeout(() => {
-            console.log(`Reconnecting... Attempt ${this.reconnectAttempts}`)
+            devLog(`Reconnecting... Attempt ${this.reconnectAttempts}`)
             this.connect(onConnected, onError)
           }, this.reconnectDelay)
         }
@@ -320,7 +321,7 @@ class WebSocketManager {
     })
 
     this.subscriptions.set(consultationId, subscription)
-    console.log(`Subscribed to consultation ${consultationId}`)
+    devLog(`Subscribed to consultation ${consultationId}`)
     return subscription
   }
 
@@ -352,7 +353,7 @@ class WebSocketManager {
     if (subscription) {
       subscription.unsubscribe()
       this.subscriptions.delete(consultationId)
-      console.log(`Unsubscribed from consultation ${consultationId}`)
+      devLog(`Unsubscribed from consultation ${consultationId}`)
     }
 
     const readSubscription = this.subscriptions.get(`${consultationId}-read`)
@@ -374,7 +375,7 @@ class WebSocketManager {
       this.subscriptions.clear()
 
       this.stompClient.disconnect(() => {
-        console.log('WebSocket disconnected')
+        devLog('WebSocket disconnected')
       })
       this.connected = false
     }

@@ -3,9 +3,9 @@ spring:
     name: payment-service
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5436}/${POSTGRES_DB:payment_db}
-    username: ${POSTGRES_USER:payment_user}
-    password: ${POSTGRES_PASSWORD:payment123}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5437}/${POSTGRES_DB:payment_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -82,7 +82,7 @@ momo:
   access-key: ${MOMO_ACCESS_KEY:klm05TvNBzhg7h7j}
   secret-key: ${MOMO_SECRET_KEY:at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa}
   public-key: ${MOMO_PUBLIC_KEY:}
-  endpoint: ${MOMO_ENDPOINT:https://payment.momo.vn}
+  endpoint: ${MOMO_ENDPOINT:https://test-payment.momo.vn}
   redirect-url: ${PAYMENT_REDIRECT_URL:http://localhost:3000/payment/result}
   ipn-url: ${PAYMENT_IPN_URL:http://localhost:8084/api/payments/momo/callback}
   request-type: captureWallet

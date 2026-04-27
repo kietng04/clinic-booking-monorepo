@@ -1,4 +1,5 @@
 import { adminApi as realAdminApi } from './realApis/adminApi'
+import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
@@ -329,6 +330,6 @@ export const adminApi = {
 
 }
 
-console.log(`🏥 Admin Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`)
+devLog(`🏥 Admin Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`)
 
 export default adminApi

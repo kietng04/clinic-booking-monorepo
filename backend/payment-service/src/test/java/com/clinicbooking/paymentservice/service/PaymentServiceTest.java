@@ -1,5 +1,6 @@
 package com.clinicbooking.paymentservice.service;
 
+import com.clinicbooking.paymentservice.client.AppointmentPaymentSyncClient;
 import com.clinicbooking.paymentservice.dto.request.ConfirmCounterPaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.CreatePaymentRequest;
 import com.clinicbooking.paymentservice.dto.request.RefundPaymentRequest;
@@ -68,6 +69,9 @@ class PaymentServiceTest {
 
     @Mock
     private IPaymentEventPublisher eventPublisher;
+
+    @Mock
+    private AppointmentPaymentSyncClient appointmentPaymentSyncClient;
 
     @InjectMocks
     private PaymentService paymentService;

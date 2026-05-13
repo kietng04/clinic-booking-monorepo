@@ -20,6 +20,10 @@ concurrency:
 jobs:
   test-and-verify:
     runs-on: ubuntu-latest
+    env:
+      TZ: UTC
+      CI: true
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     defaults:
       run:
         working-directory: backend
@@ -39,7 +43,27 @@ jobs:
         run: chmod +x mvnw
 
       - name: Verify Maven reactor
-        run: ./mvnw -B verify
+        run: ./mvnw -B -DtrimStackTrace=false verify
+
+      - name: Dump test reports on failure
+        if: failure()
+        run: |
+          echo "=== Surefire/Failsafe reports ==="
+          find . \( -path '*/target/surefire-reports/*' -o -path '*/target/failsafe-reports/*' \) -type f | sort | while read -r file; do
+            echo
+            echo ">>> $file"
+            sed -n '1,220p' "$file"
+          done
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/**/target/surefire-reports/**
+            backend/**/target/failsafe-reports/**
+          if-no-files-found: ignore
 
       - name: Validate Docker Compose
         run: docker compose config > /tmp/backend-docker-compose.rendered.yml

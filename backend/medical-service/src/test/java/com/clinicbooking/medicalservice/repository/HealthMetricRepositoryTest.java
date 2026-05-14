@@ -144,7 +144,7 @@ class HealthMetricRepositoryTest {
     @DisplayName("Should find health metrics by patient ID and date range")
     void testFindByPatientIdAndMeasuredAtBetween() {
         LocalDateTime start = baseTime.minusDays(4);
-        LocalDateTime end = baseTime.minusDays(1);
+        LocalDateTime end = baseTime.minusHours(12);
 
         List<HealthMetric> metrics = healthMetricRepository
                 .findByPatientIdAndMeasuredAtBetween(100L, start, end);
@@ -198,7 +198,7 @@ class HealthMetricRepositoryTest {
     @DisplayName("Should find metrics by patient, type and date range")
     void testFindByPatientIdAndMetricTypeAndMeasuredAtBetween() {
         LocalDateTime start = baseTime.minusDays(6);
-        LocalDateTime end = baseTime.minusDays(1);
+        LocalDateTime end = baseTime.minusHours(12);
 
         List<HealthMetric> metrics = healthMetricRepository
                 .findByPatientIdAndMetricTypeAndMeasuredAtBetween(

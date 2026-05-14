@@ -38,7 +38,7 @@ public class ServiceCatalogService {
 
     public Optional<String> answerServiceCatalog(String authorizationHeader) {
         try {
-            MedicalServiceCatalogPageResponse page = fetchServices(authorizationHeader);
+            MedicalServiceCatalogPageResponse page = fetchServicesPage(authorizationHeader);
             List<MedicalServiceCatalogEntry> services = page == null || page.content() == null
                     ? List.of()
                     : page.content().stream()
@@ -80,7 +80,17 @@ public class ServiceCatalogService {
         }
     }
 
-    private MedicalServiceCatalogPageResponse fetchServices(String authorizationHeader) {
+    public List<MedicalServiceCatalogEntry> fetchServiceCatalogSnapshot(String authorizationHeader) {
+        try {
+            MedicalServiceCatalogPageResponse response = fetchServicesPage(authorizationHeader);
+            return response == null || response.content() == null ? List.of() : response.content();
+        } catch (RestClientException ex) {
+            log.warn("Service catalog snapshot fetch failed: {}", ex.getMessage());
+            return List.of();
+        }
+    }
+
+    private MedicalServiceCatalogPageResponse fetchServicesPage(String authorizationHeader) {
         String url = UriComponentsBuilder.fromHttpUrl(appointmentServiceUrl)
                 .path("/api/services")
                 .queryParam("page", 0)

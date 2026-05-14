@@ -1,0 +1,173 @@
+| SC-AUTH-001 | Landing | High | Preconditions: Logged out. Action: Open `/` | Landing page renders without crash |
+| SC-AUTH-005 | Auth | High | Preconditions: Logged out. Action: Open `/login` | Login form renders and accepts input |
+| SC-AUTH-006 | Auth | High | Preconditions: Logged out. Action: Login with valid patient account | Redirects to patient dashboard |
+| SC-AUTH-007 | Auth | High | Preconditions: Logged out. Action: Login with valid doctor account | Redirects to doctor dashboard |
+| SC-AUTH-008 | Auth | High | Preconditions: Logged out. Action: Login with valid admin account | Redirects to admin dashboard |
+| SC-AUTH-009 | Auth | High | Preconditions: Logged out. Action: Submit invalid email/password on login | User stays unauthenticated and sees actionable error |
+| SC-AUTH-013 | Auth | High | Preconditions: Logged out. Action: Open `/register` | Registration page renders correctly |
+| SC-AUTH-017 | Auth | Medium | Preconditions: Logged out. Action: Complete a valid registration flow if backend permits | Account is created or system returns explicit controlled denial |
+| SC-AUTH-018 | Auth Recovery | Medium | Preconditions: Logged out. Action: Open `/forgot-password` | Forgot-password form renders |
+| SC-AUTH-019 | Auth Recovery | Medium | Preconditions: Logged out. Action: Submit forgot-password with valid email | Success confirmation is shown |
+| SC-AUTH-022 | Verification | Medium | Preconditions: Logged out. Action: Open `/verify-email` with no token or invalid token | Graceful invalid/expired verification state is shown |
+| SC-AUTH-023 | Verification | Medium | Preconditions: Logged out. Action: Open `/verify-phone` | OTP UI renders correctly |
+| SC-AUTH-027 | Access Control | High | Preconditions: Logged out. Action: Open `/dashboard` directly | Redirects to `/login` or denies access safely |
+| SC-AUTH-028 | Access Control | High | Preconditions: Logged out. Action: Open a patient-only route directly | Redirect or denial works correctly |
+| SC-AUTH-029 | Access Control | High | Preconditions: Logged out. Action: Open a doctor-only route directly | Redirect or denial works correctly |
+| SC-AUTH-030 | Access Control | High | Preconditions: Logged out. Action: Open an admin-only route directly | Redirect or denial works correctly |
+| SC-AUTH-031 | Session | High | Preconditions: Logged in. Action: Use logout action from top-nav/profile menu | Session is cleared and user returns to public state |
+| SC-AUTH-032 | Session | Medium | Preconditions: Logged in. Action: Refresh browser on an authenticated route | Session persists or fails explicitly and consistently |
+| SC-AUTH-034 | Session | Medium | Preconditions: Logged in as patient. Action: Attempt to open doctor route | Redirects or blocks access |
+| SC-AUTH-035 | Session | Medium | Preconditions: Logged in as patient. Action: Attempt to open admin route | Redirects or blocks access |
+| SC-AUTH-036 | Session | Medium | Preconditions: Logged in as doctor. Action: Attempt to open patient route | Redirects or blocks access |
+| SC-AUTH-037 | Session | Medium | Preconditions: Logged in as doctor. Action: Attempt to open admin route | Redirects or blocks access |
+| SC-AUTH-038 | Session | Medium | Preconditions: Logged in as admin. Action: Attempt to open patient route | Redirects or blocks access |
+| SC-AUTH-039 | Session | Medium | Preconditions: Logged in as admin. Action: Attempt to open doctor route | Redirects or blocks access |
+| SC-PAT-001 | Dashboard | High | Preconditions: Logged in as patient. Action: Open `/dashboard` | Dashboard renders without route crash |
+| SC-PAT-002 | Dashboard | High | Preconditions: Logged in as patient. Action: Validate summary cards and widgets | Core dashboard modules appear |
+| SC-PAT-003 | Dashboard | High | Preconditions: Logged in as patient. Action: Observe network/console on dashboard load | No unexpected 5xx or JS exceptions |
+| SC-PAT-004 | Navigation | High | Preconditions: Logged in as patient. Action: Use sidebar to move to appointments | Correct route transition occurs |
+| SC-PAT-005 | Navigation | Medium | Preconditions: Logged in as patient. Action: Use sidebar to move to doctor search | Correct route transition occurs |
+| SC-PAT-006 | Navigation | Medium | Preconditions: Logged in as patient. Action: Use sidebar to move to records, metrics, family, notifications | All links work |
+| SC-PAT-007 | Navigation | Medium | Preconditions: Logged in as patient. Action: Use header/profile entrypoints to profile pages | Navigation works without dead links |
+| SC-PAT-008 | Doctor Search | High | Preconditions: Logged in as patient. Action: Open `/find-doctors` | Doctor search page renders |
+| SC-PAT-009 | Doctor Search | High | Preconditions: Logged in as patient. Action: Search by doctor name | Results filter correctly |
+| SC-PAT-010 | Doctor Search | High | Preconditions: Logged in as patient. Action: Search by specialty text | Matching doctors are shown |
+| SC-PAT-013 | Doctor Search | Medium | Preconditions: Logged in as patient. Action: Use booking CTA from search results | User reaches booking flow with selected doctor context |
+| SC-PAT-015 | Booking | High | Preconditions: Logged in as patient. Action: Open `/appointments/book` | Booking wizard/form renders |
+| SC-PAT-016 | Booking | High | Preconditions: Logged in as patient. Action: Start booking from preselected doctor | Doctor context is preserved |
+| SC-PAT-017 | Booking | High | Preconditions: Logged in as patient. Action: Select doctor, date, time, notes, and continue | Flow advances correctly between steps |
+| SC-PAT-018 | Booking | High | Preconditions: Logged in as patient. Action: Submit a valid booking | Appointment is created or redirected into payment flow |
+| SC-PAT-019 | Booking | High | Preconditions: Logged in as patient. Action: Verify new appointment appears in appointments list | Newly created appointment is visible |
+| SC-PAT-020 | Booking | High | Preconditions: Logged in as patient. Action: Verify payment handoff if booking requires it | Redirect to payment page/gateway happens correctly |
+| SC-PAT-025 | Booking | Medium | Preconditions: Logged in as patient. Action: Retry after one failed booking or payment handoff | Flow stays recoverable |
+| SC-PAT-026 | Appointments | High | Preconditions: Logged in as patient. Action: Open `/appointments` | Appointment list renders |
+| SC-PAT-027 | Appointments | High | Preconditions: Logged in as patient with seeded appointments. Action: Inspect statuses and metadata in list | Cards/rows show correct data |
+| SC-PAT-028 | Appointments | Medium | Preconditions: Logged in as patient. Action: Open an appointment detail page | Detail page renders correctly |
+| SC-PAT-029 | Appointments | Medium | Preconditions: Logged in as patient. Action: Use cancel action if available | Appointment state changes or system denies safely |
+| SC-PAT-030 | Appointments | Medium | Preconditions: Logged in as patient. Action: Use reschedule affordance if present | Flow opens or system states feature is unavailable |
+| SC-PAT-032 | Appointment Detail | Medium | Preconditions: Logged in as patient. Action: Verify doctor, time, location, reason, notes, payment summary | Detail data is consistent |
+| SC-PAT-035 | Payments | High | Preconditions: Logged in as patient. Action: Open `/payments` | Payment history page renders |
+| SC-PAT-036 | Payments | High | Preconditions: Logged in as patient with prior order. Action: Verify pending/completed payment row appears | Payment entry is visible and readable |
+| SC-PAT-042 | Payments | Low | Preconditions: Logged in as patient. Action: Check empty-state payment history | Empty-state UI is correct |
+| SC-PAT-043 | Medical Records | High | Preconditions: Logged in as patient. Action: Open `/medical-records` | Records list renders |
+| SC-PAT-044 | Medical Records | High | Preconditions: Logged in as patient. Action: Open one record detail if available | Record detail renders |
+| SC-PAT-045 | Medical Records | Medium | Preconditions: Logged in as patient. Action: Validate empty-state records when none exist | Empty-state is graceful |
+| SC-PAT-047 | Prescriptions | Medium | Preconditions: Logged in as patient. Action: Open linked prescription detail if available | Prescription view renders correctly |
+| SC-PAT-048 | Prescriptions | Low | Preconditions: Logged in as patient. Action: Open invalid prescription ID | Safe fallback or error message is shown |
+| SC-PAT-049 | Health Metrics | High | Preconditions: Logged in as patient. Action: Open `/health-metrics` | Metrics page renders |
+| SC-PAT-050 | Health Metrics | High | Preconditions: Logged in as patient. Action: Add a valid blood pressure metric | Entry saves successfully |
+| SC-PAT-052 | Health Metrics | Medium | Preconditions: Logged in as patient. Action: Verify newly added metric appears in cards/chart | Data refreshes correctly |
+| SC-PAT-054 | Health Metrics | Low | Preconditions: Logged in as patient. Action: Validate empty-state charts before first entry | Empty-state is informative and stable |
+| SC-PAT-055 | Family | High | Preconditions: Logged in as patient. Action: Open `/family` | Family management page renders |
+| SC-PAT-056 | Family | High | Preconditions: Logged in as patient. Action: Add a valid family member | Family member persists and appears in list |
+| SC-PAT-057 | Family | Medium | Preconditions: Logged in as patient with family entry. Action: Edit a family member | Updated data is saved |
+| SC-PAT-060 | Family | Low | Preconditions: Logged in as patient. Action: Verify empty-state family page | Empty-state is graceful |
+| SC-PAT-061 | Notifications | Medium | Preconditions: Logged in as patient. Action: Open `/notifications` | Notifications page renders |
+| SC-PAT-062 | Notifications | Medium | Preconditions: Logged in as patient. Action: Switch notification categories/tabs | UI updates correctly |
+| SC-PAT-063 | Notifications | Medium | Preconditions: Logged in as patient. Action: Mark read or use available row action if present | Item state changes correctly |
+| SC-PAT-064 | Notifications | Low | Preconditions: Logged in as patient. Action: Verify empty-state notification list | Empty-state is graceful |
+| SC-PAT-065 | Consultation | High | Preconditions: Logged in as patient. Action: Open `/patient/consultations` | Consultation list renders |
+| SC-PAT-066 | Consultation | High | Preconditions: Logged in as patient. Action: Open new consultation request flow | Request form renders |
+| SC-PAT-067 | Consultation | High | Preconditions: Logged in as patient. Action: Create a valid consultation request | New request is created in `PENDING` state |
+| SC-PAT-068 | Consultation | High | Preconditions: Logged in as patient. Action: Open newly created consultation detail | Detail page renders |
+| SC-PAT-069 | Consultation | High | Preconditions: Logged in as patient. Action: Send a consultation message if chat is available | Message is sent successfully |
+| SC-PAT-070 | Consultation | High | Preconditions: Logged in as patient. Action: Observe realtime/websocket initialization | No unexpected realtime JS exception occurs |
+| SC-PAT-071 | Consultation | Medium | Preconditions: Logged in as patient. Action: Create request with missing topic/message | Validation is shown |
+| SC-PAT-072 | Consultation | Medium | Preconditions: Logged in as patient. Action: Open unauthorized or foreign consultation ID | Access is blocked |
+| SC-PAT-073 | Consultation | Low | Preconditions: Logged in as patient. Action: Open non-existent consultation ID | Graceful not-found behavior appears |
+| SC-PAT-074 | Messages | Low | Preconditions: Logged in as patient. Action: Open `/messages` redirect | Redirect resolves to patient consultation route |
+| SC-PAT-075 | Profile | High | Preconditions: Logged in as patient. Action: Open `/profile` | Profile page renders with current data |
+| SC-PAT-076 | Profile | High | Preconditions: Logged in as patient. Action: Save profile with valid data | Success feedback is shown |
+| SC-PAT-077 | Profile | Medium | Preconditions: Logged in as patient. Action: Save profile with invalid phone/email if UI allows | Validation appears or server error is handled clearly |
+| SC-PAT-078 | Security | High | Preconditions: Logged in as patient. Action: Open `/profile/security` | Security page renders |
+| SC-PAT-079 | Security | High | Preconditions: Logged in as patient. Action: Submit mismatched new passwords | Validation message is shown |
+| SC-PAT-080 | Security | Medium | Preconditions: Logged in as patient. Action: Submit valid password change if environment permits | Password update succeeds or returns controlled server response |
+| SC-PAT-081 | Notifications Settings | Medium | Preconditions: Logged in as patient. Action: Open `/profile/notifications` | Notification-settings page renders |
+| SC-PAT-082 | Notifications Settings | Medium | Preconditions: Logged in as patient. Action: Toggle and save notification settings | Save succeeds and UI confirms it |
+| SC-DOC-001 | Dashboard | High | Preconditions: Logged in as doctor. Action: Open `/dashboard` | Doctor dashboard renders |
+| SC-DOC-002 | Dashboard | High | Preconditions: Logged in as doctor. Action: Verify doctor quick actions and cards | Key widgets are visible |
+| SC-DOC-003 | Appointments | High | Preconditions: Logged in as doctor. Action: Open `/doctor/appointments` | Doctor appointments page renders |
+| SC-DOC-005 | Appointments | Medium | Preconditions: Logged in as doctor. Action: Validate empty-state with no appointments | Empty-state is graceful |
+| SC-DOC-007 | Schedule | High | Preconditions: Logged in as doctor. Action: Open `/schedule` | Schedule page renders |
+| SC-DOC-008 | Schedule | High | Preconditions: Logged in as doctor. Action: Modify schedule and save | Success feedback is shown |
+| SC-DOC-011 | Patients | High | Preconditions: Logged in as doctor. Action: Open `/patients` | Doctor patient list renders |
+| SC-DOC-014 | Patients | Medium | Preconditions: Logged in as doctor. Action: Validate empty-state when no assigned patients exist | Empty-state is graceful |
+| SC-DOC-015 | Create Medical Record | High | Preconditions: Logged in as doctor. Action: Open `/doctor/create-medical-record` | Record creation form opens or route explains why not available |
+| SC-DOC-016 | Create Medical Record | High | Preconditions: Logged in as doctor with valid appointment context. Action: Create a valid medical record | Record is saved successfully |
+| SC-DOC-017 | Create Medical Record | Medium | Preconditions: Logged in as doctor. Action: Attempt record creation with invalid appointment state | Operation is rejected safely |
+| SC-DOC-018 | Create Medical Record | Medium | Preconditions: Logged in as doctor. Action: Attempt record creation for another doctor's patient | Access is denied safely |
+| SC-DOC-019 | Profile | Medium | Preconditions: Logged in as doctor. Action: Open `/profile` | Doctor profile renders correctly |
+| SC-DOC-020 | Profile | Medium | Preconditions: Logged in as doctor. Action: Save profile with valid data | Success feedback is shown |
+| SC-DOC-022 | Security | Low | Preconditions: Logged in as doctor. Action: Open `/profile/security` | Security page renders |
+| SC-DOC-023 | Notifications Settings | Low | Preconditions: Logged in as doctor. Action: Open `/profile/notifications` | Notification-settings page renders |
+| SC-DOC-024 | Consultations | High | Preconditions: Logged in as doctor. Action: Open `/consultations` | Consultation queue/list renders |
+| SC-DOC-025 | Consultations | High | Preconditions: Logged in as doctor with pending request. Action: Accept a pending consultation | Request moves into active state |
+| SC-DOC-026 | Consultations | High | Preconditions: Logged in as doctor with active consultation. Action: Open consultation detail page | Detail page renders correctly |
+| SC-DOC-027 | Consultations | High | Preconditions: Logged in as doctor with active consultation. Action: Send consultation message | Message send succeeds |
+| SC-DOC-028 | Consultations | High | Preconditions: Logged in as doctor. Action: Observe realtime/websocket setup on detail page | No unexpected JS exception occurs |
+| SC-DOC-029 | Consultations | Medium | Preconditions: Logged in as doctor. Action: Attempt to open unauthorized consultation ID | Access is denied |
+| SC-DOC-030 | Consultations | Low | Preconditions: Logged in as doctor. Action: Open non-existent consultation ID | Graceful not-found behavior appears |
+| SC-DOC-031 | Messages | Low | Preconditions: Logged in as doctor. Action: Open `/messages` redirect | Redirect resolves to doctor consultation route |
+| SC-DOC-032 | Analytics | Medium | Preconditions: Logged in as doctor. Action: Open `/doctor/analytics` | Analytics page renders |
+| SC-DOC-033 | Analytics | Medium | Preconditions: Logged in as doctor. Action: Change date range/filter on analytics | UI refreshes without crash |
+| SC-DOC-034 | Analytics | Medium | Preconditions: Logged in as doctor. Action: Validate empty-state analytics when no data exists | Empty-state is graceful |
+| SC-ADM-001 | Dashboard | High | Preconditions: Logged in as admin. Action: Open `/dashboard` | Admin dashboard renders |
+| SC-ADM-002 | Dashboard | Medium | Preconditions: Logged in as admin. Action: Verify summary cards and recent activity | Key widgets appear correctly |
+| SC-ADM-003 | Users | High | Preconditions: Logged in as admin. Action: Open `/users` | User management page renders |
+| SC-ADM-004 | Users | High | Preconditions: Logged in as admin. Action: Search user by name/email | Search results update correctly |
+| SC-ADM-005 | Users | High | Preconditions: Logged in as admin. Action: Open edit modal for a user | Modal renders seeded values |
+| SC-ADM-006 | Users | High | Preconditions: Logged in as admin. Action: Save a valid user edit | Save succeeds consistently |
+| SC-ADM-010 | Doctor Management | High | Preconditions: Logged in as admin. Action: Open `/doctors` | Doctor management page renders |
+| SC-ADM-011 | Doctor Management | High | Preconditions: Logged in as admin. Action: Search doctors by name | List filters without crashing |
+| SC-ADM-015 | Clinics | Medium | Preconditions: Logged in as admin. Action: Open `/admin/clinics` | Clinic management page renders |
+| SC-ADM-016 | Clinics | Medium | Preconditions: Logged in as admin. Action: Search clinics by name | Results filter correctly |
+| SC-ADM-017 | Clinics | Medium | Preconditions: Logged in as admin. Action: Open and save clinic edit with valid values | Save succeeds |
+| SC-ADM-019 | Services | Medium | Preconditions: Logged in as admin. Action: Open `/admin/services` | Service management page renders |
+| SC-ADM-020 | Services | Medium | Preconditions: Logged in as admin. Action: Search services by keyword | Results update correctly |
+| SC-ADM-021 | Services | Medium | Preconditions: Logged in as admin. Action: Filter by category if available | Filtering works |
+| SC-ADM-022 | Services | Medium | Preconditions: Logged in as admin. Action: Open and save service edit | Save succeeds |
+| SC-ADM-024 | Rooms | Medium | Preconditions: Logged in as admin. Action: Open `/admin/rooms` | Room management page renders |
+| SC-ADM-025 | Rooms | Medium | Preconditions: Logged in as admin. Action: Search rooms by clinic/room name | Results update correctly |
+| SC-ADM-026 | Rooms | Medium | Preconditions: Logged in as admin. Action: Open and save room edit | Save succeeds |
+| SC-ADM-027 | Rooms | Medium | Preconditions: Logged in as admin. Action: Attempt invalid room save | Validation or safe error appears |
+| SC-ADM-028 | Reports | High | Preconditions: Logged in as admin. Action: Open `/admin/reports` | Reports page renders |
+| SC-ADM-029 | Reports | High | Preconditions: Logged in as admin. Action: Switch between report tabs/views | UI updates without crash |
+| SC-ADM-030 | Reports | High | Preconditions: Logged in as admin. Action: Change date range | Report queries succeed and UI refreshes |
+| SC-ADM-031 | Reports | Medium | Preconditions: Logged in as admin. Action: Change grouping granularity | Chart/table updates correctly |
+| SC-ADM-032 | Reports | Medium | Preconditions: Logged in as admin. Action: Validate empty-state or no-data range | UI handles no data gracefully |
+| SC-ADM-033 | Reports | Low | Preconditions: Logged in as admin. Action: Use export/download action if present | Artifact is generated or action fails gracefully |
+| SC-ADM-034 | Profile | Medium | Preconditions: Logged in as admin. Action: Open `/profile` | Admin profile page renders |
+| SC-ADM-035 | Profile | Medium | Preconditions: Logged in as admin. Action: Save valid admin profile values | Save succeeds |
+| SC-ADM-036 | Profile | Medium | Preconditions: Logged in as admin. Action: Save invalid profile input if possible | Validation or explicit error appears |
+| SC-X-001 | Validation | High | Preconditions: Patient logged in. Action: Submit security form with mismatched passwords | Clear validation message appears |
+| SC-X-002 | Validation | High | Preconditions: Doctor logged in. Action: Submit profile with invalid phone format | UI shows actionable feedback or controlled API error |
+| SC-X-003 | Validation | Medium | Preconditions: Admin logged in. Action: Submit create/edit entity form missing required name | Required-field feedback is shown |
+| SC-X-004 | Validation | Medium | Preconditions: Any role. Action: Submit form twice quickly | No duplicate crash or broken pending state occurs |
+| SC-X-005 | Error Handling | High | Preconditions: Any role. Action: Trigger one known server-side failure | UI shows clear non-crashing failure state |
+| SC-X-006 | Error Handling | Medium | Preconditions: Any role. Action: Open route with missing entity ID | Graceful not-found or fallback behavior appears |
+| SC-X-007 | Error Handling | Medium | Preconditions: Any role. Action: Simulate empty-state pages across modules | Empty-state copy and layout remain usable |
+| SC-X-008 | Error Handling | Medium | Preconditions: Any role. Action: Observe toast, inline error, and loading UI states | States are visible and consistent |
+| SC-X-009 | Authorization | High | Preconditions: Logged in as patient. Action: Access doctor appointment route | Access denied or redirected |
+| SC-X-010 | Authorization | High | Preconditions: Logged in as patient. Action: Access admin route | Access denied or redirected |
+| SC-X-011 | Authorization | High | Preconditions: Logged in as doctor. Action: Access patient booking route | Access denied or redirected |
+| SC-X-012 | Authorization | High | Preconditions: Logged in as doctor. Action: Access admin route | Access denied or redirected |
+| SC-X-013 | Authorization | High | Preconditions: Logged in as admin. Action: Access patient booking route | Access denied or redirected |
+| SC-X-014 | Authorization | High | Preconditions: Logged in as admin. Action: Access doctor appointment route | Access denied or redirected |
+| SC-X-015 | Navigation | High | Preconditions: Logged in as each role. Action: Traverse primary sidebar links | No broken links or dead routes |
+| SC-X-016 | Session | High | Preconditions: Logged in as each role. Action: Refresh current authenticated page | Session persists consistently |
+| SC-X-017 | Session | Medium | Preconditions: Logged in as each role. Action: Logout then use browser back button | Protected content is not reopened without auth |
+| SC-X-018 | Session | Medium | Preconditions: Logged in as each role. Action: Open direct route bookmark | Correct role state is honored |
+| SC-X-019 | Console | High | Preconditions: Any meaningful flow. Action: Observe browser console during core flows | No unhandled JS exception appears |
+| SC-X-020 | Network | High | Preconditions: Any meaningful flow. Action: Observe failed network requests during core flows | No unexpected 5xx/4xx outside known negative tests |
+| SC-X-021 | Realtime | High | Preconditions: Consultation detail open. Action: Observe websocket/STOMP initialization | Realtime setup occurs without connection exception |
+| SC-X-022 | Realtime | Medium | Preconditions: Consultation detail open. Action: Send message and observe update | Message lifecycle is reflected in UI |
+| SC-X-023 | Recovery | Medium | Preconditions: App running. Action: Restart frontend and re-enter seeded flow | User can continue after app restart |
+| SC-X-024 | Recovery | Medium | Preconditions: App/backend partially unavailable. Action: Observe app behavior on temporary API failure | User sees controlled degraded state |
+| SC-X-025 | Duplicates | Medium | Preconditions: Dashboard or menu pages loaded. Action: Watch for duplicate React key warnings | No duplicate-key warning should exist |
+| SC-X-026 | State Sync | Medium | Preconditions: After create/update flows. Action: Refresh list pages after mutation | Changed entity persists after reload |
+| SC-X-027 | Responsive | Medium | Preconditions: Logged out. Action: Open login page on mobile viewport | Form remains usable and readable |
+| SC-X-028 | Responsive | Medium | Preconditions: Logged in as patient. Action: Open patient dashboard on mobile viewport | Main content remains usable |
+| SC-X-029 | Responsive | Medium | Preconditions: Logged in as doctor. Action: Open doctor schedule on mobile viewport | Schedule page remains usable |
+| SC-X-030 | Responsive | Medium | Preconditions: Logged in as admin. Action: Open admin clinics page on mobile viewport | Cards/forms remain usable |
+| SC-X-031 | UX | Low | Preconditions: Any role. Action: Confirm loading spinners and transitions do not block actions permanently | Page remains usable |
+| SC-X-032 | UX | Low | Preconditions: Any role. Action: Confirm long lists/cards remain scannable | Layout remains readable |

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,9 @@ class ChatOrchestratorServiceTest {
 
     @Mock
     private KnowledgeRetrievalService knowledgeRetrievalService;
+
+    @Mock
+    private LiveKnowledgeSyncService liveKnowledgeSyncService;
 
     @Mock
     private GeminiAnswerService geminiAnswerService;
@@ -44,11 +48,14 @@ class ChatOrchestratorServiceTest {
         service = new ChatOrchestratorService(
                 questionClassifierService,
                 knowledgeRetrievalService,
+                liveKnowledgeSyncService,
                 geminiAnswerService,
                 doctorDirectoryService,
                 clinicDirectoryService,
                 serviceCatalogService
         );
+        ReflectionTestUtils.setField(service, "ragMinTopScore", 0.55);
+        ReflectionTestUtils.setField(service, "ragMinScoreGap", 0.05);
     }
 
     @Test
@@ -86,6 +93,7 @@ class ChatOrchestratorServiceTest {
         assertThat(response.answerProvider()).isEqualTo("GEMINI_RAG");
         assertThat(response.ragUsed()).isTrue();
         assertThat(response.sources()).hasSize(1);
+        org.mockito.Mockito.verify(liveKnowledgeSyncService).syncRelevantSources("CLINIC_ADDRESS", null);
     }
 
     @Test
@@ -181,6 +189,43 @@ class ChatOrchestratorServiceTest {
         assertThat(response.answerProvider()).isEqualTo("RULE_GREETING");
         assertThat(response.ragUsed()).isFalse();
         assertThat(response.answer()).contains("HealthFlow");
+    }
+
+    @Test
+    void shouldRejectLowConfidenceRagContext() {
+        ClassifyQuestionResponse classification = new ClassifyQuestionResponse(
+                "phong kham o dau",
+                "phong kham o dau",
+                "CLINIC_ADDRESS",
+                "Dia chi phong kham",
+                0.9,
+                "RULE_BASED",
+                false,
+                "rule"
+        );
+        RetrievedKnowledge weakKnowledge = new RetrievedKnowledge(
+                new KnowledgeDocument(
+                        "RAG_CAPABILITY_NOTE",
+                        "UNKNOWN",
+                        "Co che RAG",
+                        "Tro ly su dung knowledge base.",
+                        List.of("rag")
+                ),
+                0.41,
+                List.of("rag")
+        );
+
+        when(questionClassifierService.classify("phong kham o dau", "PATIENT")).thenReturn(classification);
+        when(knowledgeRetrievalService.retrieve("phong kham o dau", "CLINIC_ADDRESS"))
+                .thenReturn(List.of(weakKnowledge));
+        when(geminiAnswerService.generateAnswer(any(), any(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        var response = service.chat("phong kham o dau", "PATIENT");
+
+        assertThat(response.ragUsed()).isFalse();
+        assertThat(response.answerProvider()).isEqualTo("RULE_TEMPLATE");
+        assertThat(response.sources()).isEmpty();
     }
 
     @Test

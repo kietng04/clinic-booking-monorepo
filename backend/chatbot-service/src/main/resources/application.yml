@@ -1,6 +1,20 @@
 spring:
   application:
     name: chatbot-service
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5438}/${POSTGRES_DB:chatbot_service_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    schemas: public
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -62,7 +76,25 @@ ai:
   rag:
     top-k: ${RAG_TOP_K:3}
     min-score: ${RAG_MIN_SCORE:0.08}
+    rerank-candidate-limit: ${RAG_RERANK_CANDIDATE_LIMIT:8}
+    confidence:
+      min-top-score: ${RAG_CONFIDENCE_MIN_TOP_SCORE:0.55}
+      min-score-gap: ${RAG_CONFIDENCE_MIN_SCORE_GAP:0.05}
+    expansion:
+      enabled: ${RAG_QUERY_EXPANSION_ENABLED:true}
+      max-queries: ${RAG_QUERY_EXPANSION_MAX_QUERIES:4}
+    vector:
+      min-score: ${RAG_VECTOR_MIN_SCORE:0.2}
+    evaluation:
+      dataset-path: ${RAG_EVALUATION_DATASET_PATH:rag/default-evaluation-dataset.json}
     knowledge-path: ${RAG_KNOWLEDGE_PATH:knowledge/default-knowledge-base.json}
+    pgvector:
+      enabled: ${RAG_PGVECTOR_ENABLED:true}
+      auto-sync: ${RAG_PGVECTOR_AUTO_SYNC:true}
+  embedding:
+    enabled: ${EMBEDDING_ENABLED:true}
+    model: ${EMBEDDING_MODEL:gemini-embedding-001}
+    dimensions: ${EMBEDDING_DIMENSIONS:3072}
 
 logging:
   level:
@@ -89,6 +121,7 @@ services:
 chatbot:
   doctor-lookup:
     max-results: ${CHATBOT_DOCTOR_LOOKUP_MAX_RESULTS:3}
+    fetch-size: ${CHATBOT_DOCTOR_LOOKUP_FETCH_SIZE:100}
   clinic-directory:
     max-results: ${CHATBOT_CLINIC_DIRECTORY_MAX_RESULTS:3}
   service-catalog:

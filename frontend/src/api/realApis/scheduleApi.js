@@ -49,7 +49,7 @@ export const scheduleApi = {
    */
   getAvailableSlots: async (doctorId, date) => {
     // Get day of week from date
-    const dateObj = new Date(date)
+    const dateObj = parseDateOnly(date)
     const dayOfWeek = dateObj.getDay()
 
     try {
@@ -209,6 +209,17 @@ function normalizeTime(value) {
     return null
   }
   return value.length >= 5 ? value.slice(0, 5) : value
+}
+
+function parseDateOnly(value) {
+  if (!value || typeof value !== 'string') {
+    return new Date(NaN)
+  }
+  const [year, month, day] = value.split('-').map(Number)
+  if (!year || !month || !day) {
+    return new Date(NaN)
+  }
+  return new Date(year, month - 1, day)
 }
 
 export default scheduleApi

@@ -1,7 +1,19 @@
 spring:
   application:
     name: chatbot-service-test
+  flyway:
+    enabled: true
 
 eureka:
   client:
+    enabled: false
+
+jwt:
+  secret: dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=
+
+ai:
+  rag:
+    pgvector:
+      auto-sync: false
+  embedding:
     enabled: false

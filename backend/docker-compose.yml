@@ -179,6 +179,27 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Chatbot Service Database
+  postgres-chatbot:
+    image: pgvector/pgvector:pg16
+    container_name: clinic_postgres_chatbot
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chatbot_service_db
+    ports:
+      - "5438:5432"
+    volumes:
+      - postgres_chatbot_data:/var/lib/postgresql/data
+    networks:
+      - clinic-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   # ============================================
   # Cache - Redis
   # ============================================
@@ -442,6 +463,11 @@ services:
       JWT_SECRET: dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      POSTGRES_HOST: postgres-chatbot
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: chatbot_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SERVICES_USER_SERVICE_URL: http://user-service:8081
@@ -454,6 +480,8 @@ services:
       appointment-service:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      postgres-chatbot:
         condition: service_healthy
     networks:
       - clinic-network
@@ -525,6 +553,8 @@ volumes:
     name: clinic_postgres_consultation_data
   postgres_payment_data:
     name: clinic_postgres_payment_data
+  postgres_chatbot_data:
+    name: clinic_postgres_chatbot_data
 
   # Redis
   redis_data:

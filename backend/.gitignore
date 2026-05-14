@@ -35,8 +35,4 @@ build/
 .cursor/
 .worktrees/
 .ngrok/
-.DS_Store
-.env
-.env.*
-!.env.example
-BOOT-INF/
+deploy/.env.deploy

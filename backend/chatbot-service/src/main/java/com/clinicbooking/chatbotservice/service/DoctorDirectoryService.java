@@ -71,6 +71,9 @@ public class DoctorDirectoryService {
     @Value("${chatbot.doctor-lookup.max-results:3}")
     private int maxResults;
 
+    @Value("${chatbot.doctor-lookup.fetch-size:100}")
+    private int snapshotFetchSize;
+
     public Optional<String> answerDoctorLookup(String question, String normalizedQuestion, String authorizationHeader) {
         String extractedKeyword = extractKeyword(question, normalizedQuestion);
         if (extractedKeyword.isBlank()) {
@@ -91,6 +94,17 @@ public class DoctorDirectoryService {
         }
 
         return answerDoctorLookupByKeyword(extractedKeyword, authorizationHeader, false);
+    }
+
+    public List<DoctorDirectoryEntry> fetchDoctorDirectorySnapshot(String authorizationHeader) {
+        try {
+            return fetchDoctorsPage(snapshotFetchSize, null, authorizationHeader).stream()
+                    .filter(item -> item != null && item.fullName() != null && !item.fullName().isBlank())
+                    .toList();
+        } catch (RestClientException ex) {
+            log.warn("Doctor snapshot fetch failed: {}", ex.getMessage());
+            return List.of();
+        }
     }
 
     private Optional<String> answerDoctorLookupByKeyword(
@@ -161,10 +175,19 @@ public class DoctorDirectoryService {
     }
 
     private DoctorSearchResponse searchDoctors(String keyword, String authorizationHeader) {
+        return fetchDoctorSearchResponse(Math.max(maxResults, 1), keyword, authorizationHeader);
+    }
+
+    private List<DoctorDirectoryEntry> fetchDoctorsPage(int size, String keyword, String authorizationHeader) {
+        DoctorSearchResponse response = fetchDoctorSearchResponse(size, keyword, authorizationHeader);
+        return response == null || response.content() == null ? List.of() : response.content();
+    }
+
+    private DoctorSearchResponse fetchDoctorSearchResponse(int size, String keyword, String authorizationHeader) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(userServiceUrl)
                 .path("/api/users/doctors/search")
                 .queryParam("page", 0)
-                .queryParam("size", Math.max(maxResults, 1));
+                .queryParam("size", Math.max(size, 1));
 
         if (keyword != null && !keyword.isBlank()) {
             builder.queryParam("keyword", keyword);

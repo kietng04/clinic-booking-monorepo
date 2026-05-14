@@ -1,4 +1,4 @@
-name: Backend CI
+name: CI
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
       - develop
 
 concurrency:
-  group: backend-ci-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,9 +25,6 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-
-      - name: Make Maven wrapper executable
-        run: chmod +x mvnw
 
       - name: Verify Maven reactor
         run: ./mvnw -B verify

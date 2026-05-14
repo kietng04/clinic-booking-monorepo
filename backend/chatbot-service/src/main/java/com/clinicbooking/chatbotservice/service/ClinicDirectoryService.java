@@ -33,7 +33,7 @@ public class ClinicDirectoryService {
 
     public Optional<String> answerClinicDirectory(String authorizationHeader) {
         try {
-            List<ClinicDirectoryEntry> clinics = fetchClinics(authorizationHeader).stream()
+            List<ClinicDirectoryEntry> clinics = fetchClinicDirectorySnapshot(authorizationHeader).stream()
                     .filter(item -> item != null && item.name() != null && !item.name().isBlank())
                     .filter(item -> item.isActive() == null || item.isActive())
                     .sorted(Comparator.comparing(ClinicDirectoryEntry::id, Comparator.nullsLast(Long::compareTo)))
@@ -60,6 +60,15 @@ public class ClinicDirectoryService {
         } catch (RestClientException ex) {
             log.warn("Clinic directory lookup failed: {}", ex.getMessage());
             return Optional.of("Toi chua truy cap duoc danh sach co so luc nay. Ban thu lai sau it phut.");
+        }
+    }
+
+    public List<ClinicDirectoryEntry> fetchClinicDirectorySnapshot(String authorizationHeader) {
+        try {
+            return fetchClinics(authorizationHeader);
+        } catch (RestClientException ex) {
+            log.warn("Clinic snapshot fetch failed: {}", ex.getMessage());
+            return List.of();
         }
     }
 

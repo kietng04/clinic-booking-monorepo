@@ -1,0 +1,738 @@
+# Execution Log
+
+Append one entry per loop turn. Keep entries short and factual.
+
+## Template
+
+### 2026-03-16T00:00:00Z
+- Agent turn: 1
+- Focus: auth smoke and public routes
+- Cases touched: PUB-001, PUB-002, AUTH-001, AUTH-004
+- Outcome: 3 passed, 1 failed
+- Artifacts:
+  - `/absolute/path/to/artifact`
+- Notes:
+  - Short summary
+- Next target:
+  - Continue with patient dashboard and booking
+
+
+### 2026-03-16T12:17:25Z
+- Agent turn: 1
+- Focus: environment restore, public/auth smoke, role dashboard/access smoke
+- Cases touched: PUB-001, PUB-002, PUB-003, PUB-004, PUB-005, PUB-006, AUTH-001, AUTH-002, AUTH-003, AUTH-004, AUTH-005, AUTH-006, PAT-001, DOC-001, ADM-001, X-004
+- Outcome: 13 passed, 3 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T120816Z/pub-001-landing.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T120816Z/pub-002-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T120816Z/auth-004-invalid-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T120816Z/auth-001-patient-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T120816Z/auth-002-doctor-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T120816Z/auth-003-admin-dashboard.png`
+- Notes:
+  - Restored deterministic backend data with `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare` after resolving a stale Docker compose name conflict; auth preflight passed afterward.
+  - Started a fresh Vite dev server on `http://127.0.0.1:3000`.
+  - Invalid login produced backend `401` without user-facing feedback.
+  - Patient dashboard reproduced repeated `500` stats requests and duplicate-key React warnings.
+- Next target:
+  - Continue with AUTH-007 logout, then patient high-priority route coverage (`PAT-002`, `PAT-003`, `PAT-004`, `PAT-007`, `PAT-011`, `PAT-012`).
+
+### 2026-03-16T12:30:22Z
+- Agent turn: 2
+- Focus: frontend restore, logout validation, patient high-priority route coverage
+- Cases touched: AUTH-007, PAT-002, PAT-003, PAT-004, PAT-007, PAT-011, PAT-012, X-004
+- Outcome: 6 passed, 2 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T122210Z/pat-004-appointments.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T122210Z/pat-011-consultation-detail.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T122210Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T122210Z/playwright-network.log`
+- Notes:
+  - Restarted the Vite dev server after the prior turn's frontend process had exited; backend remained healthy on `:8080`.
+  - Verified real navbar logout via patient quick-login and `Đăng xuất`.
+  - Confirmed patient doctor search, booking, appointments list, records empty state, and profile/settings flows.
+  - Created consultation `801`; detail page rendered but logged websocket/STOMP lifecycle warnings and a connection exception, captured as `BUG-003`.
+- Next target:
+  - Shift to remaining untested high-priority doctor routes (`DOC-002`, `DOC-003`, `DOC-004`, `DOC-005`) and admin high-priority routes (`ADM-002`, `ADM-003`, `ADM-007`), then return to patient medium-priority routes and `PAT-005`.
+
+### 2026-03-16T12:39:23Z
+- Agent turn: 3
+- Focus: frontend restore, doctor high-priority route coverage, consultation realtime reconfirmation
+- Cases touched: DOC-002, DOC-003, DOC-004, DOC-005, X-004
+- Outcome: 4 passed, 1 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T123327Z/doc-005-consultation-detail.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T123327Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T123327Z/playwright-network.log`
+- Notes:
+  - Frontend required another Vite restart; backend health stayed `UP` on `:8080`.
+  - Verified doctor appointments, schedule save, and patients empty-state flows without blocking defects.
+  - Seeded consultation `802` for `Dr. Sarah Johnson`, accepted it from `/consultations`, opened the detail view, and sent `Doctor manual QA reply` successfully.
+  - Console/network monitoring reconfirmed the consultation realtime STOMP lifecycle defect on the doctor detail page while backend consultation/message endpoints still returned success codes.
+- Next target:
+  - Move to remaining untested high-priority admin routes (`ADM-002`, `ADM-003`, `ADM-007`), then continue medium-priority patient and doctor coverage (`PAT-005`, `PAT-006`, `PAT-008`, `PAT-009`, `PAT-010`, `DOC-006`, `DOC-007`, `DOC-008`).
+
+### 2026-03-16T12:46:46Z
+- Agent turn: 4
+- Focus: frontend restore, high-priority admin route coverage, new admin defect capture
+- Cases touched: ADM-002, ADM-003, ADM-007, X-004
+- Outcome: 1 passed, 3 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T124313Z/adm-002-user-save-error.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T124313Z/adm-003-doctors-search-crash.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T124313Z/adm-003-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T124313Z/adm-003-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T124313Z/adm-007-reports.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T124313Z/playwright-network.log`
+- Notes:
+  - Backend remained healthy, but the frontend dev server had exited again and was restarted before admin testing.
+  - `/users` loaded and edit/save ultimately worked on retry, but the first save attempt for `Dr. Sarah Johnson` failed with a visible error toast and `503 Service Unavailable`, captured as `BUG-004`.
+  - `/doctors` loaded, but entering `Sarah` into the search box crashed the route with `TypeError: Cannot read properties of undefined (reading 'toLowerCase')`, captured as `BUG-005`.
+  - `/admin/reports` rendered and its report filter requests continued returning `200` while switching tabs and groupings.
+- Next target:
+  - Continue with medium-priority patient routes (`PAT-005`, `PAT-006`, `PAT-008`, `PAT-009`, `PAT-010`), then remaining doctor/admin medium-priority routes and cross-cutting navigation/session/error-handling coverage.
+
+### 2026-03-16T12:57:30Z
+- Agent turn: 5
+- Focus: frontend restore, patient medium-priority route coverage, console follow-up
+- Cases touched: PAT-005, PAT-006, PAT-008, PAT-009, PAT-010, X-004
+- Outcome: 5 passed, 1 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/pat-005-appointment-detail.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/pat-006-payments.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/pat-008-health-metrics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/pat-009-family.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/pat-010-notifications.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T125227Z/playwright-network.log`
+- Notes:
+  - Backend stayed healthy, but the frontend dev server had exited again and was restarted before patient route coverage resumed.
+  - Confirmed seeded appointment detail `/appointments/1801` and payment history for the pending MoMo order from the earlier booking flow.
+  - Added one blood-pressure health metric entry and one family member record (`QA Family Member`), both of which persisted and rendered immediately.
+  - Notifications rendered empty-state and filter behavior correctly, while console monitoring still captured the existing duplicate-key warning pattern with no new distinct bug beyond the already-open `X-004`.
+- Next target:
+  - Move to remaining doctor/admin medium-priority routes (`DOC-006`, `DOC-007`, `DOC-008`, `ADM-004`, `ADM-005`, `ADM-006`, `ADM-008`), then complete cross-cutting high-priority coverage (`X-001`, `X-002`, `X-003`, `X-006`) and sample responsiveness (`X-005`).
+
+### 2026-03-16T13:02:59Z
+- Agent turn: 6
+- Focus: frontend restore, doctor medium-priority route coverage, blocked create-record triage
+- Cases touched: DOC-006, DOC-007, DOC-008, X-004
+- Outcome: 2 passed, 1 blocked, 1 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130020Z/doc-006-analytics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130020Z/doc-007-create-record-redirect.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130020Z/doc-008-profile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130020Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130020Z/playwright-network.log`
+- Notes:
+  - Backend stayed healthy, but the frontend dev server had exited again and was restarted before doctor route coverage resumed.
+  - `/doctor/analytics` rendered its summary cards and empty analytics states cleanly, and the range filter switched between `6 tháng gần nhất` and `3 tháng gần nhất`.
+  - `/doctor/create-medical-record` redirected into `/doctor/appointments`, where the seeded doctor still had no appointments or patient context; no creation form surfaced, so the case was marked `Blocked`.
+  - Doctor `/profile` rendered and saving the seeded values completed successfully, while console monitoring reconfirmed the cross-role duplicate-sidebar-key warning now tracked as `BUG-006`.
+- Next target:
+  - Continue with the remaining admin medium-priority routes (`ADM-004`, `ADM-005`, `ADM-006`, `ADM-008`), then complete cross-cutting high-priority coverage (`X-001`, `X-002`, `X-003`, `X-006`) and revisit `DOC-007` only if patient-linked medical-record creation becomes accessible.
+
+### 2026-03-16T13:11:05Z
+- Agent turn: 7
+- Focus: frontend restore, admin medium-priority route coverage, route-inventory closure
+- Cases touched: ADM-004, ADM-005, ADM-006, ADM-008, X-006
+- Outcome: 5 passed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130525Z/adm-004-clinics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130525Z/adm-005-services.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130525Z/adm-006-rooms.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130525Z/adm-008-profile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130525Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T130525Z/playwright-network.log`
+- Notes:
+  - Backend stayed healthy, but the frontend dev server had exited again and was restarted before the admin medium-priority pass.
+  - `/admin/clinics`, `/admin/services`, `/admin/rooms`, and admin `/profile` all rendered and their edit/save flows completed successfully using seeded values.
+  - This turn did not surface any new distinct console or network defects; the current console export only contains the standard React Router future-flag warnings.
+  - With the final admin route pass complete, every route-backed case in the current inventory is now explicitly marked passed, failed, or blocked, so `X-006` was closed as passed.
+- Next target:
+  - Complete the remaining cross-cutting high-priority coverage (`X-001`, `X-002`, `X-003`), then sample responsiveness for `X-005` and revisit `DOC-007` only if a patient-linked medical-record entrypoint becomes available.
+
+### 2026-03-16T13:19:52Z
+- Agent turn: 8
+- Focus: frontend restore, cross-cutting navigation/session coverage, cross-role invalid-form handling
+- Cases touched: X-001, X-002, X-003, X-004
+- Outcome: 2 passed, 2 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T131255Z/x-003-patient-security-mismatch.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T131255Z/x-003-doctor-profile-invalid-phone.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T131255Z/x-003-admin-clinic-required.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T131255Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T131255Z/playwright-network.log`
+- Notes:
+  - Backend stayed healthy, but the frontend dev server had exited again and was restarted before the cross-cutting pass.
+  - Real authenticated link navigation was exercised for admin, patient, and doctor sessions, and authenticated reloads held on `/profile`, `/appointments`, and `/schedule` without dropping the session.
+  - Patient password mismatch and admin empty-clinic submission both surfaced visible feedback, but doctor profile rejected invalid phone text by returning backend `500` and only a generic support message, logged as `BUG-007`.
+  - Console/network monitoring also reconfirmed the known duplicate-sidebar-key warnings during patient and doctor navigation, so `X-004` remains failed.
+- Next target:
+  - Sample responsiveness for `X-005`, then re-check definition-of-done coverage and revisit blocked `DOC-007` only if a patient-linked medical-record entrypoint becomes available.
+
+### 2026-03-16T13:24:42Z
+- Agent turn: 9
+- Focus: frontend restore, narrow-viewport responsiveness sampling, definition-of-done check
+- Cases touched: X-005
+- Outcome: 1 passed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T132050Z/x-005-login-mobile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T132050Z/x-005-patient-dashboard-mobile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T132050Z/x-005-doctor-schedule-mobile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T132050Z/x-005-admin-clinics-mobile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T132050Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T132050Z/playwright-network.log`
+- Notes:
+  - Backend stayed healthy, but the frontend dev server had exited again and was restarted before the responsiveness pass.
+  - Sampled public, patient, doctor, and admin pages at `390x844`; layouts stacked vertically and remained usable without severe overlap or blocked primary actions.
+  - Mobile screenshots still show the previously known console/data defects in affected flows, but no new responsiveness-specific regression was identified.
+  - With `X-005` complete, every inventory row now has a terminal status (`Passed`, `Failed`, or `Blocked`).
+- Next target:
+  - No unexecuted test cases remain in the current inventory; only bug fixes or environment changes would justify another QA pass.
+
+### 2026-03-16T15:04:08Z
+- Agent turn: 10
+- Focus: environment restore, expanded `SC-AUTH-*` public/auth validation batch
+- Cases touched: SC-AUTH-002, SC-AUTH-003, SC-AUTH-004, SC-AUTH-010, SC-AUTH-011, SC-AUTH-012, SC-AUTH-014, SC-AUTH-015, SC-AUTH-016, SC-AUTH-020, SC-AUTH-021, SC-AUTH-024, SC-AUTH-025, SC-AUTH-026, SC-AUTH-033
+- Outcome: 10 passed, 4 failed, 1 skipped
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-002-landing.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-010-login-empty.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-011-login-malformed-email.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-011-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-012-patient-quick-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-015-register-mismatch.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-016-register-duplicate-email.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-020-forgot-password-malformed.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-021-forgot-password-unknown-email.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-024-verify-phone-incomplete-otp.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-025-resend-otp-failure.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-025-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-026-reset-password-invalid-context.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T145416Z/sc-auth-033-new-tab-protected-route.png`
+- Notes:
+  - Initial `npm run test:e2e:prepare` hit the known Docker container-name conflict on `clinic_chatbot_service`; reused the already healthy backend stack and restored deterministic data with `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare`.
+  - Started a fresh Vite dev server on `http://127.0.0.1:3000`.
+  - Public/auth batch 2 covered landing content, CTA routing, empty-field validation, quick-login, forgot-password edge cases, verify-phone behavior, invalid reset state, and same-session new-tab behavior.
+  - Expanded auth defect coverage: malformed login `400` still has no visible feedback (`BUG-001`), register mismatch and duplicate-email failures are silent (`BUG-008`), and verify-phone resend on direct access triggers `500` with no user feedback (`BUG-009`).
+- Next target:
+  - Move into patient negative/edge coverage starting with `SC-PAT-011`, `SC-PAT-012`, `SC-PAT-014`, and the booking wizard resilience cases `SC-PAT-021` to `SC-PAT-024`.
+
+### 2026-03-16T15:18:57Z
+- Agent turn: 11
+- Focus: environment restore, patient search edge cases, and booking wizard resilience
+- Cases touched: SC-PAT-011, SC-PAT-012, SC-PAT-014, SC-PAT-021, SC-PAT-022, SC-PAT-023, SC-PAT-024
+- Outcome: 4 passed, 2 failed, 1 skipped
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-011-clear-filter-stuck-empty-state.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-012-no-detail-affordance-on-search-card.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-014-doctor-search-no-match.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-021-booking-missing-required-fields.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-022-booking-unavailable-day.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-023-booking-back-loses-selected-slot.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/sc-pat-024-booking-abandon-resets-wizard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T151047Z/playwright-network.log`
+- Notes:
+  - Backend containers were still healthy, so deterministic state was restored with `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare`; Vite then had to be restarted on `http://127.0.0.1:3000`.
+  - Doctor-search edge coverage found a broken recovery path: `Xóa bộ lọc` clears the keyword but leaves the page stuck in empty state (`BUG-010`).
+  - Booking resilience coverage showed safe handling for unavailable dates and missing required details, but back-navigation from step 3 drops the selected slot instead of preserving step state (`BUG-011`).
+  - The current patient search UI exposes booking actions only; no separate doctor-detail affordance was present to exercise for `SC-PAT-012`.
+- Next target:
+  - Continue with the remaining patient detail/data-edge cases `SC-PAT-031`, `SC-PAT-033`, `SC-PAT-034`, `SC-PAT-037` to `SC-PAT-041`, `SC-PAT-046`, `SC-PAT-051`, `SC-PAT-053`, `SC-PAT-058`, and `SC-PAT-059`.
+
+### 2026-03-16T15:35:53Z
+- Agent turn: 12
+- Focus: remaining patient detail/data-edge coverage, alternate-patient validation, payment-history blockage check
+- Cases touched: SC-PAT-031, SC-PAT-033, SC-PAT-034, SC-PAT-037, SC-PAT-038, SC-PAT-039, SC-PAT-040, SC-PAT-041, SC-PAT-046, SC-PAT-051, SC-PAT-053, SC-PAT-058, SC-PAT-059
+- Outcome: 9 passed, 1 failed, 3 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-031-appointments-empty-state-full.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-033-appointment-detail-quick-actions-inert.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-033-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-034-appointment-not-found-fallback.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-payment-history-service-unavailable.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-039-payment-result-known-order.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-040-payment-result-invalid-orderid.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-046-medical-record-not-found.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-051-heart-rate-added.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-053-health-metric-invalid-submit.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-058-family-delete-404.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/sc-pat-059-family-missing-required-fields.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/playwright-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T152303Z/playwright-network.log`
+- Notes:
+  - Backend health stayed `UP`; Vite required a fresh restart on `http://127.0.0.1:3000` before the browser pass.
+  - Reseeded `patient1@clinic.com` covered the empty-state appointment path, while fallback patient `patient.1@healthflow.vn` was needed to reach live appointment-detail quick actions.
+  - Payment history is currently blocked for both patient accounts because `GET /api/payments/my-payments?page=0&size=20` returned `503 Service Unavailable`, so the payment search/filter/link cases were marked blocked behind `BUG-013`.
+  - Appointment detail quick actions on `/appointments/1100` are inert even though the buttons render, captured as `BUG-012`.
+- Next target:
+  - Move to the queued doctor validation scenarios `SC-DOC-004`, `SC-DOC-006`, `SC-DOC-009`, `SC-DOC-010`, `SC-DOC-012`, `SC-DOC-013`, and `SC-DOC-021`, then continue admin validation coverage.
+
+### 2026-03-16T15:50:13Z
+- Agent turn: 13
+- Focus: doctor validation scenarios, fallback-doctor coverage, and inert-action capture
+- Cases touched: SC-DOC-004, SC-DOC-006, SC-DOC-009, SC-DOC-010, SC-DOC-012, SC-DOC-013, SC-DOC-021
+- Outcome: 1 passed, 4 failed, 2 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-004-appointments-empty.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-004-patients-with-history.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-004-appointments-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-009-invalid-schedule-values-retained.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-schedule-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-012-patient-search-filtered.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-013-patient-detail-inert.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-013-patient-detail-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-021-profile-invalid-phone.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T154420Z/sc-doc-021-profile-network.log`
+- Notes:
+  - Backend health remained `UP`; the frontend Vite server had to be restarted again on `http://127.0.0.1:3000` before the browser pass.
+  - Quick-login doctor `dr.sarah@clinic.com` still had no reachable appointment data, so the seeded fallback doctor `doctor.1@healthflow.vn` was used for the doctor validation batch.
+  - The dominant regression pattern this turn was inert doctor-side actions: appointments stayed empty despite linked patient history, schedule save fired no request, patient `Xem hồ sơ` did nothing, and profile save with invalid phone fired no request.
+  - Patient-list search itself behaved correctly, so `SC-DOC-012` closed as passed.
+- Next target:
+  - Move to admin validation and recovery coverage `SC-ADM-007`, `SC-ADM-008`, `SC-ADM-009`, `SC-ADM-012`, `SC-ADM-013`, `SC-ADM-014`, `SC-ADM-018`, and `SC-ADM-023`, then revisit blocked payment-history and doctor rechecks if fixes land.
+
+### 2026-03-16T16:01:30Z
+- Agent turn: 14
+- Focus: remaining admin validation/recovery coverage and final inventory closure
+- Cases touched: SC-ADM-007, SC-ADM-008, SC-ADM-009, SC-ADM-012, SC-ADM-013, SC-ADM-014, SC-ADM-018, SC-ADM-023
+- Outcome: 7 passed, 1 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-007-user-save-empty-required.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-008-users-filter-doctor.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-009-user-save-retry-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/bug-018-admin-user-edit-invalid-phone-500.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-012-doctors-status-filter-pending.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-013-doctor-detail-opened.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-018-clinic-empty-required.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/sc-adm-023-service-invalid-save.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260316T155423Z/playwright-console.log`
+- Notes:
+  - Backend health stayed `UP`; the frontend Vite server had to be restarted again on `http://127.0.0.1:3000` before the admin pass.
+  - User-management validation, filtering, and retry-recovery paths all worked well enough to close their cases, but an invalid admin user edit still returned `500` instead of validation and was logged as `BUG-018`.
+  - Doctor-management status filtering and detail opening worked safely; however, no approve/edit/save control was available in the current `/doctors` data/UI, so `SC-ADM-014` was marked blocked rather than guessed.
+  - With the admin batch complete, every currently listed `SC-*` case in the manual regression inventory now has a terminal status.
+- Next target:
+  - No mandatory inventory cases remain; only optional bug revalidation is left if fixes or environment changes land.
+
+### 2026-03-17T13:59:39Z
+- Agent turn: 15
+- Focus: environment restore plus patient navigation, doctor-search, and booking happy-path expansion for newly appended `SC-PAT-*` coverage
+- Cases touched: SC-PAT-001, SC-PAT-002, SC-PAT-003, SC-PAT-004, SC-PAT-005, SC-PAT-006, SC-PAT-008, SC-PAT-009, SC-PAT-010, SC-PAT-013, SC-PAT-015, SC-PAT-016, SC-PAT-017, SC-PAT-018, SC-PAT-019, SC-PAT-020
+- Outcome: 11 passed, 5 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-appointments-empty.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-005-sidebar-missing-find-doctors.md`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-009-search-sarah-not-filtered.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-010-search-specialty-not-filtered.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-016-preselected-doctor-booking.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-017-booking-confirmation-step.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/sc-pat-019-appointment-visible.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/bug-pat-payment-handoff-503.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/bug-pat-payment-handoff-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T134531Z/bug-pat-payment-handoff-console.log`
+- Notes:
+  - Refreshed deterministic backend data with `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare`, then started a fresh Vite server on `http://127.0.0.1:3000`.
+  - Patient dashboard still reproduces the known stats `500` and duplicate-key sidebar warning pattern while remaining usable enough for route coverage.
+  - New patient regressions were isolated around navigation/search: the sidebar no longer exposes a `/find-doctors` link, and submitted doctor-search queries for both `Sarah` and `Tim mạch` left the result set unfiltered at 31 doctors.
+  - Booking still works far enough to create appointments and render them in `/appointments`, but the payment handoff is currently broken because `POST /api/payments` returns `503 Service Unavailable` after `POST /api/appointments => 201`.
+- Next target:
+  - Continue with the highest-priority untested patient catalog closest to the current state: `SC-PAT-026`, `SC-PAT-027`, `SC-PAT-028`, `SC-PAT-029`, `SC-PAT-030`, then consultation/profile high-priority rows `SC-PAT-065` to `SC-PAT-070`, `SC-PAT-075`, and `SC-PAT-078`.
+
+### 2026-03-17T14:11:23Z
+- Agent turn: 16
+- Focus: patient appointment-management follow-up, patient consultation high-priority coverage, and profile/security render checks
+- Cases touched: SC-PAT-026, SC-PAT-027, SC-PAT-028, SC-PAT-029, SC-PAT-030, SC-PAT-065, SC-PAT-066, SC-PAT-067, SC-PAT-068, SC-PAT-069, SC-PAT-070, SC-PAT-075, SC-PAT-078
+- Outcome: 10 passed, 2 failed, 1 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/sc-pat-029-cancel-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/bug-pat-reschedule-500.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/bug-pat-reschedule-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/bug-pat-reschedule-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/sc-pat-067-consultation-detail.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/sc-pat-consultation-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/sc-pat-consultation-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/sc-pat-075-profile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T140338Z/sc-pat-078-security.png`
+- Notes:
+  - Backend stayed healthy and the frontend was restored with a fresh Vite restart before continuing from the existing patient session and seeded appointments created in the prior turn.
+  - Appointment list/detail coverage expanded cleanly: list metadata matched the seeded appointments, detail rendered correctly, cancel succeeded on appointment `1802`, and the list reflected the `Đã hủy` transition immediately.
+  - Appointment reschedule is currently broken: attempting to move appointment `1801` to a new slot reproducibly returns `POST /api/appointments/1801/reschedule => 500`, logged as `BUG-022`.
+  - Patient consultation creation still works (`POST /api/consultations => 201`), but chat messaging remains blocked while the request is pending and the detail page still reproduces the known STOMP lifecycle defect from `BUG-003`.
+- Next target:
+  - Finish the remaining patient consultation/profile/security rows (`SC-PAT-071`, `SC-PAT-072`, `SC-PAT-073`, `SC-PAT-074`, `SC-PAT-076`, `SC-PAT-077`, `SC-PAT-079`, `SC-PAT-080`, `SC-PAT-081`, `SC-PAT-082`), then use a doctor session to accept consultation `801` so `SC-PAT-069` can be unblocked before shifting into the unstarted doctor catalog.
+
+### 2026-03-17T14:23:24Z
+- Agent turn: 17
+- Focus: remaining patient consultation/profile/security edge cases plus resumable evidence capture for redirects and negative routes
+- Cases touched: SC-PAT-071, SC-PAT-072, SC-PAT-073, SC-PAT-074, SC-PAT-076, SC-PAT-077, SC-PAT-079, SC-PAT-080, SC-PAT-081, SC-PAT-082
+- Outcome: 8 passed, 2 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-071-validation.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-072-foreign-consultation-blocked.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-072-foreign-consultation-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/bug-pat-consultation-invalid-route.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/bug-pat-consultation-invalid-route-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/bug-pat-consultation-invalid-route-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-074-messages-redirect.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-076-profile-save-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/bug-pat-profile-invalid-phone.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/bug-pat-profile-invalid-phone-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/bug-pat-profile-invalid-phone-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-079-password-mismatch.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-080-password-change-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T141508Z/sc-pat-082-notification-save-success.png`
+- Notes:
+  - Backend health remained `UP`; the frontend Vite server had to be restarted again on `http://127.0.0.1:3000` before the browser batch.
+  - Consultation-side negative coverage is partly healthy: short-topic validation worked, `/messages` redirected correctly to `/patient/consultations`, and direct navigation to foreign consultation `800` was blocked with `403 Forbidden`.
+  - Two new patient regressions were isolated. Nonexistent consultation `999999` does not fail gracefully and still opens duplicate `404` traffic plus WebSocket subscriptions (`BUG-024`), and invalid profile phone submission returns backend `500` instead of validation (`BUG-023`).
+  - Profile save, security mismatch validation, valid password change, and notification-settings persistence all worked; the seeded patient password was restored to `password` after the positive password-change check to preserve deterministic access for later turns.
+- Next target:
+  - Stay in the patient role for the highest-priority untested route clusters: `SC-PAT-043`, `SC-PAT-044`, `SC-PAT-049`, `SC-PAT-050`, `SC-PAT-055`, `SC-PAT-056`, then close the adjacent medium rows `SC-PAT-045`, `SC-PAT-047`, `SC-PAT-052`, `SC-PAT-057`, `SC-PAT-061`, `SC-PAT-062`, `SC-PAT-063`. After that, use a doctor session to accept consultation `801` so blocked `SC-PAT-069` can be retried, then revisit the payment-dependent patient rows if payment services recover.
+
+### 2026-03-17T14:34:02Z
+- Agent turn: 18
+- Focus: remaining patient route coverage across medical records, health metrics, family management, and in-app notifications
+- Cases touched: SC-PAT-043, SC-PAT-044, SC-PAT-045, SC-PAT-047, SC-PAT-049, SC-PAT-050, SC-PAT-052, SC-PAT-055, SC-PAT-056, SC-PAT-057, SC-PAT-061, SC-PAT-062, SC-PAT-063
+- Outcome: 11 passed, 2 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-medical-records-empty.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-medical-records-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-health-metrics-saved.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-health-metrics-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-family-member-saved.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-family-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-notifications-page.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T142946Z/sc-pat-notifications-network.log`
+- Notes:
+  - Backend remained `UP`; the frontend Vite server had to be restarted again on `http://127.0.0.1:3000` before the patient-route batch.
+  - Medical records rendered cleanly but the current patient dataset still contains no records, so the record-detail and prescription-detail cases were blocked rather than guessed.
+  - Health metrics behaved well end-to-end: the page rendered, a valid blood-pressure entry was created with `POST /api/health-metrics => 201 Created`, and the new data appeared immediately in the summary card and chart.
+  - Family management also worked in real mode: a new family member was created with `POST /api/family-members => 201 Created`, then edited successfully with `PUT /api/family-members/221 => 200 OK`.
+  - In-app notifications rendered, category filtering updated the view, and `PUT /api/notifications/user/223/read-all => 204 No Content` confirmed the mark-read flow.
+- Next target:
+  - Use a doctor session to accept consultation `801` so blocked `SC-PAT-069` can be retried from the patient side. After that, revisit the payment-dependent patient rows `SC-PAT-020`, `SC-PAT-035`, `SC-PAT-036`, `SC-PAT-037`, `SC-PAT-038`, `SC-PAT-041`, and `SC-PAT-042` if payment services have recovered, then close the remaining untested patient medium/low rows `SC-PAT-007`, `SC-PAT-025`, `SC-PAT-032`, `SC-PAT-048`, `SC-PAT-054`, `SC-PAT-060`, and `SC-PAT-064`.
+
+### 2026-03-17T14:42:14Z
+- Agent turn: 19
+- Focus: unblock patient consultation messaging via doctor acceptance, then refresh the payment-history cases with current backend evidence
+- Cases touched: SC-PAT-069, SC-PAT-035, SC-PAT-036, SC-PAT-042
+- Outcome: 3 failed, 1 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-069-doctor-accepted-consultation.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-069-doctor-accepted-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-069-messaging-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-069-messaging-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/bug-pat-chatbot-overlaps-send-button.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-payments-empty-with-errors.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-payments-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T143716Z/sc-pat-payments-console.log`
+- Notes:
+  - Backend remained `UP`; the frontend had to be restarted again on `http://127.0.0.1:3000` before the doctor/patient role-switch pass.
+  - The doctor-side acceptance path worked: consultation `801` moved from `Chờ duyệt` to `Đang tư vấn` with `PUT /api/consultations/801/accept => 200 OK`.
+  - The patient-side chat is no longer blocked by consultation state, but the primary send button is obstructed by the floating chatbot widget. A message could only be posted by pressing Enter, so `SC-PAT-069` now closes as failed under `BUG-025` instead of staying blocked.
+  - Payment history is still degraded under `BUG-013`: `/payments` renders its shell, but `GET /api/payments/my-payments?page=0&size=20` still returns `503 Service Unavailable`, which blocks row verification and causes a misleading empty-state fallback.
+- Next target:
+  - Close the remaining untested patient medium/low rows `SC-PAT-007`, `SC-PAT-025`, `SC-PAT-032`, `SC-PAT-048`, `SC-PAT-054`, `SC-PAT-060`, and `SC-PAT-064`, then shift into the unstarted doctor high-priority catalog `SC-DOC-001`, `SC-DOC-002`, `SC-DOC-003`, `SC-DOC-007`, and `SC-DOC-008`. Revisit the payment-history cases only if `BUG-013` clears.
+
+### 2026-03-17T14:53:36Z
+- Agent turn: 20
+- Focus: close the remaining patient medium/low route rows with recoverability checks, detail consistency checks, and fallback-account empty-state sampling
+- Cases touched: SC-PAT-007, SC-PAT-025, SC-PAT-032, SC-PAT-048, SC-PAT-054, SC-PAT-060, SC-PAT-064
+- Outcome: 5 passed, 2 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-007-profile-entrypoint.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-025-booking-recoverable.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-032-appointment-detail.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-032-appointment-detail-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-048-invalid-prescription-fallback.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-048-invalid-prescription-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-054-seeded-health-metrics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-060-family-empty-state.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T144514Z/sc-pat-064-seeded-notifications.png`
+- Notes:
+  - Backend remained `UP`; the frontend had already been restored at turn start after the prior `127.0.0.1:3000` outage, so the browser pass continued on the fresh Vite session.
+  - Patient navigation and recoverability checks closed cleanly: header profile entrypoint reached `/profile`, `/appointments/book` reopened in a usable retry state after the known payment-handoff failure, and `/appointments/1801` detail data remained internally consistent.
+  - Invalid prescription navigation behaved safely enough to pass the fallback case: `/prescriptions/999999` produced a backend `404` but the UI recovered to `/medical-records` without a route crash.
+  - To test remaining empty-state rows honestly, a second real-mode patient account (`patient.1@healthflow.vn`) was used. That account provided a valid family empty state, but health metrics and notifications were already seeded, so `SC-PAT-054` and `SC-PAT-064` were closed as blocked by dataset constraints rather than guessed.
+- Next target:
+  - Shift into the unstarted doctor high-priority catalog `SC-DOC-001`, `SC-DOC-002`, `SC-DOC-003`, `SC-DOC-007`, and `SC-DOC-008`, then continue broader doctor coverage. Revisit blocked patient data-dependent rows only after fresh empty/record-bearing patient data becomes available, and recheck payment-history rows only if `BUG-013` clears.
+
+### 2026-03-17T14:59:32Z
+- Agent turn: 21
+- Focus: first doctor high-priority batch across dashboard, appointments, and weekly schedule management
+- Cases touched: SC-DOC-001, SC-DOC-002, SC-DOC-003, SC-DOC-005, SC-DOC-007, SC-DOC-008
+- Outcome: 6 passed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T145610Z/sc-doc-001-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T145610Z/sc-doc-003-appointments.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T145610Z/sc-doc-007-schedule.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T145610Z/sc-doc-008-schedule-saved.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T145610Z/sc-doc-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T145610Z/sc-doc-console.log`
+- Notes:
+  - Backend stayed `UP`; the frontend Vite app had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before the doctor-role pass.
+  - Doctor dashboard coverage was healthy: the route rendered, key cards and quick actions were visible, and no new route-specific regression blocked use despite the already known duplicate-sidebar-key warnings.
+  - `/doctor/appointments` rendered cleanly and also provided a graceful empty-state message, allowing the adjacent empty-state row to be closed in the same pass.
+  - `/schedule` rendered the weekly editor, a valid Friday update saved with visible success feedback, backend schedule writes completed successfully, and the original Friday hours were restored immediately afterward to preserve deterministic expectations for later turns.
+- Next target:
+  - Continue the unstarted doctor high-priority catalog with `SC-DOC-011`, `SC-DOC-015`, `SC-DOC-024`, `SC-DOC-025`, `SC-DOC-026`, `SC-DOC-027`, and `SC-DOC-028`, then close adjacent medium doctor rows on the same surfaces.
+
+### 2026-03-17T15:08:57Z
+- Agent turn: 22
+- Focus: doctor patients, create-medical-record entry behavior, and consultation queue/detail coverage
+- Cases touched: SC-DOC-011, SC-DOC-014, SC-DOC-015, SC-DOC-016, SC-DOC-017, SC-DOC-018, SC-DOC-024, SC-DOC-025, SC-DOC-026, SC-DOC-027, SC-DOC-028
+- Outcome: 4 passed, 4 failed, 3 blocked
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-011-patients.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-015-create-record-redirected.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-015-create-record-unavailable.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-024-consultations-list.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-026-consultation-detail.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-turn22-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-turn22-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T150151Z/sc-doc-turn22-network-final.log`
+- Notes:
+  - Backend stayed `UP`; the frontend Vite app had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before continuing with the existing doctor session.
+  - `/patients` rendered and closed both the primary route row and the adjacent empty-state row because the current doctor dataset still has no assigned patients.
+  - The create-medical-record entrypoint is currently broken for no-context access: direct navigation to `/doctor/create-medical-record` bounced back to `/doctor/appointments` instead of opening a form or presenting a stable explanation, logged as `BUG-026`. Because the doctor dataset also has no appointment rows, the positive and cross-doctor medical-record cases remained blocked.
+  - Consultation coverage advanced on the existing active consultation `801`: the list rendered, detail opened, and a doctor reply posted successfully via Enter (`POST /api/messages => 201`). Two defects remain: the send button is obstructed by the floating chatbot widget (`BUG-027`), and the detail page still reproduces the known STOMP/frame-handler exception from `BUG-003`.
+- Next target:
+  - Continue the remaining medium doctor surfaces while the doctor session is active: `SC-DOC-019`, `SC-DOC-020`, `SC-DOC-022`, `SC-DOC-023`, `SC-DOC-029`, `SC-DOC-030`, `SC-DOC-031`, `SC-DOC-032`, `SC-DOC-033`, and `SC-DOC-034`. Retry blocked doctor data-dependent rows only after a pending consultation or valid appointment context is available.
+
+### 2026-03-17T15:19:42Z
+- Agent turn: 23
+- Focus: doctor profile/settings, consultation edge routes, messages redirect, and analytics coverage
+- Cases touched: SC-DOC-019, SC-DOC-020, SC-DOC-022, SC-DOC-023, SC-DOC-029, SC-DOC-030, SC-DOC-031, SC-DOC-032, SC-DOC-033, SC-DOC-034
+- Outcome: 8 passed, 2 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/sc-doc-019-profile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/sc-doc-020-profile-save-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/sc-doc-022-security.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/sc-doc-023-notifications-settings.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/sc-doc-031-messages-redirect.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/sc-doc-032-analytics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/bug-doc-consultation-invalid-route.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/bug-doc-consultation-unauthorized-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/bug-doc-consultation-unauthorized-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/bug-doc-consultation-invalid-route-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T151319Z/bug-doc-consultation-invalid-route-console.log`
+- Notes:
+  - Backend stayed `UP`; the frontend Vite app had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before continuing with the doctor session.
+  - Doctor profile/settings coverage was healthy: `/profile`, `/profile/security`, and `/profile/notifications` all rendered correctly, and a valid unique phone save succeeded before the original phone number was restored.
+  - `/messages` redirected cleanly to `/consultations`, and doctor analytics rendered with graceful no-data states while the period filter refreshed cleanly from `6 tháng gần nhất` to `3 tháng gần nhất`.
+  - Invalid consultation edge routes are now isolated as `BUG-028`: both unauthorized and nonexistent detail URLs fell back to the queue only after duplicate backend errors, repeated `Failed to load consultation`, and invalid realtime subscription activity.
+- Next target:
+  - Shift into the highest-priority unstarted admin catalog next: `SC-ADM-001`, `SC-ADM-003`, `SC-ADM-004`, `SC-ADM-005`, `SC-ADM-006`, `SC-ADM-010`, and `SC-ADM-011`. Revisit blocked doctor rows `SC-DOC-016`, `SC-DOC-018`, and `SC-DOC-025` only after valid appointment or pending-consultation context becomes available.
+
+### 2026-03-17T15:31:42Z
+- Agent turn: 24
+- Focus: admin dashboard, users management, and doctor-management high-priority coverage
+- Cases touched: SC-ADM-001, SC-ADM-003, SC-ADM-004, SC-ADM-005, SC-ADM-006, SC-ADM-010, SC-ADM-011
+- Outcome: 5 passed, 2 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/sc-adm-001-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/sc-adm-003-users.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/sc-adm-004-user-search.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/sc-adm-005-user-edit-modal.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/bug-adm-user-save-503.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/bug-adm-user-save-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/bug-adm-user-save-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/sc-adm-010-doctors.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/bug-adm-doctor-search-crash.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/bug-adm-doctor-search-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T152720Z/sc-adm-doctors-network.log`
+- Notes:
+  - Backend stayed `UP`; the frontend Vite app had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before the admin-role pass.
+  - Admin dashboard, `/users`, and `/doctors` all rendered successfully, and the users search flow narrowed correctly to the admin seed account.
+  - The admin user edit modal rendered seeded values, but the first valid save attempt failed with `PUT /api/users/225 => 503 Service Unavailable` and the toast `Không thể lưu người dùng`, logged as `BUG-029`.
+  - The admin doctor search path is currently unstable: typing `Sarah` into the search box crashed the page to a blank screen with `TypeError: Cannot read properties of undefined (reading 'toLowerCase')` from `DoctorManagement.jsx`, logged as `BUG-030`.
+  - After the failed user-save reproduction, the admin name was restored manually to `Admin System` so the seeded baseline remains usable for later turns.
+- Next target:
+  - Continue the remaining admin route coverage next: `SC-ADM-015`, `SC-ADM-019`, `SC-ADM-024`, `SC-ADM-028`, `SC-ADM-029`, and `SC-ADM-030`, then close adjacent admin medium checks `SC-ADM-002`, `SC-ADM-016`, `SC-ADM-017`, `SC-ADM-020`, `SC-ADM-021`, `SC-ADM-025`, `SC-ADM-026`, and `SC-ADM-027`. Revisit blocked doctor rows `SC-DOC-016`, `SC-DOC-018`, and `SC-DOC-025` only after fresh appointment or pending-consultation context is available.
+
+### 2026-03-17T15:41:14Z
+- Agent turn: 25
+- Focus: admin clinics, services, rooms, and reports coverage
+- Cases touched: SC-ADM-015, SC-ADM-016, SC-ADM-017, SC-ADM-019, SC-ADM-020, SC-ADM-021, SC-ADM-024, SC-ADM-025, SC-ADM-028, SC-ADM-029, SC-ADM-030
+- Outcome: 10 passed, 1 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-015-clinics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-016-clinic-search.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-017-clinic-edit-modal.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-019-services.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-020-service-search.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-021-service-filter.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-024-rooms.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-025-room-search.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-028-reports.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/sc-adm-029-report-tabs.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/bug-adm-reports-date-range-503.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/bug-adm-reports-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T153445Z/bug-adm-reports-console.log`
+- Notes:
+  - Backend health stayed `UP`; the Vite frontend had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before continuing in the admin session.
+  - `/admin/clinics`, `/admin/services`, and `/admin/rooms` all rendered correctly, and the clinic edit save path succeeded with a temporary ASCII description before the original seeded description was restored.
+  - Service search/category filtering and room search/filtering behaved correctly without route crashes or blank states beyond expected empty-state messaging.
+  - `/admin/reports` rendered and report-tab switching stayed stable, but changing the date range still triggered `503 Service Unavailable` failures for all three report datasets, isolated as `BUG-031`.
+- Next target:
+  - Continue the remaining admin medium coverage next: `SC-ADM-002`, `SC-ADM-022`, `SC-ADM-026`, `SC-ADM-027`, `SC-ADM-031`, `SC-ADM-032`, `SC-ADM-033`, `SC-ADM-034`, `SC-ADM-035`, and `SC-ADM-036`. Revisit blocked doctor rows `SC-DOC-016`, `SC-DOC-018`, and `SC-DOC-025` only after fresh appointment or pending-consultation context is available.
+
+### 2026-03-17T15:53:07Z
+- Agent turn: 26
+- Focus: remaining admin medium coverage across dashboard widgets, service/room edits, reports controls, and admin profile
+- Cases touched: SC-ADM-002, SC-ADM-022, SC-ADM-026, SC-ADM-027, SC-ADM-031, SC-ADM-032, SC-ADM-033, SC-ADM-034, SC-ADM-035, SC-ADM-036
+- Outcome: 6 passed, 4 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-002-dashboard-widgets.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-022-service-edit-modal.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-026-room-edit-modal.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/bug-adm-room-invalid-save-succeeded.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/bug-adm-room-invalid-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-031-grouping-blocked.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-033-export-failed.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-reports-medium-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-reports-medium-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/sc-adm-034-profile.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/bug-adm-profile-invalid-phone-500.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/bug-adm-profile-invalid-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T154343Z/bug-adm-profile-invalid-console.log`
+- Notes:
+  - Backend health stayed `UP`; the Vite frontend had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before continuing the admin pass.
+  - Admin dashboard widgets, service edit save, room edit save, report no-data handling, and admin profile render/save all behaved correctly; the original admin phone number `0909999003` was restored after testing.
+  - Invalid room capacity save is now isolated as `BUG-032`: capacity `0` was accepted and persisted with a success toast instead of validation.
+  - Reports controls are further degraded beyond `BUG-031`: switching grouping to `Tuần` triggers backend `500` responses, and `Xuất PDF` returns `503` with no download event, logged as `BUG-034`.
+  - Invalid admin profile phone input reproduces another shared `/api/profile` validation gap: `PUT /api/profile => 500` with only a generic support toast, logged as `BUG-033`.
+- Next target:
+  - Shift to the highest-priority untested auth and cross-role coverage next: `SC-AUTH-001`, `SC-AUTH-005`, `SC-AUTH-006`, `SC-AUTH-007`, `SC-AUTH-008`, `SC-AUTH-009`, `SC-AUTH-027`, `SC-AUTH-028`, `SC-AUTH-029`, `SC-AUTH-030`, `SC-AUTH-031`, then `SC-X-001`, `SC-X-002`, `SC-X-005`, and `SC-X-009` through `SC-X-016`.
+
+### 2026-03-17T16:09:18Z
+- Agent turn: 27
+- Focus: high-priority auth coverage plus admin authorization redirects
+- Cases touched: SC-AUTH-001, SC-AUTH-005, SC-AUTH-006, SC-AUTH-007, SC-AUTH-008, SC-AUTH-009, SC-AUTH-027, SC-AUTH-028, SC-AUTH-029, SC-AUTH-030, SC-AUTH-031, SC-X-013, SC-X-014
+- Outcome: 12 passed, 1 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-031-logout-to-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-005-login-render.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-001-landing.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-027-dashboard-redirect-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-028-patient-route-redirect-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-029-doctor-route-redirect-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-030-admin-route-redirect-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-009-invalid-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-invalid-login-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-invalid-login-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-006-patient-login-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-007-doctor-login-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-doctor-login-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-008-admin-login-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-x-013-admin-patient-route-denied.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-x-014-admin-doctor-route-denied.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-turn27-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260317T160023Z/sc-auth-turn27-console.log`
+- Notes:
+  - Backend health stayed `UP`; the Vite frontend had dropped again at turn start and was restarted on `http://127.0.0.1:3000` before continuing the auth pass.
+  - Public landing, login-page render, patient login, doctor login, admin login, logged-out protected-route redirects, and explicit admin logout all behaved correctly in real backend mode.
+  - Invalid credentials still reproduce the existing auth-feedback defect from `BUG-001`: `POST /api/auth/login => 401` returns no visible inline or toast error on `/login`.
+  - While authenticated as admin, direct navigation to `/appointments/book` and `/doctor/appointments` correctly redirected back to `/dashboard`, so patient and doctor surfaces were not exposed cross-role.
+- Next target:
+  - Continue the remaining highest-priority cross-role and validation coverage next: `SC-X-001`, `SC-X-002`, `SC-X-005`, `SC-X-009`, `SC-X-010`, `SC-X-011`, `SC-X-012`, `SC-X-015`, and `SC-X-016`, then resume the unstarted medium auth rows `SC-AUTH-013`, `SC-AUTH-017`, `SC-AUTH-018`, `SC-AUTH-019`, `SC-AUTH-022`, `SC-AUTH-023`, `SC-AUTH-032`, and `SC-AUTH-034` through `SC-AUTH-039`.
+
+### 2026-03-18T12:47:40Z
+- Agent turn: 28
+- Focus: E2E reseed, medium auth closure, and the remaining high-priority cross-role/session matrix
+- Cases touched: SC-AUTH-013, SC-AUTH-017, SC-AUTH-018, SC-AUTH-019, SC-AUTH-022, SC-AUTH-023, SC-AUTH-032, SC-AUTH-034, SC-AUTH-035, SC-AUTH-036, SC-AUTH-037, SC-AUTH-038, SC-AUTH-039, SC-X-001, SC-X-002, SC-X-005, SC-X-009, SC-X-010, SC-X-011, SC-X-012, SC-X-016
+- Outcome: 20 passed, 1 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-013-register.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-017-register-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-017-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-018-forgot-password.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-019-forgot-password-success.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-022-verify-email-invalid.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-023-verify-phone.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-x-001-security-mismatch.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-x-002-doctor-invalid-phone.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-x-005-reports-service-unavailable.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-x-005-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-034-patient-doctor-route-denied.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-036-doctor-patient-route-denied.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-auth-038-admin-patient-route-denied.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T123622Z/sc-x-016-admin-refresh.png`
+- Notes:
+  - Re-seeded the real backend deterministically with `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare` and restarted the Vite frontend on `http://127.0.0.1:3000` before testing.
+  - Closed the remaining unstarted medium auth render/recovery/session rows: register, forgot-password, verify-email invalid state, verify-phone render, authenticated refresh, and the patient/doctor/admin cross-role route denials all behaved correctly.
+  - A first valid registration submit briefly returned `503`, but rerunning the same case with fresh unique credentials succeeded end-to-end and created a new patient account; the row was closed `Passed` with the successful path and a note about the transient earlier response.
+  - Reproduced the known doctor invalid-phone regression again for `SC-X-002`: invalid phone input still drives `PUT /api/profile => 500` and only a generic support message, so `BUG-007` now covers the new row.
+  - `SC-X-005` also closed `Passed`: admin reports still hit the known `503` backend outage, but the page handled it with a clear service-unavailable banner and non-crashing fallback UI.
+- Next target:
+  - Finish the remaining unstarted cross-cutting rows next, led by `SC-X-015`, then `SC-X-003`, `SC-X-004`, `SC-X-006`, `SC-X-007`, `SC-X-008`, `SC-X-017`, and `SC-X-018`, before shifting back to the broader pool of untouched patient/doctor/admin cases.
+
+### 2026-03-18T13:30:33Z
+- Agent turn: 29
+- Focus: real-mode reseed recovery, frontend restore, and the remaining unstarted `SC-X-*` resilience/session slice
+- Cases touched: SC-X-003, SC-X-004, SC-X-006, SC-X-007, SC-X-008, SC-X-015, SC-X-017, SC-X-018
+- Outcome: 8 passed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-003-admin-required-name.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-004-doctor-double-submit-stable.jpeg`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-006-missing-appointment-id-fallback.jpeg`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-007-doctor-appointments-empty-state.jpeg`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-008-inline-error-mismatch.jpeg`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-008-ui-state-observations.txt`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-017-patient-back-after-logout.jpeg`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-018-admin-direct-route.jpeg`
+- Notes:
+  - Re-ran `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare` to restore deterministic backend state, then restarted the Vite frontend on `http://127.0.0.1:3000` after finding the app down at turn start.
+  - Closed the remaining unstarted cross-cutting validation/session rows without introducing new product bugs: admin required-name validation held, repeated doctor schedule submit stayed stable, missing patient entity routes fell back safely, empty-state modules remained readable, and bookmark/logout-back behavior held across all three roles.
+  - MCP Playwright’s primary browser transport dropped mid-turn, so the live checks continued in the Playwright record session; the application behavior stayed consistent across both MCP browser sessions.
+  - This turn also captured a concise console/network export note under `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T131438Z/sc-x-turn-console-network.txt`.
+- Next target:
+  - Continue the remaining unstarted cross-cutting rows next: `SC-X-019`, `SC-X-020`, `SC-X-021`, `SC-X-022`, `SC-X-023`, `SC-X-024`, `SC-X-025`, `SC-X-026`, `SC-X-027`, `SC-X-028`, `SC-X-029`, `SC-X-030`, `SC-X-031`, and `SC-X-032`.
+
+### 2026-03-18T13:47:54Z
+- Agent turn: 30
+- Focus: real-mode frontend recovery, cross-cutting console/network coverage, realtime validation, and restart/resilience checks
+- Cases touched: SC-X-019, SC-X-020, SC-X-021, SC-X-022, SC-X-023, SC-X-024, SC-X-025, SC-X-026
+- Outcome: 4 passed, 4 failed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-020-patient-dashboard-aggregate-500.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-019-020-025-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-019-020-025-network.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-021-patient-consultation-stomp-warning.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-021-022-patient-console.log`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-022-patient-message-visible.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-022-doctor-message-visible.jpeg`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-023-recovered-after-frontend-restart.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-024-controlled-api-failure-fallback.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T133547Z/sc-x-026-consultation-persists-after-reload.png`
+- Notes:
+  - Re-seeded the real backend with `E2E_SKIP_DOCKER_START=true npm run test:e2e:prepare`, restarted the Vite frontend after finding it down at turn start, and kept the turn bounded to `SC-X-019` through `SC-X-026`.
+  - Core-flow monitoring immediately reconfirmed two existing cross-cutting regressions: patient dashboard aggregate stats still return unexpected `500` responses (`BUG-002`), and authenticated routes still emit duplicate React key warnings (`BUG-006`).
+  - Realtime detail coverage split cleanly: live message delivery between seeded patient `patient.52@healthflow.vn` and doctor `doctor.27@healthflow.vn` on consultation `427` worked end-to-end, but consultation startup still reproduced the STOMP/frame-handler exception already tracked in `BUG-003`.
+  - A real frontend restart test passed: after stopping Vite and bringing it back on `127.0.0.1:3000`, the active patient consultation route recovered and remained usable.
+  - A forced temporary `503` on `GET /api/messages/consultation/427` redirected the patient detail page back to `/patient/consultations` without a white screen or permanent spinner, so the degraded-state recovery path was closed `Passed`.
+- Next target:
+  - Finish the remaining unstarted cross-cutting/responsive rows next: `SC-X-027`, `SC-X-028`, `SC-X-029`, `SC-X-030`, `SC-X-031`, and `SC-X-032`.
+
+### 2026-03-18T13:55:34Z
+- Agent turn: 31
+- Focus: final responsive/mobile and UX pass for the remaining unstarted cross-cutting rows
+- Cases touched: SC-X-027, SC-X-028, SC-X-029, SC-X-030, SC-X-031, SC-X-032
+- Outcome: 6 passed
+- Artifacts:
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T135111Z/sc-x-027-mobile-login.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T135111Z/sc-x-028-mobile-patient-dashboard.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T135111Z/sc-x-029-mobile-doctor-schedule.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T135111Z/sc-x-030-mobile-admin-clinics.png`
+  - `/home/ubuntu/clinic-projects/clinic-booking-systemc-frontend/qa/manual-regression/artifacts/20260318T135111Z/sc-x-031-032-observations.txt`
+- Notes:
+  - The frontend had dropped again at turn start and was restarted on `http://127.0.0.1:3000`; backend health remained `UP` on `:8080`.
+  - The final six unstarted rows all closed `Passed` under a `390x844` mobile viewport: login, patient dashboard, doctor schedule, and admin clinics remained readable and actionable on mobile.
+  - UX checks also closed `Passed`: the observed route transitions settled without permanent spinners, and the long clinic-card list stayed scannable without text overlap in the full-page capture.
+  - No new product bug was introduced in this slice, and the catalog now has no `Not started` rows remaining.
+- Next target:
+  - If a follow-up loop is needed, use it only for blocked-row retries or failed-row revalidation after relevant fixes or environment changes.

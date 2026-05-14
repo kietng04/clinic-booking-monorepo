@@ -7,6 +7,7 @@ import com.clinicbooking.chatbotservice.model.RetrievedKnowledge;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Locale;
@@ -19,8 +20,15 @@ import java.util.Set;
 public class ChatOrchestratorService {
     private static final Set<Character> COMPLETE_SENTENCE_ENDINGS = Set.of('.', '!', '?', '"', '\'');
 
+    @Value("${ai.rag.confidence.min-top-score:0.55}")
+    private double ragMinTopScore;
+
+    @Value("${ai.rag.confidence.min-score-gap:0.05}")
+    private double ragMinScoreGap;
+
     private final QuestionClassifierService questionClassifierService;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final LiveKnowledgeSyncService liveKnowledgeSyncService;
     private final GeminiAnswerService geminiAnswerService;
     private final DoctorDirectoryService doctorDirectoryService;
     private final ClinicDirectoryService clinicDirectoryService;
@@ -46,20 +54,33 @@ public class ChatOrchestratorService {
             return specialCaseResponse.get();
         }
 
+        liveKnowledgeSyncService.syncRelevantSources(classification.intentId(), authorizationHeader);
+
         List<RetrievedKnowledge> retrievedKnowledge = knowledgeRetrievalService.retrieve(
                 classification.normalizedQuestion(),
                 classification.intentId()
         );
 
+        List<RetrievedKnowledge> acceptedRagContext = acceptRagContext(retrievedKnowledge)
+                ? retrievedKnowledge
+                : List.of();
+        if (!retrievedKnowledge.isEmpty() && acceptedRagContext.isEmpty()) {
+            log.info(
+                    "Reject low-confidence RAG context for intent={} topScore={}",
+                    classification.intentId(),
+                    retrievedKnowledge.get(0).score()
+            );
+        }
+
         Optional<String> aiAnswer;
         try {
-            aiAnswer = geminiAnswerService.generateAnswer(message, userRole, classification, retrievedKnowledge);
+            aiAnswer = geminiAnswerService.generateAnswer(message, userRole, classification, acceptedRagContext);
         } catch (Exception ex) {
             log.warn("Gemini answer generation failed: {}", ex.getMessage());
             aiAnswer = Optional.empty();
         }
 
-        boolean ragUsed = !retrievedKnowledge.isEmpty();
+        boolean ragUsed = !acceptedRagContext.isEmpty();
         String answerProvider;
         String answer;
 
@@ -70,12 +91,12 @@ public class ChatOrchestratorService {
             if (aiAnswer.isPresent()) {
                 log.warn("Discarding incomplete Gemini answer for intent={}: {}", classification.intentId(), aiAnswer.get());
             }
-            answer = buildDeterministicAnswer(classification, retrievedKnowledge, classification.normalizedQuestion());
+            answer = buildDeterministicAnswer(classification, acceptedRagContext, classification.normalizedQuestion());
             answerProvider = ragUsed ? "RULE_RAG" : "RULE_TEMPLATE";
         }
 
         List<RetrievedKnowledge> orderedKnowledgeForDisplay =
-                orderKnowledgeForDisplay(classification.intentId(), classification.normalizedQuestion(), retrievedKnowledge);
+                orderKnowledgeForDisplay(classification.intentId(), classification.normalizedQuestion(), acceptedRagContext);
 
         List<ChatSource> sources = orderedKnowledgeForDisplay.stream()
                 .map(item -> new ChatSource(
@@ -96,6 +117,24 @@ public class ChatOrchestratorService {
                 ragUsed,
                 sources
         );
+    }
+
+    private boolean acceptRagContext(List<RetrievedKnowledge> retrievedKnowledge) {
+        if (retrievedKnowledge == null || retrievedKnowledge.isEmpty()) {
+            return false;
+        }
+
+        double topScore = retrievedKnowledge.get(0).score();
+        if (topScore < ragMinTopScore) {
+            return false;
+        }
+
+        if (retrievedKnowledge.size() == 1) {
+            return true;
+        }
+
+        double secondScore = retrievedKnowledge.get(1).score();
+        return topScore - secondScore >= ragMinScoreGap || topScore >= 0.80;
     }
 
     private Optional<ChatResponse> handleSpecialCase(

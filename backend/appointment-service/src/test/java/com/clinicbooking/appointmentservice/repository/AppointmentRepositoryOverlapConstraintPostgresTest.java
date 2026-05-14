@@ -70,7 +70,7 @@ class AppointmentRepositoryOverlapConstraintPostgresTest {
                             doctor_id WITH =,
                             tsrange(
                                 appointment_date + appointment_time,
-                                appointment_date + appointment_time + make_interval(mins => COALESCE(duration_minutes, 30)),
+                                appointment_date + appointment_time + ((COALESCE(duration_minutes, 30)::text || ' minutes')::interval),
                                 '[)'
                             ) WITH &&
                         )

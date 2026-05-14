@@ -229,6 +229,89 @@ Expected: `PONG`
 ### Gateway Routes
 - View all routes: http://localhost:8080/actuator/gateway/routes
 
+## CI/CD
+
+This repository now includes GitHub Actions workflows for CI and CD:
+
+- `.github/workflows/ci.yml`
+  Runs `./mvnw -B verify` for the full Maven reactor and validates `docker compose config`.
+- `.github/workflows/cd.yml`
+  Builds Docker images, pushes them to GHCR, and deploys to a remote server over SSH.
+
+### CI behavior
+
+- Triggered on pull requests
+- Triggered on pushes to `main` and `develop`
+- Fails the pipeline if Maven verification fails
+
+### CD behavior
+
+- Triggered on pushes to `main`
+- Can also be run manually through `workflow_dispatch`
+- Publishes images to:
+
+```text
+ghcr.io/<github-owner>/clinic-booking-system-<service>:latest
+ghcr.io/<github-owner>/clinic-booking-system-<service>:sha-<commit>
+```
+
+### Deployment layout
+
+Deployment files live under [`deploy/`](./deploy):
+
+- [`deploy/docker-compose.deploy.yml`](./deploy/docker-compose.deploy.yml)
+- [`deploy/.env.deploy.example`](./deploy/.env.deploy.example)
+- [`deploy/deploy.sh`](./deploy/deploy.sh)
+- [`deploy/healthcheck.sh`](./deploy/healthcheck.sh)
+
+The deployment uses the root `docker-compose.yml` plus the deploy override:
+
+```bash
+docker compose \
+  --env-file deploy/.env.deploy \
+  -f docker-compose.yml \
+  -f deploy/docker-compose.deploy.yml \
+  up -d
+```
+
+### Required GitHub secrets
+
+For CD and remote deployment, configure these repository or environment secrets:
+
+- `DEPLOY_HOST`
+- `DEPLOY_PORT`
+- `DEPLOY_USER`
+- `DEPLOY_PATH`
+- `DEPLOY_SSH_KEY`
+- `GHCR_USERNAME`
+- `GHCR_TOKEN`
+- `JWT_SECRET`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
+- `CLOUDINARY_URL`
+- `MOMO_PARTNER_CODE`
+- `MOMO_ACCESS_KEY`
+- `MOMO_SECRET_KEY`
+- `PAYMENT_REDIRECT_URL`
+- `PAYMENT_IPN_URL`
+- `AVATAR_MAX_FILE_SIZE_BYTES`
+- `AVATAR_FOLDER`
+
+### Remote server prerequisites
+
+- Docker Engine installed
+- Docker Compose v2 installed
+- SSH access from GitHub Actions runner
+- Ability to pull images from GHCR
+
+### Manual deploy on server
+
+```bash
+cp deploy/.env.deploy.example deploy/.env.deploy
+chmod +x deploy/deploy.sh deploy/healthcheck.sh
+./deploy/deploy.sh
+```
+
 ## Notes
 
 - All passwords are set to defaults (postgres/postgres, etc.) - **Change in production!**

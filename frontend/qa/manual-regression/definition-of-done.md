@@ -1,0 +1,5 @@
+Every test case listed in `qa/manual-regression/test-cases.md` is marked `Passed`, `Failed`, `Blocked`, or `Skipped` in `qa/manual-regression/coverage-status.md`
+Every `Failed` case in `qa/manual-regression/coverage-status.md` has a corresponding bug entry in `qa/manual-regression/bug-log.md`
+`qa/manual-regression/execution-log.md` contains factual turn-by-turn progress history with timestamps and touched case IDs
+`qa/manual-regression/next-targets.md` reflects the remaining highest-priority untested or blocked work
+Artifacts referenced in the QA markdown files use absolute workspace paths

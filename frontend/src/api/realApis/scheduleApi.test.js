@@ -50,6 +50,7 @@ describe('scheduleApi.getAvailableSlots', () => {
 
     const slots = await scheduleApi.getAvailableSlots(27, '2026-02-09')
 
+    expect(mockGet).toHaveBeenCalledWith('/api/schedules/doctor/27/day/1')
     expect(slots.map((slot) => slot.time)).toEqual(['08:00', '08:30'])
     expect(slots.every((slot) => slot.available)).toBe(true)
   })

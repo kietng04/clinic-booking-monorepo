@@ -1,0 +1,217 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_environment:
+        description: Target environment
+        required: true
+        default: production
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: Optional image tag override
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: clinic-booking-system
+
+jobs:
+  build-artifacts:
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      ghcr_namespace: ${{ steps.meta.outputs.ghcr_namespace }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Derive deployment metadata
+        id: meta
+        shell: bash
+        run: |
+          echo "ghcr_namespace=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "image_tag=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Maven reactor
+        run: ./mvnw -B clean package -DskipTests
+
+      - name: Upload packaged jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: packaged-jars
+          path: |
+            eureka-server/target/*.jar
+            api-gateway/target/*.jar
+            user-service/target/*.jar
+            appointment-service/target/*.jar
+            medical-service/target/*.jar
+            payment-service/target/*.jar
+            consultation-service/target/*.jar
+            chatbot-service/target/*.jar
+          if-no-files-found: error
+
+  publish-images:
+    needs: build-artifacts
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: eureka-server
+            context: ./eureka-server
+            dockerfile: ./eureka-server/Dockerfile
+          - service: api-gateway
+            context: ./api-gateway
+            dockerfile: ./api-gateway/Dockerfile
+          - service: user-service
+            context: ./user-service
+            dockerfile: ./user-service/Dockerfile
+          - service: appointment-service
+            context: ./appointment-service
+            dockerfile: ./appointment-service/Dockerfile
+          - service: medical-service
+            context: .
+            dockerfile: ./medical-service/Dockerfile
+          - service: payment-service
+            context: .
+            dockerfile: ./payment-service/Dockerfile
+          - service: consultation-service
+            context: .
+            dockerfile: ./consultation-service/Dockerfile
+          - service: chatbot-service
+            context: .
+            dockerfile: ./chatbot-service/Dockerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download packaged jars
+        uses: actions/download-artifact@v4
+        with:
+          name: packaged-jars
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ needs.build-artifacts.outputs.ghcr_namespace }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ needs.build-artifacts.outputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ needs.build-artifacts.outputs.ghcr_namespace }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
+
+  deploy:
+    needs:
+      - build-artifacts
+      - publish-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: ${{ github.event.inputs.deploy_environment || 'production' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' '${{ secrets.DEPLOY_SSH_KEY }}' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Prepare deployment bundle
+        shell: bash
+        run: |
+          mkdir -p .bundle/deploy
+          cp docker-compose.yml .bundle/
+          cp deploy/docker-compose.deploy.yml .bundle/deploy/
+          cp deploy/deploy.sh .bundle/deploy/
+          cp deploy/healthcheck.sh .bundle/deploy/
+          cat > .bundle/deploy/.env.deploy <<EOF
+          GHCR_NAMESPACE=${{ needs.build-artifacts.outputs.ghcr_namespace }}
+          IMAGE_PREFIX=${{ env.IMAGE_PREFIX }}
+          IMAGE_TAG=${{ needs.build-artifacts.outputs.image_tag }}
+          GHCR_USERNAME=${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN=${{ secrets.GHCR_TOKEN }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL=${{ secrets.GEMINI_MODEL }}
+          CLOUDINARY_URL=${{ secrets.CLOUDINARY_URL }}
+          MOMO_PARTNER_CODE=${{ secrets.MOMO_PARTNER_CODE }}
+          MOMO_ACCESS_KEY=${{ secrets.MOMO_ACCESS_KEY }}
+          MOMO_SECRET_KEY=${{ secrets.MOMO_SECRET_KEY }}
+          PAYMENT_REDIRECT_URL=${{ secrets.PAYMENT_REDIRECT_URL }}
+          PAYMENT_IPN_URL=${{ secrets.PAYMENT_IPN_URL }}
+          AVATAR_MAX_FILE_SIZE_BYTES=${{ secrets.AVATAR_MAX_FILE_SIZE_BYTES }}
+          AVATAR_FOLDER=${{ secrets.AVATAR_FOLDER }}
+          EOF
+
+      - name: Create remote deployment directory
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p "${{ secrets.DEPLOY_PORT }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "mkdir -p '${{ secrets.DEPLOY_PATH }}/deploy'"
+
+      - name: Upload deployment bundle
+        shell: bash
+        run: |
+          scp -i ~/.ssh/id_ed25519 -P "${{ secrets.DEPLOY_PORT }}" \
+            .bundle/docker-compose.yml \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/docker-compose.yml"
+          scp -i ~/.ssh/id_ed25519 -P "${{ secrets.DEPLOY_PORT }}" \
+            .bundle/deploy/docker-compose.deploy.yml \
+            .bundle/deploy/deploy.sh \
+            .bundle/deploy/healthcheck.sh \
+            .bundle/deploy/.env.deploy \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/deploy/"
+
+      - name: Run remote deployment
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p "${{ secrets.DEPLOY_PORT }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "cd '${{ secrets.DEPLOY_PATH }}' && chmod +x deploy/deploy.sh deploy/healthcheck.sh && ./deploy/deploy.sh"

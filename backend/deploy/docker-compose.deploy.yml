@@ -1,0 +1,59 @@
+services:
+  eureka-server:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-eureka-server:${IMAGE_TAG}
+    pull_policy: always
+
+  api-gateway:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-api-gateway:${IMAGE_TAG}
+    pull_policy: always
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+
+  user-service:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-user-service:${IMAGE_TAG}
+    pull_policy: always
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      AVATAR_MAX_FILE_SIZE_BYTES: ${AVATAR_MAX_FILE_SIZE_BYTES:-5242880}
+      AVATAR_FOLDER: ${AVATAR_FOLDER:-healthflow/avatars}
+
+  appointment-service:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-appointment-service:${IMAGE_TAG}
+    pull_policy: always
+
+  medical-service:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-medical-service:${IMAGE_TAG}
+    pull_policy: always
+
+  consultation-service:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-consultation-service:${IMAGE_TAG}
+    pull_policy: always
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+
+  payment-service:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-payment-service:${IMAGE_TAG}
+    pull_policy: always
+    environment:
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-MOMOBKUN20180529}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
+      PAYMENT_REDIRECT_URL: ${PAYMENT_REDIRECT_URL:-http://localhost:3000/payment/result}
+      PAYMENT_IPN_URL: ${PAYMENT_IPN_URL:-http://api-gateway:8080/api/payments/momo/callback}
+
+  chatbot-service:
+    build: null
+    image: ghcr.io/${GHCR_NAMESPACE}/${IMAGE_PREFIX}-chatbot-service:${IMAGE_TAG}
+    pull_policy: always
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}

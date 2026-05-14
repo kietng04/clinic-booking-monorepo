@@ -1,0 +1,32 @@
+[
+  {
+    "id": "case-clinic-hours",
+    "question": "phong kham mo cua may gio",
+    "intentId": "CLINIC_HOURS",
+    "relevantDocumentIds": ["CLINIC_WORKING_HOURS"]
+  },
+  {
+    "id": "case-clinic-address",
+    "question": "chi nhanh phong kham o dau",
+    "intentId": "CLINIC_ADDRESS",
+    "relevantDocumentIds": ["CLINIC_BRANCH_MAIN"]
+  },
+  {
+    "id": "case-service-price",
+    "question": "gia kham tong quat bao nhieu",
+    "intentId": "SERVICE_PRICE",
+    "relevantDocumentIds": ["SERVICE_PRICE_BASIC"]
+  },
+  {
+    "id": "case-booking-guide",
+    "question": "lam sao de dat lich kham",
+    "intentId": "BOOK_APPOINTMENT",
+    "relevantDocumentIds": ["BOOKING_GUIDE"]
+  },
+  {
+    "id": "case-specialty",
+    "question": "dau nguc thi nen kham khoa nao",
+    "intentId": "SPECIALTY_CONSULTATION",
+    "relevantDocumentIds": ["SPECIALTY_HINT"]
+  }
+]

@@ -2,17 +2,17 @@ import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
 const variants = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-soft',
-  secondary: 'bg-terra-500 text-white hover:bg-terra-600 shadow-soft',
-  outline: 'border border-sage-300 bg-white text-sage-700 hover:bg-cream-50 dark:border-sage-700 dark:bg-sage-900 dark:text-cream-100 dark:hover:bg-sage-800',
-  ghost: 'text-sage-700 hover:bg-sage-100 dark:text-sage-200 dark:hover:bg-sage-800',
+  primary: 'bg-sage-600 text-white hover:bg-sage-700 shadow-soft',
+  secondary: 'bg-terra-400 text-white hover:bg-terra-500 shadow-soft',
+  outline: 'border-2 border-sage-600 text-sage-600 hover:bg-sage-50',
+  ghost: 'hover:bg-sage-100 text-sage-700',
   danger: 'bg-red-600 text-white hover:bg-red-700',
 }
 
 const sizes = {
-  sm: 'h-9 px-4 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-5 text-base',
+  sm: 'px-4 py-2 text-sm',
+  md: 'px-6 py-3 text-base',
+  lg: 'px-8 py-4 text-lg',
 }
 
 export function Button({
@@ -28,10 +28,10 @@ export function Button({
 }) {
   return (
     <motion.button
-      whileHover={{ scale: disabled || isLoading ? 1 : 1.01 }}
-      whileTap={{ scale: disabled || isLoading ? 1 : 0.99 }}
+      whileHover={{ scale: disabled || isLoading ? 1 : 1.02 }}
+      whileTap={{ scale: disabled || isLoading ? 1 : 0.98 }}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150 focus-ring disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 rounded-soft font-medium transition-all focus-ring disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant],
         sizes[size],
         className

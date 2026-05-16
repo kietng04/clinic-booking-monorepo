@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authApi } from '../api/authApiWrapper'
+import { resolveAvatarSrc } from '@/lib/avatarUtils'
 
 export const useAuthStore = create(
   persist(
@@ -25,7 +26,7 @@ export const useAuthStore = create(
             role: user.role,
             phone: user.phone || user.phoneNumber || '',
             phoneNumber: user.phoneNumber || user.phone || '',
-            avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.email}`,
+            avatar: resolveAvatarSrc(user.avatar, user.email, { name: user.fullName, role: user.role }),
             emailVerified: user.emailVerified,
             phoneVerified: user.phoneVerified,
           }
@@ -58,7 +59,7 @@ export const useAuthStore = create(
             role: user.role,
             phone: user.phone || user.phoneNumber || '',
             phoneNumber: user.phoneNumber || user.phone || '',
-            avatar: user.avatar || `https://i.pravatar.cc/150?u=${user.email}`,
+            avatar: resolveAvatarSrc(user.avatar, user.email, { name: user.fullName, role: user.role }),
             emailVerified: user.emailVerified,
             phoneVerified: user.phoneVerified,
           }

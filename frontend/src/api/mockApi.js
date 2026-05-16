@@ -15,6 +15,7 @@ import {
   mockAdminAnalytics,
   mockDoctorAnalytics,
 } from './mockData'
+import { getVietnameseAvatar, resolveAvatarSrc } from '@/lib/avatarUtils'
 
 // Simulate network delay
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms))
@@ -76,7 +77,10 @@ export const authApi = {
     const newUser = {
       id: String(users.length + 1),
       ...userData,
-      avatar: `https://i.pravatar.cc/150?img=${users.length + 1}`,
+      avatar: getVietnameseAvatar(userData.email || userData.fullName || users.length + 1, {
+        name: userData.fullName || userData.name,
+        role: userData.role,
+      }),
     }
 
     users.push(newUser)
@@ -160,6 +164,74 @@ export const userApi = {
     return doctors
   },
 
+  searchDoctors: async (params = {}) => {
+    await delay(400)
+
+    const {
+      keyword = '',
+      specialization = '',
+      minRating,
+      maxFee,
+      page = 0,
+      size = 12,
+    } = params
+
+    let doctors = users
+      .filter((u) => u.role === 'DOCTOR')
+      .map((doctor) => ({
+        id: doctor.id,
+        fullName: doctor.name,
+        email: doctor.email,
+        avatarUrl: doctor.avatar,
+        specialization: doctor.specialization,
+        rating: doctor.rating,
+        consultationFee: doctor.consultationFee,
+        experienceYears: doctor.yearsOfExperience,
+        workplace: doctor.education,
+      }))
+
+    if (keyword.trim()) {
+      const normalizedKeyword = keyword.trim().toLowerCase()
+      doctors = doctors.filter((doctor) =>
+        doctor.fullName.toLowerCase().includes(normalizedKeyword) ||
+        String(doctor.specialization || '').toLowerCase().includes(normalizedKeyword)
+      )
+    }
+
+    if (specialization) {
+      doctors = doctors.filter((doctor) => doctor.specialization === specialization)
+    }
+
+    if (minRating != null && minRating !== '') {
+      doctors = doctors.filter((doctor) => Number(doctor.rating || 0) >= Number(minRating))
+    }
+
+    if (maxFee != null && maxFee !== '') {
+      doctors = doctors.filter((doctor) => Number(doctor.consultationFee || 0) <= Number(maxFee))
+    }
+
+    doctors.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0))
+
+    const start = Number(page) * Number(size)
+    const end = start + Number(size)
+    const content = doctors.slice(start, end)
+
+    return {
+      content,
+      totalElements: doctors.length,
+      totalPages: Math.ceil(doctors.length / Number(size)),
+      size: Number(size),
+      number: Number(page),
+    }
+  },
+
+  getSpecializations: async () => {
+    await delay(200)
+    return [...new Set(users
+      .filter((u) => u.role === 'DOCTOR' && u.specialization)
+      .map((u) => u.specialization))]
+  },
+
   createUser: async (userData) => {
     await delay(600)
     const newUser = {
@@ -168,7 +240,10 @@ export const userApi = {
       email: userData.email,
       phone: userData.phone || '',
       role: userData.role || 'PATIENT',
-      avatar: `https://i.pravatar.cc/150?u=${userData.email}`,
+      avatar: resolveAvatarSrc(userData.avatar, userData.email, {
+        name: userData.fullName || userData.name,
+        role: userData.role,
+      }),
       createdAt: new Date().toISOString(),
     }
     users.push(newUser)
@@ -508,7 +583,11 @@ export const familyMemberApi = {
     const newMember = {
       id: String(familyMembers.length + 1),
       ...memberData,
-      avatar: `https://i.pravatar.cc/150?img=${familyMembers.length + 20}`,
+      avatar: getVietnameseAvatar(memberData.id || memberData.name || familyMembers.length + 20, {
+        name: memberData.name,
+        relationship: memberData.relationship,
+        gender: memberData.gender,
+      }),
     }
     familyMembers.push(newMember)
     return newMember

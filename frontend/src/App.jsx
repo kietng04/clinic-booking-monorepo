@@ -1,18 +1,21 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
+import { repairReactNode } from './utils/repairReactMojibake'
 
 const lazyNamed = (load, name) =>
   lazy(() => load().then((module) => ({ default: module[name] })))
 
 const ProtectedRoute = lazyNamed(() => import('./components/layout/ProtectedRoute'), 'ProtectedRoute')
 const DashboardLayout = lazyNamed(() => import('./components/layout/DashboardLayout'), 'DashboardLayout')
+const PatientLayout = lazyNamed(() => import('./components/layout/PatientLayout'), 'PatientLayout')
+const DoctorWorkspaceLayout = lazyNamed(() => import('./components/layout/DoctorWorkspaceLayout'), 'DoctorWorkspaceLayout')
 
-const LandingPage = lazyNamed(() => import('./pages/LandingPage'), 'LandingPage')
 const LoginPage = lazyNamed(() => import('./pages/auth/LoginPage'), 'LoginPage')
 const RegisterPage = lazyNamed(() => import('./pages/auth/RegisterPage'), 'RegisterPage')
-const PatientDashboard = lazyNamed(() => import('./pages/patient/PatientDashboard'), 'PatientDashboard')
+const PatientHome = lazy(() => import('./pages/patient/PatientHome'))
 const BookAppointment = lazyNamed(() => import('./pages/patient/BookAppointment'), 'BookAppointment')
+const AppointmentBookingSuccess = lazy(() => import('./pages/patient/AppointmentBookingSuccess'))
 const Appointments = lazy(() => import('./pages/patient/Appointments'))
 const MedicalRecords = lazy(() => import('./pages/patient/MedicalRecords'))
 const MedicalRecordDetail = lazy(() => import('./pages/patient/MedicalRecordDetail'))
@@ -24,7 +27,6 @@ const CreateMedicalRecord = lazy(() => import('./pages/doctor/CreateMedicalRecor
 const DoctorSchedule = lazy(() => import('./pages/doctor/DoctorSchedule'))
 const DoctorPatients = lazy(() => import('./pages/doctor/DoctorPatients'))
 const DoctorConsultations = lazy(() => import('./pages/doctor/DoctorConsultations'))
-const DoctorConsultationChat = lazy(() => import('./pages/doctor/DoctorConsultationChat'))
 const DoctorAnalytics = lazy(() => import('./pages/doctor/DoctorAnalytics'))
 const ConsultationList = lazy(() => import('./pages/patient/ConsultationList'))
 const ConsultationRequest = lazy(() => import('./pages/patient/ConsultationRequest'))
@@ -36,26 +38,30 @@ const ClinicManagement = lazy(() => import('./pages/admin/ClinicManagement'))
 const ServiceManagement = lazy(() => import('./pages/admin/ServiceManagement'))
 const RoomManagement = lazy(() => import('./pages/admin/RoomManagement'))
 const Reports = lazy(() => import('./pages/admin/Reports'))
+const AdminRefunds = lazy(() => import('./pages/admin/AdminRefunds'))
 const NotificationCenter = lazy(() => import('./pages/patient/NotificationCenter'))
 const PrescriptionDetail = lazy(() => import('./pages/patient/PrescriptionDetail'))
 const AppointmentDetail = lazy(() => import('./pages/patient/AppointmentDetail'))
 const PaymentHistory = lazy(() => import('./pages/patient/PaymentHistory'))
 const PaymentResult = lazy(() => import('./pages/patient/PaymentResult'))
+const ClinicDetailBooking = lazy(() => import('./pages/patient/ClinicDetailBooking'))
 const ForgotPassword = lazyNamed(() => import('./pages/auth/ForgotPassword'), 'ForgotPassword')
 const ResetPassword = lazyNamed(() => import('./pages/auth/ResetPassword'), 'ResetPassword')
 const VerifyEmail = lazyNamed(() => import('./pages/auth/VerifyEmail'), 'VerifyEmail')
 const VerifyPhone = lazyNamed(() => import('./pages/auth/VerifyPhone'), 'VerifyPhone')
 const ProfileSettings = lazy(() => import('./pages/profile/ProfileSettings'))
+const PatientAccountPage = lazy(() => import('./pages/profile/PatientAccountPage'))
+const DoctorAccountPage = lazy(() => import('./pages/profile/DoctorAccountPage'))
 const SecuritySettings = lazy(() => import('./pages/profile/SecuritySettings'))
 const NotificationSettings = lazy(() => import('./pages/profile/NotificationSettings'))
 const DoctorSearch = lazy(() => import('./pages/patient/DoctorSearch'))
 
 function RouteFallback() {
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-6">
+  return repairReactNode(
+    <div className="min-h-screen bg-cream-50 dark:bg-sage-950 flex items-center justify-center px-6">
       <div className="text-center">
-        <div className="mx-auto h-10 w-10 rounded-full border-4 border-slate-200 border-t-brand-600 animate-spin dark:border-slate-700 dark:border-t-brand-400" />
-        <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">Đang tải trang...</p>
+        <div className="mx-auto h-10 w-10 rounded-full border-4 border-sage-200 border-t-sage-600 animate-spin" />
+        <p className="mt-4 text-sm text-sage-700 dark:text-sage-300">Đang tải trang...</p>
       </div>
     </div>
   )
@@ -66,10 +72,39 @@ function PublicPage({ children }) {
 }
 
 function ProtectedDashboardPage({ allowedRoles = [], children }) {
+  const { user } = useAuthStore()
+  const Layout = user?.role === 'DOCTOR' ? DoctorWorkspaceLayout : DashboardLayout
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <ProtectedRoute allowedRoles={allowedRoles}>
-        <DashboardLayout>{children}</DashboardLayout>
+        <Layout>{children}</Layout>
+      </ProtectedRoute>
+    </Suspense>
+  )
+}
+
+function ProtectedPatientPage({ allowedRoles = [], children }) {
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <ProtectedRoute allowedRoles={allowedRoles}>
+        <PatientLayout>{children}</PatientLayout>
+      </ProtectedRoute>
+    </Suspense>
+  )
+}
+
+function ProtectedAccountPage({ allowedRoles = [], children }) {
+  const { user } = useAuthStore()
+  const Layout =
+    user?.role === 'PATIENT' ? PatientLayout :
+      user?.role === 'DOCTOR' ? DoctorWorkspaceLayout :
+        DashboardLayout
+
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <ProtectedRoute allowedRoles={allowedRoles}>
+        <Layout>{children}</Layout>
       </ProtectedRoute>
     </Suspense>
   )
@@ -78,7 +113,7 @@ function ProtectedDashboardPage({ allowedRoles = [], children }) {
 function App() {
   const { isAuthenticated, user } = useAuthStore()
   const dashboardPage =
-    user?.role === 'PATIENT' ? <PatientDashboard /> :
+    user?.role === 'PATIENT' ? <PatientHome /> :
       user?.role === 'DOCTOR' ? <DoctorDashboard /> :
         <AdminDashboard />
 
@@ -86,7 +121,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<PublicPage><LandingPage /></PublicPage>} />
+        <Route
+          path="/"
+          element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />}
+        />
         <Route path="/login" element={!isAuthenticated ? <PublicPage><LoginPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
         <Route path="/register" element={!isAuthenticated ? <PublicPage><RegisterPage /></PublicPage> : <Navigate to="/dashboard" replace />} />
         <Route path="/forgot-password" element={<PublicPage><ForgotPassword /></PublicPage>} />
@@ -98,9 +136,15 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedDashboardPage>
-              {dashboardPage}
-            </ProtectedDashboardPage>
+            user?.role === 'PATIENT' ? (
+              <ProtectedPatientPage allowedRoles={['PATIENT']}>
+                {dashboardPage}
+              </ProtectedPatientPage>
+            ) : (
+              <ProtectedDashboardPage>
+                {dashboardPage}
+              </ProtectedDashboardPage>
+            )
           }
         />
 
@@ -118,90 +162,117 @@ function App() {
         <Route
           path="/find-doctors"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <DoctorSearch />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <DoctorSearch />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/appointments/book"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <BookAppointment />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <BookAppointment />
+            </ProtectedPatientPage>
+          }
+        />
+
+        <Route
+          path="/appointments/success"
+          element={
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <AppointmentBookingSuccess />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/appointments"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <Appointments />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <Appointments />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/appointments/:id"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <AppointmentDetail />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <AppointmentDetail />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/payments"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <PaymentHistory />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <PaymentHistory />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/payment/result"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <PaymentResult />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <PaymentResult />
+            </ProtectedPatientPage>
+          }
+        />
+
+        <Route
+          path="/clinics/:clinicId"
+          element={
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <ClinicDetailBooking />
+            </ProtectedPatientPage>
+          }
+        />
+
+        <Route
+          path="/hospitals/:hospitalSlug"
+          element={
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <ClinicDetailBooking />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/medical-records"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <MedicalRecords />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <MedicalRecords />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/medical-records/:id"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <MedicalRecordDetail />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <MedicalRecordDetail />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/health-metrics"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <HealthMetrics />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <HealthMetrics />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/family"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <FamilyMembers />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <FamilyMembers />
+            </ProtectedPatientPage>
           }
         />
 
@@ -220,18 +291,18 @@ function App() {
         <Route
           path="/notifications"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <NotificationCenter />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <NotificationCenter />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/prescriptions/:id"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <PrescriptionDetail />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <PrescriptionDetail />
+            </ProtectedPatientPage>
           }
         />
 
@@ -239,27 +310,27 @@ function App() {
         <Route
           path="/patient/consultations"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <ConsultationList />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <ConsultationList />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/patient/consultations/new"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <ConsultationRequest />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <ConsultationRequest />
+            </ProtectedPatientPage>
           }
         />
 
         <Route
           path="/patient/consultations/:consultationId"
           element={
-            <ProtectedDashboardPage allowedRoles={['PATIENT']}>
-                <ConsultationChat />
-            </ProtectedDashboardPage>
+            <ProtectedPatientPage allowedRoles={['PATIENT']}>
+              <ConsultationChat />
+            </ProtectedPatientPage>
           }
         />
 
@@ -292,6 +363,15 @@ function App() {
         />
 
         <Route
+          path="/doctor/bookings"
+          element={
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
+                <DoctorAppointments />
+            </ProtectedDashboardPage>
+          }
+        />
+
+        <Route
           path="/patients"
           element={
             <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
@@ -310,10 +390,28 @@ function App() {
         />
 
         <Route
+          path="/doctor/calls"
+          element={
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
+                <DoctorConsultations />
+            </ProtectedDashboardPage>
+          }
+        />
+
+        <Route
+          path="/doctor/messages"
+          element={
+            <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
+                <DoctorConsultations />
+            </ProtectedDashboardPage>
+          }
+        />
+
+        <Route
           path="/doctor/consultations/:consultationId"
           element={
             <ProtectedDashboardPage allowedRoles={['DOCTOR']}>
-                <DoctorConsultationChat />
+                <DoctorConsultations />
             </ProtectedDashboardPage>
           }
         />
@@ -384,29 +482,46 @@ function App() {
           }
         />
 
+        <Route
+          path="/admin/refunds"
+          element={
+            <ProtectedDashboardPage allowedRoles={['ADMIN']}>
+                <AdminRefunds />
+            </ProtectedDashboardPage>
+          }
+        />
+
         {/* Profile routes */}
+        <Route
+          path="/account"
+          element={
+            <ProtectedAccountPage allowedRoles={['PATIENT', 'DOCTOR']}>
+              {user?.role === 'DOCTOR' ? <DoctorAccountPage /> : <PatientAccountPage />}
+            </ProtectedAccountPage>
+          }
+        />
         <Route
           path="/profile"
           element={
-            <ProtectedDashboardPage>
-                <ProfileSettings />
-            </ProtectedDashboardPage>
+            <ProtectedAccountPage>
+              <ProfileSettings />
+            </ProtectedAccountPage>
           }
         />
         <Route
           path="/profile/security"
           element={
-            <ProtectedDashboardPage>
-                <SecuritySettings />
-            </ProtectedDashboardPage>
+            <ProtectedAccountPage>
+              <SecuritySettings />
+            </ProtectedAccountPage>
           }
         />
         <Route
           path="/profile/notifications"
           element={
-            <ProtectedDashboardPage>
-                <NotificationSettings />
-            </ProtectedDashboardPage>
+            <ProtectedAccountPage>
+              <NotificationSettings />
+            </ProtectedAccountPage>
           }
         />
 

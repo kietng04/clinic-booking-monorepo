@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { clearStoredAuth, setStoredTokens } from './core/authStorage'
 
 // API base URL - Gateway URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
@@ -40,17 +41,13 @@ apiClient.interceptors.response.use(
         if (refreshToken) {
           const response = await axios.post(
             `${API_BASE_URL}/api/auth/refresh`,
-            null,
-            {
-              params: { refreshToken },
-            }
+            { refreshToken }
           )
 
           const { token, refreshToken: newRefreshToken } = response.data
 
           // Save new tokens
-          localStorage.setItem('accessToken', token)
-          localStorage.setItem('refreshToken', newRefreshToken)
+          setStoredTokens(token, newRefreshToken)
 
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${token}`
@@ -58,9 +55,7 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed, clear tokens and redirect to login
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('auth-storage')
+        clearStoredAuth()
         window.location.href = '/login'
         return Promise.reject(refreshError)
       }
@@ -82,8 +77,7 @@ export const authApi = {
     const { token, refreshToken, ...userData } = response.data
 
     // Save tokens to localStorage
-    localStorage.setItem('accessToken', token)
-    localStorage.setItem('refreshToken', refreshToken)
+    setStoredTokens(token, refreshToken)
 
     return {
       user: userData,
@@ -102,8 +96,7 @@ export const authApi = {
     const { token, refreshToken, ...user } = response.data
 
     // Save tokens to localStorage
-    localStorage.setItem('accessToken', token)
-    localStorage.setItem('refreshToken', refreshToken)
+    setStoredTokens(token, refreshToken)
 
     return {
       user,
@@ -118,15 +111,12 @@ export const authApi = {
    * @returns {Promise} Response with new tokens
    */
   refreshToken: async (refreshToken) => {
-    const response = await apiClient.post('/api/auth/refresh', null, {
-      params: { refreshToken },
-    })
+    const response = await apiClient.post('/api/auth/refresh', { refreshToken })
 
     const { token, refreshToken: newRefreshToken } = response.data
 
     // Save new tokens
-    localStorage.setItem('accessToken', token)
-    localStorage.setItem('refreshToken', newRefreshToken)
+    setStoredTokens(token, newRefreshToken)
 
     return {
       token,
@@ -138,9 +128,7 @@ export const authApi = {
    * Logout user (client-side only, backend is stateless)
    */
   logout: () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('auth-storage')
+    clearStoredAuth()
   },
   forgotPassword: async (email) => {
     const response = await apiClient.post('/api/auth/forgot-password', { email })

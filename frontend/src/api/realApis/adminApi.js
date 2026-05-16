@@ -67,6 +67,7 @@ const normalizeRevenueReport = (data = {}) => ({
   totalRevenue: Number(data?.totalRevenue ?? 0),
   onlinePayment: Number(data?.onlinePayment ?? 0),
   cashPayment: Number(data?.cashPayment ?? 0),
+  unclassifiedPayment: Number(data?.unclassifiedPayment ?? 0),
   monthlyTrend: Array.isArray(data?.monthlyTrend)
     ? data.monthlyTrend.map((item) => ({
         month: item?.month ?? '',
@@ -74,6 +75,7 @@ const normalizeRevenueReport = (data = {}) => ({
         revenue: Number(item?.revenue ?? 0),
         online: Number(item?.online ?? 0),
         cash: Number(item?.cash ?? 0),
+        unclassified: Number(item?.unclassified ?? 0),
       }))
     : [],
 })
@@ -170,6 +172,16 @@ export const adminApi = {
   exportReport: async (format = 'pdf', params = {}) => {
     const response = await adminServiceClient.get(`/api/reports/export/${format}`, {
       params,
+      responseType: 'blob',
+    })
+    return response.data
+  },
+  getRefundQueue: async (params = {}) => {
+    const response = await adminServiceClient.get('/api/payments/admin/refund-queue', { params })
+    return response.data
+  },
+  exportRefundQueue: async () => {
+    const response = await adminServiceClient.get('/api/payments/admin/refund-queue/export', {
       responseType: 'blob',
     })
     return response.data

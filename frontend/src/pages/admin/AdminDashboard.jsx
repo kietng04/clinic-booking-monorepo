@@ -8,7 +8,6 @@ import { useUIStore } from '@/store/uiStore'
 import { statsApi } from '@/api/statsApiWrapper'
 import { vi } from '@/lib/translations'
 import { withRetry } from '@/utils/apiRetry'
-import { devLog } from '@/utils/devLogger'
 
 const MAX_AUTO_RETRY_503 = 3
 
@@ -97,7 +96,7 @@ const AdminDashboard = () => {
             initialDelay: 500,
             signal,
             onRetry: (attempt) => {
-              devLog(`Retrying admin stats (attempt ${attempt})...`)
+              console.log(`Retrying admin stats (attempt ${attempt})...`)
             }
           }
         ),
@@ -110,7 +109,7 @@ const AdminDashboard = () => {
             backoffMultiplier: 2,
             signal,
             onRetry: (attempt, error, delay) => {
-              devLog(`Retrying analytics dashboard (attempt ${attempt} after ${delay}ms) due to:`, error.message)
+              console.log(`Retrying analytics dashboard (attempt ${attempt} after ${delay}ms) due to:`, error.message)
               setIsRetrying(true)
               setRetryAttempt(attempt)
             }
@@ -132,7 +131,7 @@ const AdminDashboard = () => {
 
       // Don't show error for aborted requests (component unmounted)
       if (error.name === 'AbortError') {
-        devLog('Request cancelled')
+        console.log('Request cancelled')
         return
       }
 

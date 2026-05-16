@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Search, Plus, Edit2, Trash2, Mail, Phone } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -17,6 +17,7 @@ import { vi } from '@/lib/translations'
 const UserManagement = () => {
   const { showToast } = useUIStore()
   const [users, setUsers] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
@@ -34,17 +35,8 @@ const UserManagement = () => {
     fetchUsers()
   }, [])
 
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = searchQuery.toLowerCase()
-
-    return users.filter(user => {
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter
-      const matchesSearch = !normalizedSearch ||
-        user.name.toLowerCase().includes(normalizedSearch) ||
-        user.email.toLowerCase().includes(normalizedSearch)
-
-      return matchesRole && matchesSearch
-    })
+  useEffect(() => {
+    filterUsers()
   }, [users, searchQuery, roleFilter])
 
   const fetchUsers = async () => {
@@ -62,6 +54,23 @@ const UserManagement = () => {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const filterUsers = () => {
+    let filtered = [...users]
+
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(u => u.role === roleFilter)
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter(u =>
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    setFilteredUsers(filtered)
   }
 
   const handleSave = async () => {

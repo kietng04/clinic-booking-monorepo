@@ -60,11 +60,15 @@ export const repairMojibakeString = (value) => {
 
   let current = value
 
-  for (let i = 0; i < 2; i += 1) {
+  for (let i = 0; i < 6; i += 1) {
     let decoded = current
     try {
       decoded = decodeUtf8FromLatin1(current)
     } catch {
+      return current
+    }
+
+    if (decoded === current) {
       return current
     }
 

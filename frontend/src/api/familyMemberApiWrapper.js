@@ -1,6 +1,5 @@
 import { familyMemberApi as realFamilyMemberApi } from './realApis/familyMemberApi'
 import { familyMemberApi as mockFamilyMemberApi } from './mockApi'
-import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
@@ -15,7 +14,7 @@ export const familyMemberApi = USE_MOCK_BACKEND
     }
   : api
 
-devLog(
+console.log(
   `👨‍👩‍👧‍👦 Family Member Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`
 )
 

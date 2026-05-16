@@ -19,65 +19,65 @@ export function LandingPage() {
   const features = [
     {
       icon: Calendar,
-      title: 'Đặt lịch dễ dàng',
-      description: 'Chọn bác sĩ, khung giờ khám và xác nhận lịch hẹn chỉ trong vài bước.',
+      title: 'Easy Booking',
+      description: 'Book appointments with top doctors in seconds, from anywhere.',
     },
     {
       icon: Shield,
-      title: 'Bảo mật dữ liệu',
-      description: 'Thông tin sức khỏe được mã hóa và bảo vệ theo tiêu chuẩn an toàn.',
+      title: 'Secure & Private',
+      description: 'Your health data is encrypted and protected with industry standards.',
     },
     {
       icon: Heart,
-      title: 'Theo dõi sức khỏe',
-      description: 'Quản lý chỉ số, hồ sơ khám và lịch sử điều trị ngay trên một nền tảng.',
+      title: 'Health Tracking',
+      description: 'Monitor your vitals and health metrics with AI-powered insights.',
     },
     {
       icon: Users,
-      title: 'Chăm sóc gia đình',
-      description: 'Theo dõi lịch khám và hồ sơ y tế của các thành viên trong gia đình.',
+      title: 'Family Care',
+      description: 'Manage healthcare for your entire family from one account.',
     },
     {
       icon: Clock,
-      title: 'Hỗ trợ 24/7',
-      description: 'Luôn có đội ngũ hỗ trợ khi cần tư vấn lịch hẹn hoặc thông tin khám bệnh.',
+      title: '24/7 Support',
+      description: 'Round-the-clock support and emergency consultation services.',
     },
     {
       icon: Sparkles,
-      title: 'Gợi ý thông minh',
-      description: 'Nhận nhắc lịch và gợi ý chăm sóc phù hợp với hồ sơ sức khỏe của bạn.',
+      title: 'AI Insights',
+      description: 'Get personalized health recommendations based on your data.',
     },
   ]
 
   const testimonials = [
     {
-      name: 'Nguyễn Thị Lan',
-      role: 'Bệnh nhân',
-      avatar: '/landing/testimonial-nguyen-thi-lan.jpg',
-      content: 'Tôi đặt lịch khám cho cả gia đình nhanh hơn trước rất nhiều. Giao diện dễ dùng và thông tin lịch hẹn rõ ràng.',
+      name: 'Sarah Johnson',
+      role: 'Patient',
+      avatar: 'https://i.pravatar.cc/150?img=44',
+      content: 'HealthFlow made managing my family\'s healthcare so much easier. The interface is intuitive and the doctors are excellent!',
       rating: 5,
     },
     {
-      name: 'BS. Trần Minh Quân',
-      role: 'Bác sĩ Tim mạch',
-      avatar: '/landing/vietnam-doctor-card.jpg',
-      content: 'Hệ thống giúp tôi quản lý lịch khám gọn hơn, giảm thời gian xử lý thủ công và tập trung hơn vào bệnh nhân.',
+      name: 'Dr. Michael Chen',
+      role: 'Cardiologist',
+      avatar: 'https://i.pravatar.cc/150?img=12',
+      content: 'As a doctor, this platform streamlines my workflow. I can focus more on patient care and less on administrative tasks.',
       rating: 5,
     },
     {
-      name: 'Phạm Gia Hân',
-      role: 'Bệnh nhân',
-      avatar: '/landing/testimonial-pham-gia-han.jpg',
-      content: 'Các nhắc lịch và hồ sơ khám tập trung giúp tôi không bỏ sót lần tái khám quan trọng.',
+      name: 'Emily Rodriguez',
+      role: 'Patient',
+      avatar: 'https://i.pravatar.cc/150?img=45',
+      content: 'The AI health insights helped me catch a potential issue early. This platform truly cares about preventive healthcare.',
       rating: 5,
     },
   ]
 
   return (
     <div className="min-h-screen bg-cream-50 dark:bg-sage-950">
-      {/* Phần giới thiệu */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden">
-        {/* Trang trí nền */}
+        {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-sage-300/20 rounded-full blur-3xl"></div>
           <div className="absolute top-1/2 -left-40 w-96 h-96 bg-terra-300/20 rounded-full blur-3xl"></div>
@@ -85,7 +85,7 @@ export function LandingPage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Nội dung bên trái */}
+            {/* Left content */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -94,88 +94,88 @@ export function LandingPage() {
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-sage-100 dark:bg-sage-900 rounded-full mb-6">
                 <Sparkles className="w-4 h-4 text-sage-600 dark:text-sage-400" />
                 <span className="text-sm font-medium text-sage-700 dark:text-sage-300">
-                  Được tin dùng bởi 50,000+ bệnh nhân
+                  Trusted by 50,000+ patients
                 </span>
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-sage-900 dark:text-cream-100 mb-6 leading-tight">
-                Hệ thống đặt lịch{' '}
+                Your health,{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-sage-600 to-terra-500">
-                  khám bệnh
+                  simplified
                 </span>
               </h1>
 
               <p className="text-xl text-sage-600 dark:text-sage-400 mb-8 leading-relaxed">
-                Kết nối bệnh nhân với bác sĩ, quản lý lịch hẹn và theo dõi hồ sơ khám bệnh trên một nền tảng trực tuyến.
+                Connect with expert doctors, manage appointments, and take control of your wellness journey—all in one beautiful platform.
               </p>
 
               <div className="flex flex-wrap gap-4">
                 <Link to="/register">
                   <Button size="lg" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                    Bắt đầu đặt lịch
+                    Get Started Free
                   </Button>
                 </Link>
                 <Link to="/login">
                   <Button variant="outline" size="lg">
-                    Đăng nhập
+                    Sign In
                   </Button>
                 </Link>
               </div>
 
-              {/* Chỉ số tin cậy */}
-              <div className="mt-12 grid grid-cols-3 items-start gap-4 sm:flex sm:items-center sm:gap-8">
+              {/* Trust indicators */}
+              <div className="mt-12 flex items-center gap-8">
                 <div>
                   <div className="text-3xl font-display font-bold text-sage-900 dark:text-cream-100">
                     200+
                   </div>
-                  <div className="text-sm text-sage-600 dark:text-sage-400">Bác sĩ chuyên khoa</div>
+                  <div className="text-sm text-sage-600 dark:text-sage-400">Expert Doctors</div>
                 </div>
-                <div className="hidden w-px h-12 bg-sage-200 dark:bg-sage-800 sm:block"></div>
+                <div className="w-px h-12 bg-sage-200 dark:bg-sage-800"></div>
                 <div>
                   <div className="text-3xl font-display font-bold text-sage-900 dark:text-cream-100">
                     98%
                   </div>
-                  <div className="text-sm text-sage-600 dark:text-sage-400">Tỷ lệ hài lòng</div>
+                  <div className="text-sm text-sage-600 dark:text-sage-400">Satisfaction Rate</div>
                 </div>
-                <div className="hidden w-px h-12 bg-sage-200 dark:bg-sage-800 sm:block"></div>
+                <div className="w-px h-12 bg-sage-200 dark:bg-sage-800"></div>
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="w-5 h-5 fill-terra-400 text-terra-400" />
                     ))}
                   </div>
-                  <div className="text-sm text-sage-600 dark:text-sage-400">Đánh giá 4.9/5</div>
+                  <div className="text-sm text-sage-600 dark:text-sage-400">4.9/5 Rating</div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Hình ảnh bên phải */}
+            {/* Right image/illustration */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               className="relative"
             >
-              <div className="relative aspect-[4/3] rounded-soft overflow-hidden shadow-float">
+              <div className="relative rounded-soft overflow-hidden shadow-float">
                 <img
-                  src="/landing/vietnam-doctors-hero.jpg"
-                  alt="Bác sĩ Việt Nam"
-                  className="h-full w-full object-cover object-bottom"
+                  src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80"
+                  alt="Healthcare"
+                  className="w-full h-auto"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-sage-900/50 to-transparent"></div>
               </div>
 
-              {/* Thẻ nổi */}
+              {/* Floating cards */}
               <motion.div
                 animate={{ y: [0, -10, 0] }}
                 transition={{ duration: 3, repeat: Infinity }}
-                className="absolute -bottom-6 left-4 glass p-4 rounded-soft shadow-float border border-white/20 sm:-left-6"
+                className="absolute -bottom-6 -left-6 glass p-4 rounded-soft shadow-float border border-white/20"
               >
                 <div className="flex items-center gap-3">
-                  <Avatar src="/landing/vietnam-doctor-card.jpg" name="BS. Nguyễn Minh Anh" size="md" />
+                  <Avatar src="https://i.pravatar.cc/150?img=5" name="Dr. Sarah" size="md" />
                   <div>
-                    <div className="font-semibold text-sage-900 dark:text-cream-100">BS. Nguyễn Minh Anh</div>
-                    <div className="text-sm text-sage-600 dark:text-sage-400">Chuyên khoa Nội tổng quát</div>
+                    <div className="font-semibold text-sage-900 dark:text-cream-100">Dr. Sarah Mitchell</div>
+                    <div className="text-sm text-sage-600 dark:text-sage-400">Cardiology Specialist</div>
                   </div>
                 </div>
               </motion.div>
@@ -183,11 +183,11 @@ export function LandingPage() {
               <motion.div
                 animate={{ y: [0, 10, 0] }}
                 transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                className="absolute -top-6 right-4 glass p-4 rounded-soft shadow-float border border-white/20 sm:-right-6"
+                className="absolute -top-6 -right-6 glass p-4 rounded-soft shadow-float border border-white/20"
               >
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="font-semibold text-sage-900 dark:text-cream-100">Lịch hẹn đã xác nhận</span>
+                  <span className="font-semibold text-sage-900 dark:text-cream-100">Appointment Confirmed</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -195,7 +195,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Phần tính năng */}
+      {/* Features Section */}
       <section className="py-24 bg-white dark:bg-sage-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -205,10 +205,10 @@ export function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-display font-bold text-sage-900 dark:text-cream-100 mb-4">
-              Mọi công cụ cần thiết cho việc chăm sóc sức khỏe
+              Everything you need for better health
             </h2>
             <p className="text-xl text-sage-600 dark:text-sage-400 max-w-2xl mx-auto">
-              Nền tảng hỗ trợ đặt lịch, quản lý hồ sơ và kết nối bác sĩ một cách thuận tiện, hiệu quả.
+              A comprehensive platform designed to make healthcare accessible, efficient, and personal.
             </p>
           </motion.div>
 
@@ -241,7 +241,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Phần đánh giá */}
+      {/* Testimonials Section */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -251,10 +251,10 @@ export function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-display font-bold text-sage-900 dark:text-cream-100 mb-4">
-              Được bệnh nhân và bác sĩ tin tưởng
+              Loved by patients and doctors
             </h2>
             <p className="text-xl text-sage-600 dark:text-sage-400">
-              Lắng nghe phản hồi từ cộng đồng sử dụng hệ thống đặt lịch khám bệnh
+              See what our community has to say about HealthFlow
             </p>
           </motion.div>
 
@@ -294,7 +294,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Phần kêu gọi hành động */}
+      {/* CTA Section */}
       <section className="py-24 bg-gradient-to-br from-sage-600 via-sage-700 to-terra-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
@@ -303,10 +303,10 @@ export function LandingPage() {
             viewport={{ once: true }}
           >
             <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
-              Sẵn sàng chủ động chăm sóc sức khỏe?
+              Ready to take control of your health?
             </h2>
             <p className="text-xl text-white/90 mb-8">
-              Tạo tài khoản để đặt lịch khám, theo dõi hồ sơ và quản lý lịch hẹn dễ dàng hơn.
+              Join thousands of satisfied patients and healthcare professionals today.
             </p>
             <Link to="/register">
               <Button
@@ -314,14 +314,14 @@ export function LandingPage() {
                 className="bg-white text-sage-900 hover:bg-cream-100"
                 rightIcon={<ArrowRight className="w-5 h-5" />}
               >
-                Bắt đầu miễn phí
+                Get Started - It's Free
               </Button>
             </Link>
           </motion.div>
         </div>
       </section>
 
-      {/* Chân trang */}
+      {/* Footer */}
       <footer className="bg-sage-900 dark:bg-sage-950 text-cream-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
@@ -330,39 +330,39 @@ export function LandingPage() {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sage-500 to-terra-400 flex items-center justify-center">
                   <span className="text-white font-bold text-lg">H</span>
                 </div>
-                <span className="font-display font-bold text-xl">Lịch Khám</span>
+                <span className="font-display font-bold text-xl">HealthFlow</span>
               </div>
               <p className="text-cream-300 text-sm">
-                Nền tảng đặt lịch khám bệnh trực tuyến dành cho bệnh nhân và bác sĩ.
+                Modern healthcare platform for patients and doctors.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Sản phẩm</h4>
+              <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-cream-300">
-                <li><Link to="/features" className="hover:text-white">Tính năng</Link></li>
-                <li><Link to="/pricing" className="hover:text-white">Bảng giá</Link></li>
-                <li><Link to="/doctors" className="hover:text-white">Tìm bác sĩ</Link></li>
+                <li><Link to="/features" className="hover:text-white">Features</Link></li>
+                <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
+                <li><Link to="/doctors" className="hover:text-white">Find Doctors</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Công ty</h4>
+              <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-cream-300">
-                <li><Link to="/about" className="hover:text-white">Giới thiệu</Link></li>
-                <li><Link to="/careers" className="hover:text-white">Tuyển dụng</Link></li>
-                <li><Link to="/contact" className="hover:text-white">Liên hệ</Link></li>
+                <li><Link to="/about" className="hover:text-white">About Us</Link></li>
+                <li><Link to="/careers" className="hover:text-white">Careers</Link></li>
+                <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Pháp lý</h4>
+              <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-sm text-cream-300">
-                <li><Link to="/privacy" className="hover:text-white">Chính sách bảo mật</Link></li>
-                <li><Link to="/terms" className="hover:text-white">Điều khoản dịch vụ</Link></li>
-                <li><Link to="/hipaa" className="hover:text-white">Tuân thủ dữ liệu y tế</Link></li>
+                <li><Link to="/privacy" className="hover:text-white">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/hipaa" className="hover:text-white">HIPAA Compliance</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-cream-800 mt-8 pt-8 text-center text-sm text-cream-400">
-            © 2025 Lịch Khám. Đã đăng ký bản quyền.
+            © 2025 HealthFlow. All rights reserved.
           </div>
         </div>
       </footer>

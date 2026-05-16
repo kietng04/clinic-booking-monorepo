@@ -1,24 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   Bell,
   Calendar,
-  FileText,
-  CreditCard,
-  Settings,
   CheckCheck,
-  Trash2,
-  Filter,
-  X,
+  CreditCard,
+  FileText,
   Inbox,
-  ArrowLeft
+  Settings,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { SkeletonCard } from '@/components/ui/Loading'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { notificationApi } from '@/api/notificationApiWrapper'
@@ -33,45 +28,67 @@ const NOTIFICATION_TYPES = {
   SYSTEM: 'system',
 }
 
-const TYPE_LABELS = {
-  [NOTIFICATION_TYPES.ALL]: 'Tất cả',
-  [NOTIFICATION_TYPES.APPOINTMENT]: 'Lịch hẹn',
-  [NOTIFICATION_TYPES.MEDICAL_RECORD]: 'Hồ sơ y tế',
-  [NOTIFICATION_TYPES.PAYMENT]: 'Thanh toán',
-  [NOTIFICATION_TYPES.SYSTEM]: 'Hệ thống',
-}
+const FILTER_OPTIONS = [
+  { value: NOTIFICATION_TYPES.ALL, label: 'Tất cả' },
+  { value: NOTIFICATION_TYPES.APPOINTMENT, label: 'Tư vấn / Lịch hẹn' },
+  { value: NOTIFICATION_TYPES.PAYMENT, label: 'Thanh toán' },
+  { value: NOTIFICATION_TYPES.MEDICAL_RECORD, label: 'Hồ sơ y tế' },
+  { value: NOTIFICATION_TYPES.SYSTEM, label: 'Hệ thống' },
+]
 
 const getTypeCategory = (type) => {
   if (!type) return NOTIFICATION_TYPES.SYSTEM
-  const upper = type.toUpperCase()
-  if (upper.includes('APPOINTMENT') || upper.includes('FEEDBACK')) return NOTIFICATION_TYPES.APPOINTMENT
-  if (upper.includes('MEDICAL') || upper.includes('LAB') || upper.includes('PRESCRIPTION')) return NOTIFICATION_TYPES.MEDICAL_RECORD
+  const upper = String(type).toUpperCase()
+
+  if (upper.includes('APPOINTMENT') || upper.includes('FEEDBACK') || upper.includes('CONSULTATION')) {
+    return NOTIFICATION_TYPES.APPOINTMENT
+  }
+  if (upper.includes('MEDICAL') || upper.includes('LAB') || upper.includes('PRESCRIPTION')) {
+    return NOTIFICATION_TYPES.MEDICAL_RECORD
+  }
   if (upper.includes('PAYMENT')) return NOTIFICATION_TYPES.PAYMENT
+
   return NOTIFICATION_TYPES.SYSTEM
 }
 
 const getNotificationIcon = (type) => {
   const category = getTypeCategory(type)
+
   switch (category) {
     case NOTIFICATION_TYPES.APPOINTMENT:
-      return { Icon: Calendar, color: 'bg-sage-100 text-sage-600' }
+      return { Icon: Calendar, color: 'bg-sage-100 text-sage-700' }
     case NOTIFICATION_TYPES.MEDICAL_RECORD:
-      return { Icon: FileText, color: 'bg-terra-100 text-terra-600' }
+      return { Icon: FileText, color: 'bg-terra-100 text-terra-700' }
     case NOTIFICATION_TYPES.PAYMENT:
-      return { Icon: CreditCard, color: 'bg-purple-100 text-purple-600' }
+      return { Icon: CreditCard, color: 'bg-sky-100 text-sky-700' }
     default:
       return { Icon: Settings, color: 'bg-gray-100 text-gray-600' }
   }
 }
 
+const getNotificationLabel = (type) => {
+  const upper = String(type || '').toUpperCase()
+
+  if (upper.includes('CONSULTATION')) return 'Tư vấn bác sĩ'
+  if (upper.includes('APPOINTMENT') || upper.includes('FEEDBACK')) return 'Lịch hẹn'
+  if (upper.includes('MEDICAL') || upper.includes('LAB') || upper.includes('PRESCRIPTION')) {
+    return 'Hồ sơ y tế'
+  }
+  if (upper.includes('PAYMENT')) return 'Thanh toán'
+
+  return 'Hệ thống'
+}
+
 const getNavigationPath = (notification) => {
-  if (!notification.relatedId) return null
-  const category = getTypeCategory(notification.type)
-    switch (category) {
-      case NOTIFICATION_TYPES.APPOINTMENT:
-        return `/appointments`
+  if (!notification?.relatedId) return null
+
+  switch (getTypeCategory(notification.type)) {
+    case NOTIFICATION_TYPES.APPOINTMENT:
+      return '/appointments'
     case NOTIFICATION_TYPES.MEDICAL_RECORD:
-      return `/medical-records`
+      return '/medical-records'
+    case NOTIFICATION_TYPES.PAYMENT:
+      return '/payment-history'
     default:
       return null
   }
@@ -91,119 +108,99 @@ const timeAgo = (date) => {
   return formatDate(date)
 }
 
-const NotificationCenter = () => {
+export default function NotificationCenter() {
   const { user } = useAuthStore()
   const { showToast } = useUIStore()
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [typeFilter, setTypeFilter] = useState(NOTIFICATION_TYPES.ALL)
-  const [readFilter, setReadFilter] = useState('all')
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
-  const [selectedIds, setSelectedIds] = useState([])
 
   const fetchNotifications = useCallback(async (isInitial = true) => {
+    if (!user?.id) return
+
     if (isInitial) setIsLoading(true)
     else setIsFetchingMore(true)
 
     try {
-      const params = {
-        page: isInitial ? 0 : page,
+      const currentPage = isInitial ? 0 : page
+      const data = await notificationApi.getNotifications(user.id, {
+        page: currentPage,
         size: 20,
-      }
-      if (readFilter === 'unread') params.unreadOnly = true
-
-      const data = await notificationApi.getNotifications(user.id, params)
+      })
       const items = data || []
 
       if (isInitial) {
         setNotifications(items)
         setPage(1)
       } else {
-        setNotifications(prev => [...prev, ...items])
-        setPage(prev => prev + 1)
+        setNotifications((prev) => [...prev, ...items])
+        setPage((prev) => prev + 1)
       }
+
       setHasMore(items.length === 20)
     } catch (error) {
-      console.error('Failed to fetch notifications:', error)
-      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể tải thông báo') })
+      showToast({
+        type: 'error',
+        message: extractApiErrorMessage(error, 'Không thể tải thông báo'),
+      })
     } finally {
       setIsLoading(false)
       setIsFetchingMore(false)
     }
-  }, [user.id, readFilter])
+  }, [page, showToast, user?.id])
 
   useEffect(() => {
     fetchNotifications(true)
   }, [fetchNotifications])
 
   const handleMarkAllAsRead = async () => {
+    if (!user?.id) return
+
     try {
       await notificationApi.markAllAsRead(user.id)
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })))
       showToast({ type: 'success', message: 'Đã đánh dấu tất cả đã đọc' })
     } catch (error) {
-      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc') })
+      showToast({
+        type: 'error',
+        message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc'),
+      })
     }
   }
 
   const handleMarkAsRead = async (id) => {
     try {
       await notificationApi.markAsRead(id)
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === id ? { ...notification, isRead: true } : notification
+        )
       )
     } catch (error) {
-      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc') })
+      showToast({
+        type: 'error',
+        message: extractApiErrorMessage(error, 'Không thể đánh dấu đã đọc'),
+      })
     }
-  }
-
-  const handleDelete = async (id) => {
-    try {
-      await notificationApi.deleteNotification(id)
-      setNotifications(prev => prev.filter(n => n.id !== id))
-      setSelectedIds(prev => prev.filter(sid => sid !== id))
-      showToast({ type: 'success', message: 'Đã xóa thông báo' })
-    } catch (error) {
-      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể xóa thông báo') })
-    }
-  }
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return
-    try {
-      await Promise.all(selectedIds.map(id => notificationApi.deleteNotification(id)))
-      setNotifications(prev => prev.filter(n => !selectedIds.includes(n.id)))
-      showToast({ type: 'success', message: `Đã xóa ${selectedIds.length} thông báo` })
-      setSelectedIds([])
-    } catch (error) {
-      showToast({ type: 'error', message: extractApiErrorMessage(error, 'Không thể xóa thông báo') })
-    }
-  }
-
-  const toggleSelect = (id) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
-    )
   }
 
   const handleNotificationClick = (notification) => {
     if (!notification.isRead) handleMarkAsRead(notification.id)
+
     const path = getNavigationPath(notification)
     if (path) navigate(path)
   }
 
-  const filteredNotifications = notifications.filter(n => {
-    if (typeFilter !== NOTIFICATION_TYPES.ALL && getTypeCategory(n.type) !== typeFilter) return false
-    if (readFilter === 'unread' && n.isRead) return false
-    if (readFilter === 'read' && !n.isRead) return false
-    return true
-  })
-
-  const unreadCount = notifications.filter(n => !n.isRead).length
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length
+  const filteredNotifications = notifications.filter((notification) =>
+    typeFilter === NOTIFICATION_TYPES.ALL
+      ? true
+      : getTypeCategory(notification.type) === typeFilter
+  )
 
   if (isLoading) {
     return (
@@ -216,102 +213,51 @@ const NotificationCenter = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <PageHeader
-        title="Thông báo"
-        description="Theo dõi các cập nhật về lịch hẹn, hồ sơ và thanh toán trong danh sách ưu tiên khả năng đọc."
-        action={(
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            {unreadCount} chưa đọc
+    <div className="mx-auto max-w-4xl space-y-6">
+      <section className="rounded-[28px] border border-sage-200 bg-white px-6 py-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] sm:px-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-sage-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-sage-700">
+              <Bell className="h-3.5 w-3.5" />
+              Thông báo
+            </div>
+            <h1 className="mt-3 text-2xl font-bold text-sage-950 sm:text-[2rem]">
+              Trung tâm thông báo
+            </h1>
+            <p className="mt-2 text-sm text-sage-600">
+              Theo dõi các cập nhật mới nhất về lịch khám, hồ sơ và thanh toán của bạn.
+            </p>
+            {unreadCount > 0 && (
+              <Badge className="mt-3 bg-sage-100 text-sage-800">{unreadCount} chưa đọc</Badge>
+            )}
           </div>
-        )}
-      />
 
-      <div className="flex items-center justify-between">
-        <Link to="/dashboard">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Quay lại
-          </Button>
-        </Link>
-
-        <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
-              <CheckCheck className="w-4 h-4 mr-1" />
+            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} className="self-start">
+              <CheckCheck className="mr-1 h-4 w-4" />
               Đọc tất cả
             </Button>
           )}
-          <div className="relative">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            >
-              <Filter className="w-4 h-4 mr-1" />
-              Lọc
-            </Button>
-            <AnimatePresence>
-              {showFilterDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-sage-200 z-50 overflow-hidden"
-                >
-                  <div className="p-2">
-                    <p className="text-xs font-medium text-sage-500 px-3 py-1 uppercase tracking-wider">Trạng thái</p>
-                    {['all', 'unread', 'read'].map(filter => (
-                      <button
-                        key={filter}
-                        onClick={() => { setReadFilter(filter); setShowFilterDropdown(false) }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-md ${readFilter === filter ? 'bg-sage-100 text-sage-900 font-medium' : 'text-sage-700 hover:bg-sage-50'}`}
-                      >
-                        {filter === 'all' ? 'Tất cả' : filter === 'unread' ? 'Chưa đọc' : 'Đã đọc'}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Bulk actions */}
-      {selectedIds.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-sage-50 border border-sage-200 rounded-lg px-4 py-3 flex items-center justify-between"
-        >
-          <span className="text-sm text-sage-700">{selectedIds.length} đã chọn</span>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
-              Hủy
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleBulkDelete} className="text-red-600 border-red-200 hover:bg-red-50">
-              <Trash2 className="w-4 h-4 mr-1" />
-              Xóa
-            </Button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Type filter tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {Object.entries(TYPE_LABELS).map(([type, label]) => (
+      <section className="flex flex-wrap gap-2">
+        {FILTER_OPTIONS.map((option) => (
           <button
-            key={type}
-            onClick={() => setTypeFilter(type)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${typeFilter === type ? 'bg-sage-600 text-white' : 'bg-sage-100 text-sage-700 hover:bg-sage-200'}`}
+            key={option.value}
+            type="button"
+            onClick={() => setTypeFilter(option.value)}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+              typeFilter === option.value
+                ? 'bg-sage-700 text-white'
+                : 'bg-white text-sage-700 ring-1 ring-sage-200 hover:bg-sage-50'
+            }`}
           >
-            {label}
+            {option.label}
           </button>
         ))}
-      </div>
+      </section>
 
-      {/* Notifications list */}
       {filteredNotifications.length === 0 ? (
         <Card>
           <CardContent className="p-12">
@@ -320,92 +266,80 @@ const NotificationCenter = () => {
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
             >
-              <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Inbox className="w-8 h-8 text-sage-600" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sage-100">
+                <Inbox className="h-8 w-8 text-sage-600" />
               </div>
-              <h3 className="text-lg font-semibold text-sage-900 mb-2">Không có thông báo</h3>
-              <p className="text-sage-600 text-sm">
-                {typeFilter !== NOTIFICATION_TYPES.ALL
-                  ? 'Không có thông báo nào trong danh mục này'
-                  : 'Bạn chưa có thông báo nào'}
-              </p>
+              <h3 className="mb-2 text-lg font-semibold text-sage-900">Chưa có thông báo</h3>
+              <p className="text-sm text-sage-600">Không có thông báo nào trong nhóm này.</p>
             </motion.div>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {filteredNotifications.map((notification, index) => {
-            const { Icon, color } = getNotificationIcon(notification.type)
-            const navigatePath = getNavigationPath(notification)
+        <section className="relative pl-4 sm:pl-6">
+          <div className="absolute bottom-0 left-[15px] top-0 w-px bg-sage-200 sm:left-[23px]" />
+          <div className="space-y-4">
+            {filteredNotifications.map((notification, index) => {
+              const { Icon, color } = getNotificationIcon(notification.type)
+              const navigatePath = getNavigationPath(notification)
 
-            return (
-              <motion.div
-                key={notification.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card
-                  className={`transition-all ${!notification.isRead ? 'border-sage-300 bg-sage-50/30' : ''} ${navigatePath ? 'cursor-pointer hover:shadow-md' : ''}`}
-                  onClick={() => navigatePath && handleNotificationClick(notification)}
+              return (
+                <motion.div
+                  key={notification.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  className="relative pl-10 sm:pl-14"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
-                      {/* Checkbox */}
-                      <div className="flex flex-col items-center pt-1">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(notification.id)}
-                          onChange={(e) => { e.stopPropagation(); toggleSelect(notification.id) }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-4 h-4 rounded border-sage-300 text-sage-600"
-                        />
-                      </div>
+                  <div
+                    className={`absolute left-0 top-6 flex h-8 w-8 items-center justify-center rounded-full border border-white shadow-sm sm:h-10 sm:w-10 ${color}`}
+                  >
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </div>
 
-                      {/* Icon */}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${color}`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className={`text-sm ${!notification.isRead ? 'font-semibold text-sage-900' : 'text-sage-700'}`}>
+                  <Card
+                    className={`rounded-2xl border transition-all ${
+                      !notification.isRead ? 'border-sage-300 bg-sage-50/60' : 'border-sage-200 bg-white'
+                    } ${navigatePath ? 'cursor-pointer hover:shadow-md' : ''}`}
+                    onClick={() => navigatePath && handleNotificationClick(notification)}
+                  >
+                    <CardContent className="p-5 sm:p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={`text-base ${
+                              !notification.isRead
+                                ? 'font-semibold text-sage-950'
+                                : 'font-medium text-sage-800'
+                            }`}
+                          >
                             {notification.title || notification.message}
                           </p>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {!notification.isRead && (
-                              <span className="w-2 h-2 bg-sage-600 rounded-full" />
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(notification.id) }}
-                              className="opacity-0 group-hover:opacity-100 hover:text-red-500 text-sage-400 transition-all p-1 rounded"
-                              style={{ opacity: 'inherit' }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                          {notification.message && notification.title && (
+                            <p className="mt-2 text-sm leading-6 text-sage-600">{notification.message}</p>
+                          )}
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <Badge className="border border-sage-200 bg-white text-sage-700">
+                              {getNotificationLabel(notification.type)}
+                            </Badge>
+                            <div className="text-xs font-medium uppercase tracking-[0.14em] text-sage-400">
+                              {timeAgo(notification.createdAt)}
+                            </div>
                           </div>
                         </div>
-                        {notification.message && notification.title && (
-                          <p className="text-xs text-sage-500 mt-1">{notification.message}</p>
-                        )}
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-sage-400">{timeAgo(notification.createdAt)}</span>
-                          <Badge className={`text-xs ${getTypeCategory(notification.type) === NOTIFICATION_TYPES.APPOINTMENT ? 'bg-sage-100 text-sage-700' : getTypeCategory(notification.type) === NOTIFICATION_TYPES.PAYMENT ? 'bg-purple-100 text-purple-700' : getTypeCategory(notification.type) === NOTIFICATION_TYPES.MEDICAL_RECORD ? 'bg-terra-100 text-terra-700' : 'bg-gray-100 text-gray-700'}`}>
-                            {TYPE_LABELS[getTypeCategory(notification.type)]}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
 
-          {/* Load more */}
+                        {!notification.isRead && (
+                          <span className="mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-sage-600" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </div>
+
           {hasMore && (
-            <div className="text-center pt-4">
+            <div className="pt-5 text-center">
               <Button
                 variant="outline"
                 size="sm"
@@ -416,10 +350,8 @@ const NotificationCenter = () => {
               </Button>
             </div>
           )}
-        </div>
+        </section>
       )}
     </div>
   )
 }
-
-export default NotificationCenter

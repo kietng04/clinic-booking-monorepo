@@ -1,28 +1,30 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import {
-  ArrowLeft,
-  FileText,
-  Pill,
-  Plus,
-  Trash2,
-  Save,
-  User,
-  Calendar
-} from 'lucide-react'
+import { ArrowLeft, CalendarDays, FileText, Save } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
-import { prescriptionApi } from '@/api/prescriptionApiWrapper'
-import { medicationApi } from '@/api/medicationApiWrapper'
 import { appointmentApi } from '@/api/appointmentApiWrapper'
-import { formatDate } from '@/lib/utils'
-import MedicationPicker from '@/components/doctor/MedicationPicker'
+import { doctorPrimaryButtonClass } from './theme'
+
+const formatDateTime = (appointment) => {
+  if (!appointment?.appointmentDate) return `Lịch hẹn #${appointment?.id || ''}`.trim()
+
+  const date = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(appointment.appointmentDate))
+
+  const time = String(appointment.appointmentTime || '').slice(0, 5)
+  return time ? `${date} • ${time}` : date
+}
+
+const textareaClassName =
+  'min-h-[132px] w-full rounded-[12px] border border-slate-200 bg-white px-4 py-3 text-[15px] text-slate-900 outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-200'
 
 const CreateMedicalRecord = () => {
   const navigate = useNavigate()
@@ -32,174 +34,78 @@ const CreateMedicalRecord = () => {
   const { user } = useAuthStore()
   const { showToast } = useUIStore()
 
-  // Form state
   const [appointment, setAppointment] = useState(null)
-  const [diagnosis, setDiagnosis] = useState('')
   const [symptoms, setSymptoms] = useState('')
-  const [treatmentPlan, setTreatmentPlan] = useState('')
-  const [notes, setNotes] = useState('')
+  const [conclusion, setConclusion] = useState('')
+  const [advice, setAdvice] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
-
-  // Prescriptions state
-  const [prescriptions, setPrescriptions] = useState([])
-  const [medications, setMedications] = useState([])
-  const [isLoadingMedications, setIsLoadingMedications] = useState(false)
-
-  // UI state
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    fetchAppointmentDetails()
-    fetchMedications()
-  }, [appointmentId])
+    const fetchAppointmentDetails = async () => {
+      if (!appointmentId) {
+        showToast({ type: 'error', message: 'Không tìm thấy lịch hẹn' })
+        navigate('/doctor/appointments')
+        return
+      }
 
-  const fetchAppointmentDetails = async () => {
-    if (!appointmentId) {
-      showToast({ type: 'error', message: 'Không tìm thấy thông tin lịch hẹn' })
-      navigate('/doctor/appointments')
+      setIsLoading(true)
+      try {
+        const data = await appointmentApi.getAppointment(appointmentId)
+        setAppointment(data)
+        setSymptoms(data?.symptoms || '')
+      } catch (error) {
+        console.error('Failed to fetch appointment:', error)
+        showToast({ type: 'error', message: 'Không thể tải thông tin lịch hẹn' })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAppointmentDetails()
+  }, [appointmentId, navigate, showToast])
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!conclusion.trim()) {
+      showToast({ type: 'error', message: 'Vui lòng nhập kết luận' })
       return
     }
 
-    setIsLoading(true)
-    try {
-      const data = await appointmentApi.getAppointment(appointmentId)
-      setAppointment(data)
-      // Pre-fill symptoms if available from appointment
-      if (data.symptoms) {
-        setSymptoms(data.symptoms)
-      }
-    } catch (error) {
-      console.error('Failed to fetch appointment:', error)
-      showToast({ type: 'error', message: 'Không thể tải thông tin lịch hẹn' })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const fetchMedications = async () => {
-    setIsLoadingMedications(true)
-    try {
-      const data = await medicationApi.getActiveMedications()
-      setMedications(data)
-    } catch (error) {
-      console.error('Failed to fetch medications:', error)
-      showToast({ type: 'error', message: 'Không thể tải danh sách thuốc' })
-    } finally {
-      setIsLoadingMedications(false)
-    }
-  }
-
-  const addPrescription = () => {
-    setPrescriptions([
-      ...prescriptions,
-      {
-        id: Date.now(), // Temporary ID for UI
-        medicationId: '',
-        medicationName: '',
-        dosage: '',
-        frequency: '',
-        duration: '',
-        instructions: '',
-        notes: ''
-      }
-    ])
-  }
-
-  const removePrescription = (id) => {
-    setPrescriptions(prescriptions.filter((p) => p.id !== id))
-  }
-
-  const updatePrescription = (id, field, value) => {
-    setPrescriptions(prescriptions.map((p) => {
-      if (p.id === id) {
-        // If medication is selected, auto-fill from catalog
-        if (field === 'medicationId') {
-          const medication = medications.find(m => m.id === parseInt(value))
-          if (medication) {
-            return {
-              ...p,
-              medicationId: value,
-              medicationName: medication.name,
-              dosage: p.dosage || medication.defaultDosage || '',
-              frequency: p.frequency || medication.defaultFrequency || '',
-              duration: p.duration || medication.defaultDuration || '',
-              instructions: p.instructions || medication.instructions || ''
-            }
-          }
-        }
-        return { ...p, [field]: value }
-      }
-      return p
-    }))
-  }
-
-  const validateForm = () => {
-    if (!diagnosis.trim()) {
-      showToast({ type: 'error', message: 'Vui lòng nhập chẩn đoán' })
-      return false
+    if (!advice.trim()) {
+      showToast({ type: 'error', message: 'Vui lòng nhập dặn dò' })
+      return
     }
 
-    // Validate prescriptions
-    for (const prescription of prescriptions) {
-      if (!prescription.medicationId && !prescription.medicationName) {
-        showToast({ type: 'error', message: 'Vui lòng chọn hoặc nhập tên thuốc' })
-        return false
-      }
+    if (!appointment) {
+      showToast({ type: 'error', message: 'Không tìm thấy thông tin lịch hẹn' })
+      return
     }
-
-    return true
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    if (!validateForm()) return
 
     setIsSaving(true)
     try {
-      // Create medical record
-      const medicalRecordData = {
-        appointmentId: parseInt(appointmentId),
+      await medicalRecordApi.create({
+        appointmentId: Number(appointmentId),
         patientId: appointment.patientId,
         doctorId: user.id,
         patientName: appointment.patientName,
         doctorName: user.fullName,
-        diagnosis,
-        symptoms,
-        treatmentPlan,
-        notes,
-        followUpDate: followUpDate || null
-      }
+        diagnosis: conclusion.trim(),
+        symptoms: symptoms.trim(),
+        treatmentPlan: advice.trim(),
+        notes: '',
+        followUpDate: followUpDate || null,
+      })
 
-      const createdRecord = await medicalRecordApi.create(medicalRecordData)
-
-      // Create prescriptions for this medical record
-      if (prescriptions.length > 0) {
-        for (const prescription of prescriptions) {
-          const prescriptionData = {
-            doctorId: user.id,
-            medicationId: prescription.medicationId ? parseInt(prescription.medicationId) : null,
-            medicationName: prescription.medicationName,
-            dosage: prescription.dosage,
-            frequency: prescription.frequency,
-            duration: prescription.duration,
-            instructions: prescription.instructions,
-            notes: prescription.notes
-          }
-
-          await prescriptionApi.create(createdRecord.id, prescriptionData)
-        }
-      }
-
-      // Mark appointment as completed
       await appointmentApi.completeAppointment(appointmentId)
 
-      showToast({ type: 'success', message: 'Hồ sơ bệnh án đã được tạo thành công' })
+      showToast({ type: 'success', message: 'Kết quả khám đã được lưu' })
       navigate('/doctor/appointments')
     } catch (error) {
-      console.error('Failed to create medical record:', error)
-      showToast({ type: 'error', message: 'Không thể tạo hồ sơ bệnh án' })
+      console.error('Failed to save visit summary:', error)
+      showToast({ type: 'error', message: 'Không thể lưu kết quả khám' })
     } finally {
       setIsSaving(false)
     }
@@ -207,10 +113,10 @@ const CreateMedicalRecord = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex min-h-[360px] items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-sage-200 border-t-sage-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sage-600">Đang tải thông tin...</p>
+          <div className="mx-auto mb-4 h-14 w-14 animate-spin rounded-full border-4 border-slate-200 border-t-slate-700" />
+          <p className="text-[15px] font-medium text-slate-600">Đang tải dữ liệu khám</p>
         </div>
       </div>
     )
@@ -218,318 +124,139 @@ const CreateMedicalRecord = () => {
 
   if (!appointment) {
     return (
-      <div className="text-center py-12">
-        <p className="text-sage-600">Không tìm thấy thông tin lịch hẹn</p>
-        <Button onClick={() => navigate('/doctor/appointments')} className="mt-4">
-          Quay lại
+      <div className="rounded-[18px] border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+        <p className="text-[15px] text-slate-600">Không tìm thấy thông tin lịch hẹn.</p>
+        <Button
+          onClick={() => navigate('/doctor/appointments')}
+          className={`mt-4 rounded-[12px] ${doctorPrimaryButtonClass}`}
+        >
+          Quay lại lịch hẹn
         </Button>
       </div>
     )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-col gap-4 rounded-[20px] border border-slate-200 bg-white px-6 py-6 shadow-[0_18px_40px_rgba(15,23,42,0.05)] md:flex-row md:items-start md:justify-between">
+        <div className="space-y-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/doctor/appointments')}
-            leftIcon={<ArrowLeft />}
+            leftIcon={<ArrowLeft className="h-4 w-4" />}
+            className="w-fit rounded-[10px] px-0 text-slate-600 hover:bg-transparent hover:text-slate-900"
           >
-            Quay lại
+            Quay lại lịch hẹn
           </Button>
           <div>
-            <h1 className="text-3xl font-display font-bold text-sage-900">
-              Tạo hồ sơ bệnh án
+            <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-slate-900">
+              Kết quả khám
             </h1>
-            <p className="text-sage-600 mt-1">Lịch hẹn #{appointmentId}</p>
+            <p className="mt-2 max-w-2xl text-[15px] leading-7 text-slate-600">
+              Hoàn tất nội dung buổi khám với 4 thông tin cốt lõi để khép lại lịch hẹn.
+            </p>
+          </div>
+        </div>
+
+        <div className="min-w-[240px] rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+            Phiên khám
+          </div>
+          <div className="mt-2 text-[18px] font-semibold text-slate-900">
+            {appointment.patientName || 'Bệnh nhân'}
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[14px] text-slate-600">
+            <CalendarDays className="h-4 w-4" />
+            <span>{formatDateTime(appointment)}</span>
           </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Appointment Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Thông tin lịch hẹn</CardTitle>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-6">
-            <div>
-              <label className="text-sm font-medium text-sage-600 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Bệnh nhân
-              </label>
-              <p className="text-sage-900 font-medium mt-1">{appointment.patientName}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-sage-600 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Ngày khám
-              </label>
-              <p className="text-sage-900 font-medium mt-1">
-                {formatDate(appointment.appointmentDate)} {appointment.appointmentTime}
-              </p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-sage-600">
-                Trạng thái
-              </label>
-              <div className="mt-1">
-                <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                  {appointment.status}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Medical Record Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Thông tin bệnh án
+        <Card className="rounded-[20px] border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
+          <CardHeader className="border-b border-slate-100 pb-5">
+            <CardTitle className="flex items-center gap-2 text-[20px] font-semibold tracking-[-0.02em] text-slate-900">
+              <FileText className="h-5 w-5 text-slate-500" />
+              Nội dung kết quả khám
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Diagnosis */}
-            <div>
-              <label className="block text-sm font-medium text-sage-900 mb-2">
-                Chẩn đoán <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="text"
-                value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
-                placeholder="VD: Viêm họng cấp do virus"
-                required
-              />
-            </div>
-
-            {/* Symptoms */}
-            <div>
-              <label className="block text-sm font-medium text-sage-900 mb-2">
+          <CardContent className="grid gap-5 px-6 py-6 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[14px] font-semibold text-slate-900">
                 Triệu chứng
               </label>
               <textarea
                 value={symptoms}
-                onChange={(e) => setSymptoms(e.target.value)}
-                placeholder="VD: Đau họng, sốt 38.5°C, mệt mỏi"
-                className="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                rows={3}
+                onChange={(event) => setSymptoms(event.target.value)}
+                placeholder="Mô tả ngắn gọn tình trạng hiện tại của bệnh nhân"
+                className={textareaClassName}
               />
             </div>
 
-            {/* Treatment Plan */}
-            <div>
-              <label className="block text-sm font-medium text-sage-900 mb-2">
-                Phương án điều trị
+            <div className="space-y-2">
+              <label className="text-[14px] font-semibold text-slate-900">
+                Kết luận <span className="text-rose-500">*</span>
               </label>
               <textarea
-                value={treatmentPlan}
-                onChange={(e) => setTreatmentPlan(e.target.value)}
-                placeholder="VD: Nghỉ ngơi, uống nhiều nước, dùng thuốc giảm đau hạ sốt"
-                className="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                rows={3}
+                value={conclusion}
+                onChange={(event) => setConclusion(event.target.value)}
+                placeholder="Ví dụ: Viêm họng cấp, chưa ghi nhận biến chứng"
+                className={textareaClassName}
+                required
               />
             </div>
 
-            {/* Follow-up Date */}
-            <div>
-              <label className="block text-sm font-medium text-sage-900 mb-2">
+            <div className="space-y-2">
+              <label className="text-[14px] font-semibold text-slate-900">
+                Dặn dò <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                value={advice}
+                onChange={(event) => setAdvice(event.target.value)}
+                placeholder="Hướng dẫn chăm sóc, theo dõi hoặc lưu ý sau khám"
+                className={textareaClassName}
+                required
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[14px] font-semibold text-slate-900">
                 Ngày tái khám
+                <span className="ml-2 text-[13px] font-medium text-slate-500">(optional)</span>
               </label>
               <Input
                 type="date"
                 value={followUpDate}
-                onChange={(e) => setFollowUpDate(e.target.value)}
+                onChange={(event) => setFollowUpDate(event.target.value)}
                 min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-sage-900 mb-2">
-                Ghi chú của bác sĩ
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Ghi chú thêm..."
-                className="w-full px-3 py-2 border border-sage-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                rows={2}
+                className="h-12 rounded-[12px] border-slate-200 text-[15px]"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Prescriptions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Pill className="w-5 h-5" />
-                Đơn thuốc
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                leftIcon={<Plus />}
-                onClick={addPrescription}
-              >
-                Thêm thuốc
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {prescriptions.length === 0 ? (
-              <div className="text-center py-8 text-sage-500">
-                Chưa có thuốc nào được kê. Nhấn "Thêm thuốc" để thêm.
-              </div>
-            ) : (
-              prescriptions.map((prescription, index) => (
-                <div key={prescription.id} className="p-4 border border-sage-200 rounded-lg space-y-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sage-900">Thuốc {index + 1}</h4>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removePrescription(prescription.id)}
-                      leftIcon={<Trash2 className="w-4 h-4" />}
-                    >
-                      Xóa
-                    </Button>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-3">
-                    {/* Medication Picker - Replaces old dropdown + manual entry */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Chọn hoặc tìm kiếm thuốc
-                      </label>
-                      <MedicationPicker
-                        medications={medications}
-                        value={prescription.medicationId}
-                        onSelect={(selectedMed) => {
-                          // Update all fields with selected medication data
-                          setPrescriptions(prescriptions.map(p => 
-                            p.id === prescription.id 
-                              ? {
-                                  ...p,
-                                  medicationId: selectedMed.medicationId,
-                                  medicationName: selectedMed.medicationName,
-                                  dosage: selectedMed.dosage,
-                                  frequency: selectedMed.frequency,
-                                  duration: selectedMed.duration,
-                                  instructions: selectedMed.instructions
-                                }
-                              : p
-                          ))
-                        }}
-                        disabled={isSaving}
-                        placeholder="Chọn thuốc hoặc gõ tên..."
-                      />
-                    </div>
-
-                    {/* Dosage */}
-                    <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Liều dùng
-                      </label>
-                      <Input
-                        type="text"
-                        value={prescription.dosage}
-                        onChange={(e) => updatePrescription(prescription.id, 'dosage', e.target.value)}
-                        placeholder="VD: 1 viên"
-                      />
-                    </div>
-
-                    {/* Frequency */}
-                    <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Tần suất
-                      </label>
-                      <Input
-                        type="text"
-                        value={prescription.frequency}
-                        onChange={(e) => updatePrescription(prescription.id, 'frequency', e.target.value)}
-                        placeholder="VD: 3 lần/ngày"
-                      />
-                    </div>
-
-                    {/* Duration */}
-                    <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Thời gian
-                      </label>
-                      <Input
-                        type="text"
-                        value={prescription.duration}
-                        onChange={(e) => updatePrescription(prescription.id, 'duration', e.target.value)}
-                        placeholder="VD: 5 ngày"
-                      />
-                    </div>
-
-                    {/* Instructions */}
-                    <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Hướng dẫn sử dụng
-                      </label>
-                      <Input
-                        type="text"
-                        value={prescription.instructions}
-                        onChange={(e) => updatePrescription(prescription.id, 'instructions', e.target.value)}
-                        placeholder="VD: Uống sau ăn"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Prescription Notes */}
-                  <div>
-                    <label className="block text-sm font-medium text-sage-700 mb-1">
-                      Ghi chú
-                    </label>
-                    <Input
-                      type="text"
-                      value={prescription.notes}
-                      onChange={(e) => updatePrescription(prescription.id, 'notes', e.target.value)}
-                      placeholder="Ghi chú thêm cho thuốc này..."
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate('/doctor/appointments')}
             disabled={isSaving}
+            className="rounded-[12px] border-slate-200"
           >
             Hủy
           </Button>
           <Button
             type="submit"
-            leftIcon={<Save />}
+            leftIcon={<Save className="h-4 w-4" />}
             disabled={isSaving}
+            className={`rounded-[12px] ${doctorPrimaryButtonClass}`}
           >
-            {isSaving ? 'Đang lưu...' : 'Lưu hồ sơ'}
+            {isSaving ? 'Đang lưu kết quả...' : 'Hoàn thành lịch hẹn'}
           </Button>
         </div>
       </form>
-    </motion.div>
+    </div>
   )
 }
 

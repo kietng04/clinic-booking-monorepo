@@ -1,6 +1,5 @@
 import { userApi as realUserApi } from './realApis/userApi'
 import { userApi as mockUserApi } from './mockApi'
-import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
@@ -32,7 +31,7 @@ export const userApi = USE_MOCK_BACKEND
     }
   : api
 
-devLog(
+console.log(
   `👤 User Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`
 )
 

@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Avatar } from '@/components/ui/Avatar'
 import { SkeletonCard } from '@/components/ui/Loading'
-import { PageHeader } from '@/components/layout/PageHeader'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
@@ -84,10 +83,16 @@ const MedicalRecords = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={vi.medicalRecords.title}
-        description="Xem lại lịch sử khám bệnh, chẩn đoán và các đơn thuốc liên quan trong cấu trúc dễ tra cứu."
-      />
+      {/* Header */}
+      <div>
+        <Link to="/profile" className="text-sm font-medium text-sage-600 hover:text-sage-900 hover:underline">
+          Hồ sơ bệnh nhân
+        </Link>
+        <h1 className="mt-2 text-3xl font-display font-bold text-sage-900 mb-2">
+          Hồ sơ bệnh án
+        </h1>
+        <p className="text-sage-600">Xem lịch sử khám bệnh và đơn thuốc của bạn</p>
+      </div>
 
       {/* Search */}
       <Card>

@@ -86,6 +86,19 @@ export const paymentApi = {
   },
 
   /**
+   * Get payment detail by resource.
+   * @param {string} resourceType
+   * @param {number|string} resourceId
+   * @returns {Promise} Payment result
+   */
+  getPaymentByResource: async (resourceType, resourceId) => {
+    const response = await paymentServiceClient.get(
+      `/api/payments/resource/${resourceType}/${resourceId}`
+    )
+    return response.data
+  },
+
+  /**
    * Download receipt as PDF
    * @param {string} paymentId - Payment ID
    * @returns {Promise} Blob for PDF download

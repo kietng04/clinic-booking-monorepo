@@ -8,9 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 
@@ -18,28 +15,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
-@Testcontainers(disabledWithoutDocker = true)
 class KnowledgeChunkRepositoryIntegrationTest {
 
     private static final int EMBEDDING_DIMENSIONS = 3072;
 
-    @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
-            .withDatabaseName("chatbot_service_db")
-            .withUsername("postgres")
-            .withPassword("postgres");
-
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
+        registry.add("spring.datasource.url", () -> postgresJdbcUrl());
+        registry.add("spring.datasource.username", () -> postgresUsername());
+        registry.add("spring.datasource.password", () -> postgresPassword());
+        registry.add("spring.flyway.url", () -> postgresJdbcUrl());
+        registry.add("spring.flyway.user", () -> postgresUsername());
+        registry.add("spring.flyway.password", () -> postgresPassword());
         registry.add("spring.data.redis.host", () -> "localhost");
         registry.add("spring.data.redis.port", () -> "6379");
         registry.add("jwt.secret", () -> "dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9uYW5kdmFsaWRhdGlvbjEyMzQ1Njc4OTA=");
+    }
+
+    private static String postgresJdbcUrl() {
+        return System.getProperty(
+                "test.pgvector.jdbc-url",
+                "jdbc:postgresql://localhost:5438/chatbot_service_db"
+        );
+    }
+
+    private static String postgresUsername() {
+        return System.getProperty("test.pgvector.username", "postgres");
+    }
+
+    private static String postgresPassword() {
+        return System.getProperty("test.pgvector.password", "postgres");
     }
 
     @Autowired

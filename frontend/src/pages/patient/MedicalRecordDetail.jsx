@@ -1,24 +1,21 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
   FileText,
-  Calendar,
-  User,
   Pill,
   Download,
-  Activity
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Loading'
 import { useUIStore } from '@/store/uiStore'
 import { medicalRecordApi } from '@/api/medicalRecordApiWrapper'
 import { prescriptionApi } from '@/api/prescriptionApiWrapper'
 import { formatDate } from '@/lib/utils'
 import { vi } from '@/lib/translations'
+import { downloadMedicalRecordPdf } from '@/lib/medicalRecordPdf'
 
 const MedicalRecordDetail = () => {
   const { id } = useParams()
@@ -27,6 +24,7 @@ const MedicalRecordDetail = () => {
   const [record, setRecord] = useState(null)
   const [prescriptions, setPrescriptions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
 
   useEffect(() => {
     fetchRecordDetail()
@@ -50,6 +48,33 @@ const MedicalRecordDetail = () => {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!record || isDownloadingPdf) {
+      return
+    }
+
+    setIsDownloadingPdf(true)
+    try {
+      await downloadMedicalRecordPdf({
+        record,
+        prescriptions,
+      })
+
+      showToast({
+        type: 'success',
+        message: 'PDF downloaded successfully',
+      })
+    } catch (error) {
+      console.error('Failed to export medical record PDF:', error)
+      showToast({
+        type: 'error',
+        message: 'Unable to export medical record PDF',
+      })
+    } finally {
+      setIsDownloadingPdf(false)
     }
   }
 
@@ -90,13 +115,21 @@ const MedicalRecordDetail = () => {
             {vi.common.back}
           </Button>
           <div>
+            <Link to="/profile" className="text-sm font-medium text-sage-600 hover:text-sage-900 hover:underline">
+              Hồ sơ bệnh nhân
+            </Link>
             <h1 className="text-3xl font-display font-bold text-sage-900">
-              {vi.medicalRecords.recordDetail}
+              Hồ sơ bệnh án
             </h1>
             <p className="text-sage-600 mt-1">{formatDate(record.createdAt)}</p>
           </div>
         </div>
-        <Button variant="outline" leftIcon={<Download />}>
+        <Button
+          variant="outline"
+          leftIcon={<Download />}
+          onClick={handleDownloadPdf}
+          isLoading={isDownloadingPdf}
+        >
           {vi.medicalRecords.downloadPDF}
         </Button>
       </div>

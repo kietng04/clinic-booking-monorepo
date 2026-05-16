@@ -1,13 +1,11 @@
 import axios from 'axios'
 import { repairMojibakeDeep } from '../../utils/encoding'
+import { clearStoredAuth, setStoredTokens } from './authStorage'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const clearAuthState = () => {
-  if (typeof localStorage === 'undefined') return
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-  localStorage.removeItem('auth-storage')
+  clearStoredAuth()
 }
 
 const redirectToLogin = () => {
@@ -64,17 +62,11 @@ export const createApiClient = (options = {}) => {
           if (refreshToken) {
             const response = await axios.post(
               `${baseURL}/api/auth/refresh`,
-              null,
-              { params: { refreshToken } }
+              { refreshToken }
             )
 
             const { token, refreshToken: newRefreshToken } = response.data || {}
-            if (token && typeof localStorage !== 'undefined') {
-              localStorage.setItem('accessToken', token)
-            }
-            if (newRefreshToken && typeof localStorage !== 'undefined') {
-              localStorage.setItem('refreshToken', newRefreshToken)
-            }
+            setStoredTokens(token, newRefreshToken)
 
             originalRequest.headers = originalRequest.headers || {}
             if (token) {

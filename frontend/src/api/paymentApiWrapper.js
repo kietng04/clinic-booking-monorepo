@@ -2,7 +2,6 @@ import { paymentApi as realPaymentApi } from './realApis/paymentApi'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
-// Mock payment history data
 const mockPayments = [
   {
     id: '1',
@@ -13,7 +12,7 @@ const mockPayments = [
     currency: 'VND',
     method: 'Momo',
     status: 'Success',
-    description: 'Tư vấn tim mạch - BS. Nguyễn Văn A',
+    description: 'TÆ° váº¥n tim máº¡ch - BS. Nguyá»…n VÄƒn A',
     createdAt: '2026-01-25T10:30:00',
     paidAt: '2026-01-25T10:31:15',
     invoiceNumber: 'INV-2026-001',
@@ -27,7 +26,7 @@ const mockPayments = [
     currency: 'VND',
     method: 'VNPay',
     status: 'Success',
-    description: 'Khám sức khỏe tổng quát - BS. Trần Thị B',
+    description: 'KhÃ¡m sá»©c khá»e tá»•ng quÃ¡t - BS. Tráº§n Thá»‹ B',
     createdAt: '2026-01-20T14:00:00',
     paidAt: '2026-01-20T14:01:30',
     invoiceNumber: 'INV-2026-002',
@@ -41,7 +40,7 @@ const mockPayments = [
     currency: 'VND',
     method: 'Cash',
     status: 'Success',
-    description: 'Xét nghiệm máu toàn phần',
+    description: 'XÃ©t nghiá»‡m mÃ¡u toÃ n pháº§n',
     createdAt: '2026-01-15T09:00:00',
     paidAt: '2026-01-15T11:20:00',
     invoiceNumber: 'INV-2026-003',
@@ -55,7 +54,7 @@ const mockPayments = [
     currency: 'VND',
     method: 'ZaloPay',
     status: 'Pending',
-    description: 'Tư vấn nội tiết - BS. Lê Văn C',
+    description: 'TÆ° váº¥n ná»™i tiáº¿t - BS. LÃª VÄƒn C',
     createdAt: '2026-01-28T16:45:00',
     invoiceNumber: 'INV-2026-004',
   },
@@ -68,7 +67,7 @@ const mockPayments = [
     currency: 'VND',
     method: 'Momo',
     status: 'Failed',
-    description: 'Khám tim mạch chuyên sâu - BS. Phạm Thị D',
+    description: 'KhÃ¡m tim máº¡ch chuyÃªn sÃ¢u - BS. Pháº¡m Thá»‹ D',
     createdAt: '2026-01-10T11:00:00',
     invoiceNumber: 'INV-2026-005',
     failureReason: 'Insufficient balance',
@@ -79,7 +78,6 @@ const mockPaymentApi = {
   createPayment: async (data) => {
     await new Promise((r) => setTimeout(r, 1000))
 
-    // Simulate payment gateway redirect
     const orderId = `PAY-${Date.now()}`
     const mockPaymentUrl = `/payment/result?orderId=${orderId}&status=success`
 
@@ -87,6 +85,8 @@ const mockPaymentApi = {
       orderId,
       paymentId: orderId,
       status: 'PENDING',
+      resourceType: data.resourceType || (data.appointmentId ? 'APPOINTMENT' : undefined),
+      resourceId: data.resourceId || data.appointmentId,
       payUrl: mockPaymentUrl,
       redirectUrl: mockPaymentUrl,
       qrCode: data.method === 'Momo' || data.method === 'VNPay' ? 'mock-qr-code-url' : null,
@@ -98,17 +98,14 @@ const mockPaymentApi = {
 
     let payments = [...mockPayments].filter((p) => p.patientId === patientId)
 
-    // Filter by status
     if (filters.status) {
       payments = payments.filter((p) => p.status === filters.status)
     }
 
-    // Filter by method
     if (filters.method) {
       payments = payments.filter((p) => p.method === filters.method)
     }
 
-    // Filter by date range
     if (filters.fromDate) {
       payments = payments.filter((p) => new Date(p.createdAt) >= new Date(filters.fromDate))
     }
@@ -117,16 +114,13 @@ const mockPaymentApi = {
       payments = payments.filter((p) => new Date(p.createdAt) <= new Date(filters.toDate))
     }
 
-    // Sort by date descending
     payments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
     return payments
   },
 
   getPaymentResult: async (paymentId) => {
     await new Promise((r) => setTimeout(r, 300))
 
-    // Simulate successful payment result
     return {
       id: paymentId,
       orderId: paymentId,
@@ -138,7 +132,9 @@ const mockPaymentApi = {
       transactionId: `TXN-${Date.now()}`,
       completedAt: new Date().toISOString(),
       appointmentId: 'APT-NEW',
-      description: 'Thanh toán lịch hẹn khám bệnh',
+      resourceType: 'APPOINTMENT',
+      resourceId: 'APT-NEW',
+      description: 'Thanh toÃ¡n lá»‹ch háº¹n khÃ¡m bá»‡nh',
     }
   },
 
@@ -157,6 +153,8 @@ const mockPaymentApi = {
     return {
       orderId: record.id || `PAY-${appointmentId}`,
       appointmentId: record.appointmentId,
+      resourceType: 'APPOINTMENT',
+      resourceId: record.appointmentId,
       amount: record.amount,
       finalAmount: record.finalAmount,
       status: normalizedStatus,
@@ -166,18 +164,33 @@ const mockPaymentApi = {
     }
   },
 
-  downloadReceipt: async (paymentId) => {
-    await new Promise((r) => setTimeout(r, 500))
+  getPaymentByResource: async (resourceType, resourceId) => {
+    if ((resourceType || '').toUpperCase() === 'APPOINTMENT') {
+      return mockPaymentApi.getPaymentByAppointment(resourceId)
+    }
 
-    // Create mock PDF blob
-    const blob = new Blob(['Mock receipt PDF content'], { type: 'application/pdf' })
-    return blob
+    await new Promise((r) => setTimeout(r, 300))
+    return {
+      orderId: `PAY-${resourceType}-${resourceId}`,
+      resourceType: (resourceType || '').toUpperCase(),
+      resourceId,
+      amount: 200000,
+      finalAmount: 200000,
+      status: 'PENDING',
+      paymentMethod: 'MOMO_WALLET',
+      payUrl: `/payment/result?orderId=PAY-${resourceType}-${resourceId}`,
+      createdAt: new Date().toISOString(),
+    }
   },
 
-  exportHistory: async (patientId, filters = {}) => {
+  downloadReceipt: async () => {
+    await new Promise((r) => setTimeout(r, 500))
+    return new Blob(['Mock receipt PDF content'], { type: 'application/pdf' })
+  },
+
+  exportHistory: async () => {
     await new Promise((r) => setTimeout(r, 500))
 
-    // Create mock CSV blob
     const csv = mockPayments
       .map(
         (p) =>
@@ -185,10 +198,9 @@ const mockPaymentApi = {
       )
       .join('\n')
 
-    const blob = new Blob([`Invoice,Date,Description,Amount,Method,Status\n${csv}`], {
+    return new Blob([`Invoice,Date,Description,Amount,Method,Status\n${csv}`], {
       type: 'text/csv',
     })
-    return blob
   },
 }
 

@@ -17,87 +17,88 @@ import {
   Wrench,
   BarChart2,
   CreditCard,
+  Wallet,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { cn } from '@/lib/utils'
+import { repairReactNode } from '@/utils/repairReactMojibake'
 
 const patientNav = [
-  { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Đặt lịch khám', path: '/appointments/book', icon: Calendar },
-  { name: 'Tư vấn trực tuyến', path: '/patient/consultations', icon: Stethoscope },
-  { name: 'Lịch hẹn', path: '/appointments', icon: Clock },
-  { name: 'Hồ sơ bệnh án', path: '/medical-records', icon: FileText },
-  { name: 'Lịch sử thanh toán', path: '/payments', icon: CreditCard },
-  { name: 'Chỉ số sức khỏe', path: '/health-metrics', icon: Heart },
-  { name: 'Thông báo', path: '/notifications', icon: Bell },
-  { name: 'Tin nhắn', path: '/patient/consultations', icon: MessageSquare },
-  { name: 'Gia đình', path: '/family', icon: Users },
-  { name: 'Tài khoản', path: '/profile', icon: Settings },
+  { name: 'TÃ¡Â»â€¢ng quan', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Ã„ÂÃ¡ÂºÂ·t lÃ¡Â»â€¹ch khÃƒÂ¡m', path: '/appointments/book', icon: Calendar },
+  { name: 'TÃ†Â° vÃ¡ÂºÂ¥n trÃ¡Â»Â±c tuyÃ¡ÂºÂ¿n', path: '/patient/consultations', icon: Stethoscope },
+  { name: 'LÃ¡Â»â€¹ch hÃ¡ÂºÂ¹n', path: '/appointments', icon: Clock },
+  { name: 'HÃ¡Â»â€œ sÃ†Â¡ bÃ¡Â»â€¡nh ÃƒÂ¡n', path: '/medical-records', icon: FileText },
+  { name: 'LÃ¡Â»â€¹ch sÃ¡Â»Â­ thanh toÃƒÂ¡n', path: '/payments', icon: CreditCard },
+  { name: 'ChÃ¡Â»â€° sÃ¡Â»â€˜ sÃ¡Â»Â©c khÃ¡Â»Âe', path: '/health-metrics', icon: Heart },
+  { name: 'ThÃƒÂ´ng bÃƒÂ¡o', path: '/notifications', icon: Bell },
+  { name: 'Tin nhÃ¡ÂºÂ¯n', path: '/patient/consultations', icon: MessageSquare },
+  { name: 'Gia Ã„â€˜ÃƒÂ¬nh', path: '/family', icon: Users },
+  { name: 'TÃƒÂ i khoÃ¡ÂºÂ£n', path: '/profile', icon: Settings },
 ]
 
 const doctorNav = [
-  { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Lịch hẹn', path: '/doctor/appointments', icon: Calendar },
-  { name: 'Lịch làm việc', path: '/schedule', icon: Clock },
-  { name: 'Bệnh nhân', path: '/patients', icon: Users },
-  { name: 'Tư vấn', path: '/consultations', icon: Stethoscope },
-  { name: 'Tin nhắn', path: '/consultations', icon: MessageSquare },
-  { name: 'Thống kê', path: '/doctor/analytics', icon: TrendingUp },
-  { name: 'Tài khoản', path: '/profile', icon: Settings },
+  { name: 'TÃ¡Â»â€¢ng quan', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'LÃ¡Â»â€¹ch hÃ¡ÂºÂ¹n', path: '/doctor/appointments', icon: Calendar },
+  { name: 'LÃ¡Â»â€¹ch lÃƒÂ m viÃ¡Â»â€¡c', path: '/schedule', icon: Clock },
+  { name: 'BÃ¡Â»â€¡nh nhÃƒÂ¢n', path: '/patients', icon: Users },
+  { name: 'TÃ†Â° vÃ¡ÂºÂ¥n', path: '/consultations', icon: Stethoscope },
+  { name: 'Tin nhÃ¡ÂºÂ¯n', path: '/consultations', icon: MessageSquare },
+  { name: 'ThÃ¡Â»â€˜ng kÃƒÂª', path: '/doctor/analytics', icon: TrendingUp },
+  { name: 'TÃƒÂ i khoÃ¡ÂºÂ£n', path: '/profile', icon: Settings },
 ]
 
 const adminNav = [
-  { name: 'Tổng quan', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Người dùng', path: '/users', icon: Users },
-  { name: 'Bác sĩ', path: '/doctors', icon: Stethoscope },
-  { name: 'Phòng khám', path: '/admin/clinics', icon: Building2 },
-  { name: 'Dịch vụ', path: '/admin/services', icon: Wrench },
-  { name: 'Phòng', path: '/admin/rooms', icon: UserCog },
-  { name: 'Báo cáo', path: '/admin/reports', icon: BarChart2 },
-  { name: 'Tài khoản', path: '/profile', icon: Settings },
+  { name: 'TÃ¡Â»â€¢ng quan', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'NgÃ†Â°Ã¡Â»Âi dÃƒÂ¹ng', path: '/users', icon: Users },
+  { name: 'BÃƒÂ¡c sÃ„Â©', path: '/doctors', icon: Stethoscope },
+  { name: 'PhÃƒÂ²ng khÃƒÂ¡m', path: '/admin/clinics', icon: Building2 },
+  { name: 'DÃ¡Â»â€¹ch vÃ¡Â»Â¥', path: '/admin/services', icon: Wrench },
+  { name: 'PhÃƒÂ²ng', path: '/admin/rooms', icon: UserCog },
+  { name: 'BÃƒÂ¡o cÃƒÂ¡o', path: '/admin/reports', icon: BarChart2 },
+  { name: 'HoÃƒÂ n tiÃ¡Â»Ân', path: '/admin/refunds', icon: Wallet },
+  { name: 'TÃƒÂ i khoÃ¡ÂºÂ£n', path: '/profile', icon: Settings },
 ]
 
 function SidebarContent({ navigation, pathname }) {
-  return (
-    <>
-      <nav className="space-y-1 p-4">
-        {navigation.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.path
-          const normalizedPath = item.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
+  return repairReactNode(
+    <nav className="p-4 space-y-2">
+      {navigation.map((item) => {
+        const Icon = item.icon
+        const isActive = pathname === item.path
+        const normalizedPath = item.path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
 
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              data-testid={`sidebar-link-${normalizedPath}`}
-              className={cn(
-                'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all',
-                isActive
-                  ? 'bg-brand-600 text-white shadow-soft'
-                  : 'text-sage-700 hover:bg-sage-100 dark:text-sage-200 dark:hover:bg-sage-800'
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeNav"
-                  className="absolute inset-y-2 left-0 w-1 rounded-full bg-white/80"
-                  transition={{ type: 'spring', duration: 0.6 }}
-                />
-              )}
-              <Icon
-                className={cn(
-                  'relative z-10 h-5 w-5',
-                  isActive ? 'text-white' : 'text-sage-400 group-hover:text-sage-700 dark:group-hover:text-cream-100'
-                )}
+        return (
+          <Link
+            key={`${item.path}-${item.name}`}
+            to={item.path}
+            data-testid={`sidebar-link-${normalizedPath}`}
+            className={cn(
+              'flex items-center gap-3 px-4 py-3 rounded-soft transition-all group relative overflow-hidden',
+              isActive
+                ? 'bg-sage-600 text-white shadow-soft'
+                : 'text-sage-700 dark:text-sage-300 hover:bg-sage-100 dark:hover:bg-sage-800'
+            )}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="activeNav"
+                className="absolute inset-0 bg-sage-600"
+                transition={{ type: 'spring', duration: 0.6 }}
               />
-              <span className="relative z-10 font-medium">{item.name}</span>
-            </Link>
-          )
-        })}
-      </nav>
-    </>
+            )}
+            <Icon
+              className={cn(
+                'w-5 h-5 relative z-10',
+                isActive ? 'text-white' : 'text-sage-500 group-hover:text-sage-700 dark:group-hover:text-sage-200'
+              )}
+            />
+            <span className="font-medium relative z-10">{item.name}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
 
@@ -122,7 +123,7 @@ export function Sidebar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-30 bg-sage-950/40 lg:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -131,14 +132,14 @@ export function Sidebar() {
         initial={false}
         animate={{ x: sidebarOpen ? 0 : '-100%' }}
         data-testid={`sidebar-${String(user.role || 'unknown').toLowerCase()}`}
-        className="fixed bottom-0 left-0 top-16 z-40 w-64 overflow-y-auto border-r border-sage-100 bg-white/95 backdrop-blur-sm dark:border-sage-800 dark:bg-sage-950 lg:hidden"
+        className="fixed left-0 top-16 bottom-0 w-64 glass border-r border-sage-100 dark:border-sage-800 z-40 overflow-y-auto lg:hidden"
       >
         <SidebarContent navigation={navigation} pathname={location.pathname} />
       </motion.aside>
 
       <aside
         data-testid={`sidebar-desktop-${String(user.role || 'unknown').toLowerCase()}`}
-        className="hidden overflow-y-auto border-r border-sage-100 bg-white/80 backdrop-blur-sm dark:border-sage-800 dark:bg-sage-950 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:w-64"
+        className="hidden lg:block lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 glass border-r border-sage-100 dark:border-sage-800 overflow-y-auto"
       >
         <SidebarContent navigation={navigation} pathname={location.pathname} />
       </aside>

@@ -73,7 +73,7 @@ describe('LoginPage quick demo', () => {
     })
   })
 
-  it('uses clinic doctor credentials in real mode', async () => {
+  it('uses seeded doctor credentials in real mode', async () => {
     const realDemoAccounts = getDemoAccounts(false)
 
     vi.stubEnv('VITE_USE_MOCK_BACKEND', 'false')

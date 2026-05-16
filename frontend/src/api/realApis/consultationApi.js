@@ -1,7 +1,6 @@
 import SockJS from 'sockjs-client'
 import { Stomp } from '@stomp/stompjs'
 import { API_BASE_URL, createApiClient } from '../core/createApiClient'
-import { devLog } from '../../utils/devLogger'
 
 /**
  * Consultation API - Real backend integration
@@ -152,6 +151,18 @@ export const consultationApi = {
   },
 
   /**
+   * Patient cancels a consultation draft waiting for payment.
+   * @param {number} consultationId
+   * @returns {Promise} Updated consultation
+   */
+  cancelDraftConsultation: async (consultationId) => {
+    const response = await consultationServiceClient.delete(
+      `/api/consultations/${consultationId}/draft`
+    )
+    return response.data
+  },
+
+  /**
    * Get total unread consultation count
    * @returns {Promise} Unread count
    */
@@ -276,7 +287,7 @@ class WebSocketManager {
     this.stompClient.connect(
       { Authorization: `Bearer ${token}` },
       () => {
-        devLog('WebSocket connected')
+        console.log('WebSocket connected')
         this.connected = true
         this.reconnectAttempts = 0
         if (onConnected) onConnected()
@@ -290,7 +301,7 @@ class WebSocketManager {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++
           setTimeout(() => {
-            devLog(`Reconnecting... Attempt ${this.reconnectAttempts}`)
+            console.log(`Reconnecting... Attempt ${this.reconnectAttempts}`)
             this.connect(onConnected, onError)
           }, this.reconnectDelay)
         }
@@ -321,7 +332,7 @@ class WebSocketManager {
     })
 
     this.subscriptions.set(consultationId, subscription)
-    devLog(`Subscribed to consultation ${consultationId}`)
+    console.log(`Subscribed to consultation ${consultationId}`)
     return subscription
   }
 
@@ -353,7 +364,7 @@ class WebSocketManager {
     if (subscription) {
       subscription.unsubscribe()
       this.subscriptions.delete(consultationId)
-      devLog(`Unsubscribed from consultation ${consultationId}`)
+      console.log(`Unsubscribed from consultation ${consultationId}`)
     }
 
     const readSubscription = this.subscriptions.get(`${consultationId}-read`)
@@ -375,7 +386,7 @@ class WebSocketManager {
       this.subscriptions.clear()
 
       this.stompClient.disconnect(() => {
-        devLog('WebSocket disconnected')
+        console.log('WebSocket disconnected')
       })
       this.connected = false
     }

@@ -3,12 +3,10 @@ import { render, screen, waitFor } from '@/test/utils'
 import DoctorAnalytics from './DoctorAnalytics'
 
 const {
-  mockGetDoctorStats,
-  mockGetDoctorAnalytics,
+  mockGetDoctorAppointments,
   mockShowToast,
 } = vi.hoisted(() => ({
-  mockGetDoctorStats: vi.fn(),
-  mockGetDoctorAnalytics: vi.fn(),
+  mockGetDoctorAppointments: vi.fn(),
   mockShowToast: vi.fn(),
 }))
 
@@ -24,64 +22,49 @@ vi.mock('@/store/uiStore', () => ({
   }),
 }))
 
-vi.mock('@/api/realApis/statsApi', () => ({
-  statsApi: {
-    getDoctorStats: mockGetDoctorStats,
-    getDoctorAnalyticsDashboard: mockGetDoctorAnalytics,
+vi.mock('@/api/appointmentApiWrapper', () => ({
+  appointmentApi: {
+    getDoctorAppointments: mockGetDoctorAppointments,
   },
 }))
 
 describe('DoctorAnalytics', () => {
   beforeEach(() => {
     mockShowToast.mockReset()
-    mockGetDoctorStats.mockReset()
-    mockGetDoctorAnalytics.mockReset()
+    mockGetDoctorAppointments.mockReset()
 
-    mockGetDoctorStats.mockResolvedValue({
-      totalPatients: 10,
-      totalAppointments: 20,
-      completionRate: 80,
-      avgRating: 4.6,
-    })
-
-    mockGetDoctorAnalytics.mockResolvedValue({
-      appointments: [{ month: 'Jan', count: 5, completed: 4, revenue: 1000000 }],
-      appointmentTypes: [{ name: 'Khám trực tiếp', value: 60 }],
-      timeSlots: [{ time: '09:00', bookings: 5 }],
-      patientDemographics: {
-        ageDistribution: [{ range: '20-30', count: 4 }],
-        genderRatio: [{ gender: 'Nam', percentage: 40, count: 4 }],
+    mockGetDoctorAppointments.mockResolvedValue([
+      {
+        id: 1,
+        patientId: 10,
+        appointmentDate: new Date().toISOString().slice(0, 10),
+        appointmentTime: '09:00',
+        status: 'COMPLETED',
+        type: 'IN_PERSON',
+        serviceFee: 500000,
       },
-    })
+    ])
   })
 
-  it('loads doctor analytics directly from the real stats API client', async () => {
+  it('loads doctor analytics from doctor appointments', async () => {
     render(<DoctorAnalytics />)
 
     await waitFor(() => {
-      expect(mockGetDoctorStats).toHaveBeenCalledWith('1')
-      expect(mockGetDoctorAnalytics).toHaveBeenCalledWith('1')
+      expect(mockGetDoctorAppointments).toHaveBeenCalledWith('1', { size: 500 })
     })
+
+    expect(await screen.findByText('Tổng lịch hẹn')).toBeInTheDocument()
+    expect(screen.getByText('Doanh thu khám trực tiếp')).toBeInTheDocument()
   })
 
-  it('shows truthful empty chart state instead of mock analytics fallback', async () => {
-    mockGetDoctorAnalytics.mockResolvedValue({
-      appointments: [],
-      appointmentTypes: [],
-      timeSlots: [],
-      patientDemographics: {
-        ageDistribution: [],
-        genderRatio: [],
-      },
-    })
+  it('shows truthful empty revenue state instead of mock analytics fallback', async () => {
+    mockGetDoctorAppointments.mockResolvedValue([])
 
     render(<DoctorAnalytics />)
 
+    expect(await screen.findByText('Tổng lịch hẹn')).toBeInTheDocument()
     expect(
-      await screen.findByText(/Chưa có dữ liệu biểu đồ phân tích cho giai đoạn này/i)
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(/Chưa có dữ liệu lịch hẹn theo tháng từ backend/i)
+      screen.getByText(/Chưa có dữ liệu doanh thu hoặc chưa áp dụng phí khám/i)
     ).toBeInTheDocument()
   })
 })

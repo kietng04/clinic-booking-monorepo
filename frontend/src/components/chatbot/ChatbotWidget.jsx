@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Bot, Loader2, MessageCircle, Send, User, X } from 'lucide-react'
 import { chatbotApi } from '@/api/chatbotApiWrapper'
 import { useAuthStore } from '@/store/authStore'
@@ -17,12 +17,11 @@ export function ChatbotWidget() {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [sessionId, setSessionId] = useState(null)
   const [messages, setMessages] = useState(() => [buildWelcomeMessage(user?.name)])
   const messagesContainerRef = useRef(null)
 
   const disabled = !input.trim() || loading
-  const userLabel = useMemo(() => (user?.role || 'PATIENT').toUpperCase(), [user?.role])
-
   useEffect(() => {
     if (!open || !messagesContainerRef.current) {
       return
@@ -59,7 +58,11 @@ export function ChatbotWidget() {
     setLoading(true)
 
     try {
-      const response = await chatbotApi.chat(content, { userRole: userLabel })
+      const response = await chatbotApi.chat(content, { sessionId })
+
+      if (response.sessionId) {
+        setSessionId(response.sessionId)
+      }
 
       setMessages((prev) => [
         ...prev,

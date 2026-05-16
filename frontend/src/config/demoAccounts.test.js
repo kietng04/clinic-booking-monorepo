@@ -13,12 +13,12 @@ describe('demoAccounts', () => {
   it('returns healthflow seeded accounts in real mode', () => {
     const accounts = getDemoAccounts(false)
 
-    expect(accounts.PATIENT.email).toBe('patient1@clinic.com')
-    expect(accounts.DOCTOR.email).toBe('dr.sarah@clinic.com')
-    expect(accounts.ADMIN.email).toBe('admin@clinic.com')
-    expect(accounts.PATIENT.fallbacks[0].email).toBe('patient.1@healthflow.vn')
-    expect(accounts.DOCTOR.fallbacks[0].email).toBe('doctor.1@healthflow.vn')
-    expect(accounts.ADMIN.fallbacks[0].email).toBe('admin.1@healthflow.vn')
+    expect(accounts.PATIENT.email).toBe('patient.1@healthflow.vn')
+    expect(accounts.DOCTOR.email).toBe('doctor.1@healthflow.vn')
+    expect(accounts.ADMIN.email).toBe('admin.1@healthflow.vn')
+    expect(accounts.PATIENT.fallbacks[0].email).toBe('patient1@clinic.com')
+    expect(accounts.DOCTOR.fallbacks[0].email).toBe('dr.sarah@clinic.com')
+    expect(accounts.ADMIN.fallbacks[0].email).toBe('admin@clinic.com')
   })
 
   it('returns quick login list ordered by patient, doctor, admin', () => {

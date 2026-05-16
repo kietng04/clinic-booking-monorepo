@@ -1,47 +1,202 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
-  CheckCircle2,
-  XCircle,
-  Download,
   Calendar,
+  Clock3,
+  FileText,
   Home,
-  RotateCcw,
   Loader2,
+  MapPin,
+  RefreshCcw,
+  UserRound,
+  XCircle,
 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Avatar } from '@/components/ui/Avatar'
 import { paymentApi } from '@/api/paymentApiWrapper'
-import { formatDate } from '@/lib/utils'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { repairReactNode } from '@/utils/repairReactMojibake'
+import { loadPaymentBookingSummary } from '@/utils/paymentBookingSummary'
 
 const POLL_INTERVAL_MS = 2500
-const POLL_TIMEOUT_MS = 90000
-const STATUS_SYNC_INTERVAL_MS = 10000
+const POLL_TIMEOUT_MS = 120000
+const STATUS_SYNC_INTERVAL_MS = 7500
 
 const normalizeStatus = (status) => {
-  const value = (status || '').toString().trim().toUpperCase()
-  if (value === 'SUCCESS') return 'COMPLETED'
+  const value = String(status || '')
+    .trim()
+    .toUpperCase()
+
+  if (value === 'SUCCESS' || value === 'PAID') return 'COMPLETED'
   if (value === 'FAIL' || value === 'ERROR') return 'FAILED'
   return value
 }
 
-const isTerminalStatus = (status) => {
-  const normalized = normalizeStatus(status)
-  return ['COMPLETED', 'FAILED', 'EXPIRED', 'REFUNDED', 'PARTIALLY_REFUNDED'].includes(normalized)
+const isTerminalStatus = (status) =>
+  ['COMPLETED', 'FAILED', 'EXPIRED', 'REFUNDED', 'PARTIALLY_REFUNDED'].includes(
+    normalizeStatus(status),
+  )
+
+const formatDateLabel = (value) => {
+  if (!value) return '--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('vi-VN')
 }
 
+const formatGenderLabel = (value) => {
+  switch (String(value || '').toUpperCase()) {
+    case 'MALE':
+      return 'Nam'
+    case 'FEMALE':
+      return 'Nữ'
+    case 'OTHER':
+      return 'Khác'
+    default:
+      return value || '--'
+  }
+}
+
+const formatCurrency = (value) => {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return '--'
+  return `${new Intl.NumberFormat('vi-VN').format(Math.round(amount))} đ`
+}
+
+const formatPaymentMethodLabel = (value) => {
+  const normalized = String(value || '')
+    .trim()
+    .toUpperCase()
+
+  if (normalized === 'MOMO' || normalized === 'MOMO_WALLET') return 'MoMo'
+  return value || '--'
+}
+
+const getProviderCallbackStatus = (searchParams) => {
+  const resultCode = searchParams.get('resultCode')
+  const errorCode = searchParams.get('errorCode')
+  const status = normalizeStatus(searchParams.get('status'))
+  const message = String(searchParams.get('message') || '')
+    .trim()
+    .toLowerCase()
+
+  if (status === 'COMPLETED' || status === 'SUCCESS') return 'COMPLETED'
+  if (status === 'FAILED') return 'FAILED'
+  if (resultCode === '0' || errorCode === '0') return 'COMPLETED'
+  if (resultCode || errorCode) return 'FAILED'
+  if (message.includes('successful') || message.includes('thành công')) return 'COMPLETED'
+  if (message.includes('failed') || message.includes('thất bại')) return 'FAILED'
+  return ''
+}
+
+const buildFallbackTicketCode = (appointmentId, date) => {
+  if (!appointmentId) return ''
+
+  const normalizedDate = String(date || '')
+    .slice(2, 10)
+    .replaceAll('-', '')
+  const normalizedId = String(appointmentId).replace(/\D/g, '').slice(-4).padStart(4, '0')
+
+  if (!normalizedDate || !normalizedId) return ''
+  return `YMA${normalizedDate}${normalizedId}`
+}
+
+const normalizeTimeLabel = (time, fallbackLabel) => {
+  if (fallbackLabel) return fallbackLabel
+  const normalized = String(time || '').slice(0, 5)
+  return normalized || '--'
+}
+
+const resolveResourceType = (paymentResult, cachedSummary) =>
+  String(
+    paymentResult?.resourceType ||
+      cachedSummary?.resourceType ||
+      (paymentResult?.appointmentId || cachedSummary?.appointmentId ? 'APPOINTMENT' : ''),
+  )
+    .trim()
+    .toUpperCase()
+
+const buildBookingViewModel = ({ paymentResult, appointmentDetail, cachedSummary, orderId }) => {
+  const resourceType = resolveResourceType(paymentResult, cachedSummary)
+  const appointmentId = paymentResult?.appointmentId || appointmentDetail?.id || cachedSummary?.appointmentId
+  const consultationId =
+    resourceType === 'CONSULTATION'
+      ? paymentResult?.resourceId || cachedSummary?.consultationId || cachedSummary?.resourceId
+      : null
+  const bookingDate = appointmentDetail?.date || appointmentDetail?.appointmentDate || cachedSummary?.date
+  const ticketCode =
+    paymentResult?.appointmentCode ||
+    paymentResult?.invoiceNumber ||
+    appointmentDetail?.appointmentCode ||
+    cachedSummary?.appointmentCode ||
+    (resourceType === 'APPOINTMENT' ? buildFallbackTicketCode(appointmentId, bookingDate) : '') ||
+    paymentResult?.orderId ||
+    orderId
+
+  return {
+    resourceType,
+    appointmentId,
+    consultationId,
+    ticketCode,
+    queueNumber:
+      paymentResult?.queueNumber || appointmentDetail?.queueNumber || cachedSummary?.queueNumber || '--',
+    doctorName:
+      appointmentDetail?.doctorName || cachedSummary?.doctorName || paymentResult?.doctorName || 'Bác sĩ',
+    doctorAvatar: appointmentDetail?.doctorAvatar || cachedSummary?.doctorAvatar || '',
+    doctorAddress:
+      appointmentDetail?.clinicAddress ||
+      appointmentDetail?.clinicName ||
+      cachedSummary?.doctorAddress ||
+      cachedSummary?.clinicName ||
+      '--',
+    doctorSpecialization:
+      appointmentDetail?.doctorSpecialization || cachedSummary?.doctorSpecialization || 'Chưa cập nhật',
+    bookingDate,
+    bookingTime: normalizeTimeLabel(
+      appointmentDetail?.time || appointmentDetail?.appointmentTime || cachedSummary?.time,
+      cachedSummary?.slotLabel,
+    ),
+    periodLabel: cachedSummary?.periodLabel || 'Buổi chiều',
+    patientName:
+      appointmentDetail?.patientName || cachedSummary?.patientName || paymentResult?.patientName || '--',
+    patientDateOfBirth:
+      cachedSummary?.patientDateOfBirth || appointmentDetail?.patientDateOfBirth || '--',
+    patientGender: cachedSummary?.patientGender || appointmentDetail?.patientGender || '--',
+    patientPhone:
+      cachedSummary?.patientPhone || appointmentDetail?.patientPhone || paymentResult?.patientPhone || '--',
+    patientAddress:
+      cachedSummary?.patientAddress ||
+      appointmentDetail?.patientAddress ||
+      appointmentDetail?.address ||
+      '--',
+    patientCode: cachedSummary?.patientCode || paymentResult?.patientCode || '--',
+    topic: cachedSummary?.topic || paymentResult?.topic || '--',
+    description: cachedSummary?.description || '',
+    paymentAmount: paymentResult?.finalAmount || paymentResult?.amount || cachedSummary?.paymentAmount || 0,
+    paymentMethod: formatPaymentMethodLabel(
+      cachedSummary?.paymentMethod || paymentResult?.paymentMethod || '--',
+    ),
+  }
+}
+
+const actionButtonClass =
+  '!rounded-[6px] border-[#0f4f2a] bg-[#0f4f2a] px-6 py-3 text-base font-semibold text-white shadow-none hover:bg-[#0b3f21]'
+const outlineButtonClass =
+  '!rounded-[6px] border-[#0f4f2a] px-6 py-3 text-base font-semibold text-[#0f4f2a] shadow-none hover:bg-[#eef5f0] hover:text-[#0f4f2a]'
+
 const PaymentResult = () => {
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('orderId') || searchParams.get('paymentId')
+
+  const providerStatus = useMemo(() => getProviderCallbackStatus(searchParams), [searchParams])
+  const cachedSummary = useMemo(() => loadPaymentBookingSummary(orderId), [orderId])
 
   const [isLoading, setIsLoading] = useState(true)
-  const [paymentResult, setPaymentResult] = useState(null)
   const [pollTimedOut, setPollTimedOut] = useState(false)
+  const [paymentResult, setPaymentResult] = useState(null)
+  const [appointmentDetail, setAppointmentDetail] = useState(null)
 
   const inFlightRef = useRef(false)
-
-  const orderId = searchParams.get('orderId') || searchParams.get('paymentId')
 
   const fetchPaymentResult = async ({ forceSync = false, silent = true } = {}) => {
     if (!orderId || inFlightRef.current) return null
@@ -53,7 +208,10 @@ const PaymentResult = () => {
 
     try {
       let data = await paymentApi.getPaymentResult(orderId)
-      if (forceSync && normalizeStatus(data?.status) === 'PENDING') {
+      const backendStatus = normalizeStatus(data?.status)
+      const shouldSync = forceSync || providerStatus === 'COMPLETED'
+
+      if (shouldSync && backendStatus === 'PENDING') {
         try {
           data = await paymentApi.queryPaymentStatus(orderId)
         } catch (syncError) {
@@ -61,19 +219,43 @@ const PaymentResult = () => {
         }
       }
 
+      const resolvedBackendStatus = normalizeStatus(data?.status)
+      const resolvedStatus =
+        !isTerminalStatus(resolvedBackendStatus) && providerStatus
+          ? providerStatus
+          : resolvedBackendStatus
+
       const normalized = {
         ...data,
-        status: normalizeStatus(data?.status),
+        orderId: data?.orderId || orderId,
+        status: resolvedStatus,
+        backendStatus: resolvedBackendStatus,
+        syncPending: providerStatus === 'COMPLETED' && resolvedBackendStatus !== 'COMPLETED',
+        resourceType: String(data?.resourceType || (data?.appointmentId ? 'APPOINTMENT' : ''))
+          .trim()
+          .toUpperCase(),
       }
+
       setPaymentResult(normalized)
       return normalized
     } catch (error) {
       console.error('Failed to fetch payment result:', error)
+
+      const fallbackStatus = providerStatus || 'FAILED'
       const fallback = {
         orderId,
-        status: 'FAILED',
-        error: 'Không thể tải thông tin thanh toán',
+        status: fallbackStatus,
+        backendStatus: 'PENDING',
+        syncPending: providerStatus === 'COMPLETED',
+        appointmentId: cachedSummary?.appointmentId,
+        resourceId: cachedSummary?.consultationId || cachedSummary?.resourceId,
+        resourceType: resolveResourceType(null, cachedSummary) || 'APPOINTMENT',
+        error:
+          fallbackStatus === 'FAILED'
+            ? 'Không thể tải thông tin thanh toán'
+            : undefined,
       }
+
       setPaymentResult(fallback)
       return fallback
     } finally {
@@ -98,21 +280,22 @@ const PaymentResult = () => {
     const run = async () => {
       if (cancelled) return
 
-      const elapsed = Date.now() - startedAt
-      if (elapsed >= POLL_TIMEOUT_MS) {
+      if (Date.now() - startedAt >= POLL_TIMEOUT_MS) {
         setPollTimedOut(true)
         setIsLoading(false)
         return
       }
 
-      const shouldForceSync = tick > 0 && tick % Math.max(1, Math.floor(STATUS_SYNC_INTERVAL_MS / POLL_INTERVAL_MS)) === 0
+      const shouldForceSync =
+        providerStatus === 'COMPLETED' ||
+        (tick > 0 && tick % Math.max(1, Math.floor(STATUS_SYNC_INTERVAL_MS / POLL_INTERVAL_MS)) === 0)
+
       const result = await fetchPaymentResult({
         forceSync: shouldForceSync,
         silent: tick !== 0,
       })
 
-      const status = normalizeStatus(result?.status)
-      if (isTerminalStatus(status)) {
+      if (isTerminalStatus(result?.status) || result?.syncPending) {
         setPollTimedOut(false)
         setIsLoading(false)
         return
@@ -130,20 +313,47 @@ const PaymentResult = () => {
         window.clearTimeout(timeoutId)
       }
     }
-  }, [orderId])
+  }, [orderId, providerStatus])
+
+  useEffect(() => {
+    const resourceType = resolveResourceType(paymentResult, cachedSummary)
+    if (resourceType !== 'APPOINTMENT') return
+
+    const appointmentId = paymentResult?.appointmentId || cachedSummary?.appointmentId
+    if (!appointmentId) return
+
+    let ignore = false
+
+    const fetchAppointment = async () => {
+      try {
+        const data = await appointmentApi.getAppointment(appointmentId)
+        if (!ignore) {
+          setAppointmentDetail(data)
+        }
+      } catch (error) {
+        console.warn('Failed to fetch appointment detail:', error)
+      }
+    }
+
+    fetchAppointment()
+
+    return () => {
+      ignore = true
+    }
+  }, [cachedSummary, paymentResult])
 
   const handleDownloadReceipt = async () => {
     if (!orderId) return
     try {
       const blob = await paymentApi.downloadReceipt(orderId)
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `receipt-${orderId}.pdf`
-      document.body.appendChild(a)
-      a.click()
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `receipt-${orderId}.pdf`
+      document.body.appendChild(link)
+      link.click()
       window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      document.body.removeChild(link)
     } catch (error) {
       console.error('Failed to download receipt:', error)
     }
@@ -154,21 +364,14 @@ const PaymentResult = () => {
     await fetchPaymentResult({ forceSync: true, silent: false })
   }
 
-  const formatAmount = (amount, currency = 'VND') => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency,
-    }).format(amount)
-  }
-
   if (isLoading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
+    return repairReactNode(
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-sage-600 animate-spin mx-auto mb-4" />
-          <p className="text-sage-600">Đang xác nhận thanh toán...</p>
+          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[#0f4f2a]" />
+          <p className="text-sm font-medium text-[#365543]">Đang xác nhận thanh toán...</p>
         </div>
-      </div>
+      </div>,
     )
   }
 
@@ -176,196 +379,285 @@ const PaymentResult = () => {
   const isSuccess = normalizedStatus === 'COMPLETED'
   const isPending = normalizedStatus === 'PENDING'
 
-  const getMethodLabel = (method) => {
-    switch (method) {
-      case 'MOMO_WALLET':
-        return 'Momo'
-      case 'CASH':
-        return 'Tiền mặt'
-      case 'BANK_TRANSFER':
-        return 'Chuyển khoản'
-      case 'CARD_AT_COUNTER':
-        return 'Thẻ tại quầy'
-      default:
-        return method || 'Không xác định'
-    }
-  }
+  const bookingViewModel = buildBookingViewModel({
+    paymentResult,
+    appointmentDetail,
+    cachedSummary,
+    orderId,
+  })
+  const isConsultation = bookingViewModel.resourceType === 'CONSULTATION'
+  const detailLink = isConsultation
+    ? bookingViewModel.consultationId
+      ? `/appointments?bookingId=consultation-${bookingViewModel.consultationId}`
+      : '/appointments'
+    : paymentResult?.appointmentId || cachedSummary?.appointmentId
+      ? `/appointments?bookingId=appointment-${paymentResult?.appointmentId || cachedSummary?.appointmentId}`
+      : '/appointments'
 
-  const title = isSuccess
-    ? 'Thanh toán thành công!'
-    : isPending
-      ? 'Đang chờ xác nhận thanh toán'
-      : 'Thanh toán thất bại'
+  const statusMessage = isPending
+    ? pollTimedOut
+      ? 'Hệ thống chưa nhận được xác nhận cuối cùng. Vui lòng bấm kiểm tra lại sau vài giây.'
+      : 'Hệ thống đang đợi phản hồi xác nhận cuối cùng từ cổng thanh toán.'
+    : paymentResult?.error || 'Thanh toán không thành công. Vui lòng thử lại.'
 
-  const message = isSuccess
-    ? 'Lịch hẹn của bạn đã được xác nhận. Chúng tôi đã gửi thông tin chi tiết đến email của bạn.'
-    : isPending
-      ? (pollTimedOut
-          ? 'Hệ thống chưa nhận được xác nhận cuối cùng. Vui lòng bấm kiểm tra lại sau vài giây.'
-          : 'Hệ thống đang chờ webhook từ cổng thanh toán. Vui lòng chờ trong giây lát...')
-      : paymentResult?.error || 'Giao dịch không thành công. Vui lòng thử lại.'
-
-  return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardContent className="p-12">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', duration: 0.5 }}
-            className="text-center"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${
-                isSuccess
-                  ? 'bg-green-100'
-                  : isPending
-                    ? 'bg-yellow-100'
-                    : 'bg-red-100'
-              }`}
-            >
-              {isSuccess ? (
-                <CheckCircle2 className="w-12 h-12 text-green-600" />
-              ) : isPending ? (
-                <Loader2 className="w-12 h-12 text-yellow-700 animate-spin" />
-              ) : (
-                <XCircle className="w-12 h-12 text-red-600" />
-              )}
-            </motion.div>
-
-            <h1
-              className={`text-3xl font-display font-bold mb-3 ${
-                isSuccess
-                  ? 'text-green-900'
-                  : isPending
-                    ? 'text-yellow-800'
-                    : 'text-red-900'
-              }`}
-            >
-              {title}
-            </h1>
-
-            <p className="text-sage-600 mb-8">{message}</p>
-
-            {paymentResult && (
-              <div className="bg-sage-50 rounded-soft p-6 mb-8 text-left">
-                <h3 className="font-semibold text-sage-900 mb-4">Thông tin thanh toán</h3>
-
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-sage-600">Mã đơn:</span>
-                    <span className="font-medium text-sage-900 font-mono">
-                      {paymentResult.orderId || orderId}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sage-600">Mã giao dịch:</span>
-                    <span className="font-medium text-sage-900 font-mono">
-                      {paymentResult.transactionId || '--'}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sage-600">Phương thức:</span>
-                    <span className="font-medium text-sage-900">
-                      {getMethodLabel(paymentResult.paymentMethod)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sage-600">Trạng thái:</span>
-                    <span className="font-medium text-sage-900">{normalizedStatus || '--'}</span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sage-600">Thời gian:</span>
-                    <span className="font-medium text-sage-900">
-                      {formatDate(paymentResult.completedAt || paymentResult.createdAt || new Date().toISOString())}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between pt-3 border-t border-sage-200">
-                    <span className="font-semibold text-sage-900">Số tiền:</span>
-                    <span className="font-bold text-xl text-sage-900">
-                      {formatAmount(paymentResult.finalAmount ?? paymentResult.amount ?? 0, paymentResult.currency)}
-                    </span>
-                  </div>
+  return repairReactNode(
+    <div className="mx-auto max-w-5xl space-y-5">
+      {isSuccess ? (
+        <section className="mx-auto max-w-3xl border border-[#d7e2da] bg-white">
+          <div className="border-b border-[#d7e2da] px-5 py-4 sm:px-6">
+            <div className="inline-flex rounded-[6px] bg-[#eff7f1] px-3 py-1 text-sm font-semibold text-[#0f4f2a]">
+              {isConsultation ? 'Đặt lịch tư vấn thành công' : 'Đặt lịch khám thành công'}
+            </div>
+            {isConsultation ? (
+              <div className="mt-4">
+                <div className="text-base font-semibold text-[#476252]">Mã yêu cầu:</div>
+                <div className="mt-1 text-3xl font-bold leading-none text-[#0f4f2a]">
+                  {bookingViewModel.ticketCode || orderId || '--'}
                 </div>
               </div>
+            ) : (
+              <div className="mt-4 flex items-end gap-3">
+                <span className="text-base font-semibold text-[#476252]">STT:</span>
+                <span className="text-4xl font-bold leading-none text-[#0f4f2a]">
+                  {bookingViewModel.queueNumber}
+                </span>
+              </div>
             )}
+          </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {isSuccess ? (
+          <div className="border-b border-[#d7e2da] px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-4">
+              <Avatar src={bookingViewModel.doctorAvatar} name={bookingViewModel.doctorName} size="xl" />
+              <div className="min-w-0">
+                <div className="text-xl font-semibold text-[#143c26]">{bookingViewModel.doctorName}</div>
+                <div className="mt-1 text-sm font-medium text-[#143c26]">{bookingViewModel.doctorName}</div>
+                <div className="mt-2 text-sm leading-6 text-[#4f6557]">
+                  {isConsultation ? 'Nơi tư vấn' : 'Phòng mạch'}: {bookingViewModel.doctorAddress}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-b border-[#d7e2da] px-5 py-5 sm:px-6">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#0f4f2a]" />
+              <h2 className="text-lg font-semibold text-[#143c26]">
+                {isConsultation ? 'Thông tin tư vấn' : 'Thông tin đặt khám'}
+              </h2>
+            </div>
+
+            <div className="mt-4 space-y-4 text-sm">
+              <div>
+                <div className="text-[#6b7f72]">{isConsultation ? 'Mã yêu cầu' : 'Mã phiếu khám'}</div>
+                <div className="mt-1 font-semibold text-[#173925]">{bookingViewModel.ticketCode || '--'}</div>
+              </div>
+              {isConsultation ? (
                 <>
-                  <Button
-                    onClick={handleDownloadReceipt}
-                    leftIcon={<Download className="w-4 h-4" />}
-                    variant="outline"
-                  >
-                    Tải hóa đơn
-                  </Button>
-
-                  <Link to={paymentResult?.appointmentId ? `/appointments/${paymentResult.appointmentId}` : '/appointments'}>
-                    <Button leftIcon={<Calendar className="w-4 h-4" />}>
-                      Xem lịch hẹn
-                    </Button>
-                  </Link>
-
-                  <Link to="/dashboard">
-                    <Button variant="outline" leftIcon={<Home className="w-4 h-4" />}>
-                      Về trang chủ
-                    </Button>
-                  </Link>
-                </>
-              ) : isPending ? (
-                <>
-                  <Button onClick={handleManualRefresh} leftIcon={<RotateCcw className="w-4 h-4" />}>
-                    Kiểm tra lại
-                  </Button>
-
-                  <Link to="/appointments">
-                    <Button variant="outline" leftIcon={<Calendar className="w-4 h-4" />}>
-                      Xem lịch hẹn
-                    </Button>
-                  </Link>
-
-                  <Link to="/dashboard">
-                    <Button variant="ghost" leftIcon={<Home className="w-4 h-4" />}>
-                      Về trang chủ
-                    </Button>
-                  </Link>
+                  <div>
+                    <div className="text-[#6b7f72]">Chủ đề</div>
+                    <div className="mt-1 font-semibold text-[#173925]">{bookingViewModel.topic}</div>
+                  </div>
+                  <div>
+                    <div className="text-[#6b7f72]">Mô tả</div>
+                    <div className="mt-1 font-semibold text-[#173925]">
+                      {bookingViewModel.description || 'Không có mô tả thêm'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[#6b7f72]">Phương thức thanh toán</div>
+                    <div className="mt-1 font-semibold text-[#173925]">{bookingViewModel.paymentMethod}</div>
+                  </div>
+                  <div>
+                    <div className="text-[#6b7f72]">Phí tư vấn</div>
+                    <div className="mt-1 font-semibold text-[#173925]">
+                      {formatCurrency(bookingViewModel.paymentAmount)}
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
-                  <Button
-                    onClick={() => navigate(-1)}
-                    leftIcon={<RotateCcw className="w-4 h-4" />}
-                  >
-                    Thử lại
-                  </Button>
-
-                  <Link to="/appointments/book">
-                    <Button variant="outline" leftIcon={<Calendar className="w-4 h-4" />}>
-                      Đặt lịch mới
-                    </Button>
-                  </Link>
-
-                  <Link to="/dashboard">
-                    <Button variant="ghost" leftIcon={<Home className="w-4 h-4" />}>
-                      Về trang chủ
-                    </Button>
-                  </Link>
+                  <div>
+                    <div className="text-[#6b7f72]">Ngày khám</div>
+                    <div className="mt-1 font-semibold text-[#173925]">
+                      {formatDateLabel(bookingViewModel.bookingDate)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[#6b7f72]">Giờ khám</div>
+                    <div className="mt-1 font-semibold text-[#173925]">
+                      {bookingViewModel.bookingTime}
+                      {bookingViewModel.periodLabel ? ` (${bookingViewModel.periodLabel})` : ''}
+                    </div>
+                  </div>
                 </>
               )}
+              <div>
+                <div className="text-[#6b7f72]">Chuyên khoa</div>
+                <div className="mt-1 font-semibold text-[#173925]">{bookingViewModel.doctorSpecialization}</div>
+              </div>
             </div>
-          </motion.div>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+
+          <div className="border-b border-[#d7e2da] px-5 py-5 sm:px-6">
+            <div className="flex items-center gap-2">
+              <UserRound className="h-5 w-5 text-[#0f4f2a]" />
+              <h2 className="text-lg font-semibold text-[#143c26]">Thông tin bệnh nhân</h2>
+            </div>
+
+            <div className="mt-4 space-y-4 text-sm">
+              <div>
+                <div className="text-[#6b7f72]">Mã bệnh nhân</div>
+                <div className="mt-1 font-semibold text-[#173925]">{bookingViewModel.patientCode || '--'}</div>
+              </div>
+              <div>
+                <div className="text-[#6b7f72]">Họ và tên</div>
+                <div className="mt-1 font-semibold uppercase text-[#173925]">{bookingViewModel.patientName}</div>
+              </div>
+              <div>
+                <div className="text-[#6b7f72]">Năm sinh</div>
+                <div className="mt-1 font-semibold text-[#173925]">
+                  {formatDateLabel(bookingViewModel.patientDateOfBirth)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#6b7f72]">Số điện thoại</div>
+                <div className="mt-1 font-semibold text-[#173925]">{bookingViewModel.patientPhone || '--'}</div>
+              </div>
+              <div>
+                <div className="text-[#6b7f72]">Giới tính</div>
+                <div className="mt-1 font-semibold text-[#173925]">
+                  {formatGenderLabel(bookingViewModel.patientGender)}
+                </div>
+              </div>
+              <div>
+                <div className="text-[#6b7f72]">Địa chỉ</div>
+                <div className="mt-1 font-semibold uppercase text-[#173925]">
+                  {bookingViewModel.patientAddress || '--'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link to={detailLink} className="flex-1">
+                <Button className={`${actionButtonClass} w-full justify-center`}>
+                  {isConsultation ? 'Xem phiếu tư vấn' : 'Xem phiếu khám'}
+                </Button>
+              </Link>
+
+              <Button
+                variant="outline"
+                className={`${outlineButtonClass} w-full flex-1 justify-center`}
+                onClick={handleDownloadReceipt}
+              >
+                Lưu lại phiếu
+              </Button>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
+          <section className="border border-[#d7e2da] bg-white">
+            <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+              <div className="flex items-start gap-4">
+                <div
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[8px] ${
+                    isPending ? 'bg-[#efe6c9] text-[#765b12]' : 'bg-[#f7dedd] text-[#b53b2f]'
+                  }`}
+                >
+                  {isPending ? (
+                    <Loader2 className="h-7 w-7 animate-spin" />
+                  ) : (
+                    <XCircle className="h-7 w-7" />
+                  )}
+                </div>
+
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5f7363]">
+                    Kết quả thanh toán
+                  </div>
+                  <h1 className="mt-1 text-[28px] font-bold leading-tight text-[#143c26]">
+                    {isPending ? 'Đang chờ xác nhận thanh toán' : 'Thanh toán thất bại'}
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#4f6557]">{statusMessage}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="border border-[#d7e2da] bg-white p-5 sm:p-6">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px]">
+              <div>
+                <div className="space-y-3 text-sm text-[#4f6557]">
+                  {paymentResult?.orderId && (
+                    <div className="flex items-center gap-2 text-[#173925]">
+                      <FileText className="h-4 w-4 text-[#0f4f2a]" />
+                      <span className="font-semibold">Mã đơn:</span>
+                      <span className="font-mono">{paymentResult.orderId}</span>
+                    </div>
+                  )}
+                  {!isConsultation && bookingViewModel.bookingDate && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-[#0f4f2a]" />
+                      <span>{formatDateLabel(bookingViewModel.bookingDate)}</span>
+                    </div>
+                  )}
+                  {!isConsultation && bookingViewModel.bookingTime && bookingViewModel.bookingTime !== '--' && (
+                    <div className="flex items-center gap-2">
+                      <Clock3 className="h-4 w-4 text-[#0f4f2a]" />
+                      <span>{bookingViewModel.bookingTime}</span>
+                    </div>
+                  )}
+                  {bookingViewModel.doctorAddress && bookingViewModel.doctorAddress !== '--' && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-[#0f4f2a]" />
+                      <span>{bookingViewModel.doctorAddress}</span>
+                    </div>
+                  )}
+                  {isConsultation && bookingViewModel.topic && bookingViewModel.topic !== '--' && (
+                    <div className="flex items-center gap-2 text-[#173925]">
+                      <FileText className="h-4 w-4 text-[#0f4f2a]" />
+                      <span>{bookingViewModel.topic}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  className={actionButtonClass}
+                  leftIcon={<RefreshCcw className="h-4 w-4" />}
+                  onClick={handleManualRefresh}
+                >
+                  Kiểm tra lại
+                </Button>
+
+                <Link to={detailLink}>
+                  <Button
+                    variant="outline"
+                    className={outlineButtonClass}
+                    leftIcon={<FileText className="h-4 w-4" />}
+                  >
+                    {isConsultation ? 'Xem phiếu tư vấn' : 'Xem lịch khám'}
+                  </Button>
+                </Link>
+
+                <Link to="/dashboard">
+                  <Button
+                    variant="outline"
+                    className={outlineButtonClass}
+                    leftIcon={<Home className="h-4 w-4" />}
+                  >
+                    Về trang chủ
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+    </div>,
   )
 }
 

@@ -1,13 +1,12 @@
 import { prescriptionApi as realPrescriptionApi } from './realApis/prescriptionApi'
-import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
-// Demo/mock mode still uses the real prescription API because prescriptions are
-// tied to persisted medical records.
+// For now, always use real API since mock doesn't have prescriptions yet
+// TODO: Add mock prescription API if needed for demo mode
 export const prescriptionApi = realPrescriptionApi
 
-devLog(
+console.log(
   `💊 Prescription Backend: ${USE_MOCK_BACKEND ? 'REAL (Mock not implemented)' : 'REAL (Production)'}`
 )
 

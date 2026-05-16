@@ -1,6 +1,5 @@
 import { healthMetricsApi as realHealthMetricsApi } from './realApis/healthMetricsApi'
 import { healthMetricsApi as mockHealthMetricsApi } from './mockApi'
-import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
@@ -25,7 +24,7 @@ export const healthMetricsApi = USE_MOCK_BACKEND
       deleteMetric: (metricId) => api.deleteMetric(metricId),
     }
 
-devLog(
+console.log(
   `❤️  Health Metrics Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`
 )
 

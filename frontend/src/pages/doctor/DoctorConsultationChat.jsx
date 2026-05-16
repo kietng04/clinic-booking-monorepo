@@ -18,6 +18,7 @@ import {
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { DOCTOR_PRIMARY, doctorPrimaryButtonClass } from './theme'
 import { Badge } from '@/components/ui/Badge'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
@@ -291,7 +292,7 @@ const DoctorConsultationChat = () => {
                                 onClick={handleAccept}
                                 disabled={isProcessing}
                                 isLoading={isProcessing}
-                                className="flex items-center gap-2"
+                                className={`flex items-center gap-2 ${doctorPrimaryButtonClass}`}
                             >
                                 <Check className="w-4 h-4" />
                                 Chấp nhận
@@ -303,7 +304,7 @@ const DoctorConsultationChat = () => {
                             <Button
                                 variant="primary"
                                 onClick={() => setShowCompleteModal(true)}
-                                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                                className={`flex items-center gap-2 ${doctorPrimaryButtonClass}`}
                             >
                                 <CheckCircle className="w-4 h-4" />
                                 Hoàn thành tư vấn
@@ -401,8 +402,9 @@ const DoctorConsultationChat = () => {
                                     className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[70%] ${isMine ? 'bg-sage-600 text-white' : 'bg-white text-sage-900'
+                                        className={`max-w-[70%] ${isMine ? 'text-white' : 'bg-white text-sage-900'
                                             } rounded-lg p-4 shadow-sm`}
+                                        style={isMine ? { backgroundColor: DOCTOR_PRIMARY } : undefined}
                                     >
                                         {!isMine && (
                                             <p className="text-xs font-semibold mb-1 opacity-75">
@@ -537,7 +539,7 @@ const DoctorConsultationChat = () => {
                             onClick={handleComplete}
                             disabled={isProcessing || !completeData.diagnosis.trim()}
                             isLoading={isProcessing}
-                            className="bg-green-600 hover:bg-green-700"
+                            className={doctorPrimaryButtonClass}
                         >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Hoàn thành tư vấn

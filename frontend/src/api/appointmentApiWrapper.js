@@ -1,6 +1,5 @@
 import { appointmentApi as realAppointmentApi } from './realApis/appointmentApi'
 import { appointmentApi as mockAppointmentApi } from './mockApi'
-import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
@@ -13,7 +12,7 @@ export const appointmentApi = {
     (async (appointmentId) => selectedApi.getAppointment(appointmentId)),
 }
 
-devLog(
+console.log(
   `🗓️  Appointment Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`
 )
 

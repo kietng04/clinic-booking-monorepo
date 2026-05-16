@@ -1,261 +1,625 @@
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calendar, Users, Clock, Star, TrendingUp, Activity } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import {
+  ArrowRight,
+  Ban,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Stethoscope,
+  UserRound,
+  Users,
+  Wallet,
+} from 'lucide-react'
+import { appointmentApi } from '@/api/appointmentApiWrapper'
+import { statsApi } from '@/api/statsApiWrapper'
 import { Avatar } from '@/components/ui/Avatar'
+import { Card, CardContent } from '@/components/ui/Card'
 import { SkeletonCard } from '@/components/ui/Loading'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
-import { statsApi } from '@/api/statsApiWrapper'
-import { appointmentApi } from '@/api/appointmentApiWrapper'
-import { formatTime, translateStatus } from '@/lib/utils'
-import { vi } from '@/lib/translations'
+import { doctorPrimaryButtonClass, DOCTOR_PRIMARY } from './theme'
 
-const DoctorDashboard = () => {
-  const { user } = useAuthStore()
-  const { showToast } = useUIStore()
-  const [stats, setStats] = useState(null)
-  const [todayAppointments, setTodayAppointments] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+const currencyFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+  maximumFractionDigits: 0,
+})
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+function formatLocalDateKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
-  const fetchData = async () => {
-    setIsLoading(true)
-    try {
-      const statsData = await statsApi.getDoctorStats(user.id)
-      const today = new Date().toISOString().split('T')[0]
-      const now = new Date()
-      const startOfWeek = new Date(now)
-      startOfWeek.setHours(0, 0, 0, 0)
-      startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7))
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(endOfWeek.getDate() + 7)
+function parseAppointmentDateTime(rawDate, rawTime) {
+  if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    const [year, month, day] = rawDate.split('-').map(Number)
+    let hours = 0
+    let minutes = 0
 
-      // Get all doctor appointments and filter for today
-      const appointmentsData = await appointmentApi.getAppointments({ doctorId: user.id })
-      const todayAppts = appointmentsData.filter(apt => apt.appointmentDate === today)
-      const weeklyAppts = appointmentsData.filter((apt) => {
-        const rawDate = apt.appointmentDate || apt.date
-        if (!rawDate) return false
-        const aptDate = new Date(rawDate)
-        if (Number.isNaN(aptDate.getTime())) return false
-        return aptDate >= startOfWeek && aptDate < endOfWeek
-      })
+    if (typeof rawTime === 'string' && /^\d{2}:\d{2}/.test(rawTime)) {
+      ;[hours, minutes] = rawTime.slice(0, 5).split(':').map(Number)
+    }
 
-      setStats({
-        ...statsData,
-        todayAppointments: todayAppts.length,
-        weeklyAppointments: weeklyAppts.length,
-        totalPatients: statsData?.totalPatients ?? statsData?.uniquePatients ?? 0,
-      })
-      setTodayAppointments(todayAppts)
-    } catch (error) {
-      showToast({ type: 'error', message: 'Không thể tải dữ liệu' })
-    } finally {
-      setIsLoading(false)
+    return new Date(year, month - 1, day, hours, minutes)
+  }
+
+  const fallback = new Date(rawDate || rawTime || '')
+  return Number.isNaN(fallback.getTime()) ? null : fallback
+}
+
+function normalizeTime(rawTime, parsedDate) {
+  if (typeof rawTime === 'string' && /^\d{2}:\d{2}/.test(rawTime)) {
+    return rawTime.slice(0, 5)
+  }
+
+  if (!parsedDate) return '--:--'
+
+  return parsedDate.toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getAppointmentTypeLabel(type) {
+  return type === 'ONLINE' ? 'Tư vấn trực tuyến' : 'Khám trực tiếp'
+}
+
+function getAppointmentStage(status) {
+  if (status === 'CANCELLED') return 'cancelled'
+  if (status === 'COMPLETED') return 'completed'
+  if (status === 'IN_PROGRESS') return 'in_progress'
+  return 'scheduled'
+}
+
+function getStageBadge(stage) {
+  switch (stage) {
+    case 'completed':
+      return 'border-[#d5ead8] bg-[#f2f8f3] text-[#41614a]'
+    case 'in_progress':
+      return 'border-[#d9e7ff] bg-[#f3f7ff] text-[#31558f]'
+    case 'cancelled':
+      return 'border-red-200 bg-red-50 text-red-700'
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-700'
+  }
+}
+
+function getStageLabel(stage) {
+  switch (stage) {
+    case 'completed':
+      return 'Hoàn thành'
+    case 'in_progress':
+      return 'Đang khám'
+    case 'cancelled':
+      return 'Đã hủy'
+    default:
+      return 'Chưa bắt đầu'
+  }
+}
+
+function getActionState(appointment, now) {
+  if (appointment.stage === 'in_progress') {
+    return {
+      label: 'Đang khám',
+      tone: 'border-[#d9e7ff] bg-[#f3f7ff] text-[#31558f]',
     }
   }
 
-  const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return vi.doctor.dashboard.morning
-    if (hour < 18) return vi.doctor.dashboard.afternoon
-    return vi.doctor.dashboard.evening
+  if (appointment.stage === 'completed') {
+    return null
   }
 
-  const doctorDisplayName = (user?.name || user?.fullName || '').trim()
-  const doctorLastName = doctorDisplayName ? doctorDisplayName.split(' ').pop() : 'Doctor'
+  if (appointment.stage === 'cancelled') {
+    return null
+  }
 
-  const statsCards = [
+  if (!appointment.parsedDateTime) {
+    return {
+      label: 'Chưa bắt đầu',
+      tone: 'border-slate-200 bg-slate-50 text-slate-700',
+    }
+  }
+
+  const diffMinutes = Math.round((appointment.parsedDateTime.getTime() - now.getTime()) / 60000)
+
+  if (diffMinutes < -30) {
+    return {
+      label: 'Cần hoàn thành note',
+      tone: 'border-amber-200 bg-amber-50 text-amber-700',
+    }
+  }
+
+  if (diffMinutes <= 60) {
+    return {
+      label: 'Sắp đến giờ',
+      tone: 'border-[#d9e7ff] bg-[#f3f7ff] text-[#31558f]',
+    }
+  }
+
+  return null
+}
+
+function getAmountFromAppointment(appointment) {
+  const candidates = [
+    appointment.serviceFee,
+    appointment.amount,
+    appointment.price,
+    appointment.consultationFee,
+    appointment.fee,
+  ]
+
+  const value = candidates.find((item) => Number.isFinite(Number(item)) && Number(item) > 0)
+  return Number(value || 0)
+}
+
+export default function DoctorDashboard() {
+  const { user } = useAuthStore()
+  const { showToast } = useUIStore()
+  const [stats, setStats] = useState({})
+  const [appointments, setAppointments] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      if (!user?.id) return
+
+      setIsLoading(true)
+
+      const [statsResult, appointmentsResult] = await Promise.allSettled([
+        statsApi.getDoctorStats(user.id),
+        appointmentApi.getDoctorAppointments(user.id, { size: 200 }),
+      ])
+
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value || {})
+      } else {
+        setStats({})
+      }
+
+      if (appointmentsResult.status === 'fulfilled') {
+        setAppointments(Array.isArray(appointmentsResult.value) ? appointmentsResult.value : [])
+      } else {
+        setAppointments([])
+      }
+
+      if (statsResult.status === 'rejected' && appointmentsResult.status === 'rejected') {
+        showToast({ type: 'error', message: 'Không thể tải dữ liệu tổng quan bác sĩ' })
+      }
+
+      setIsLoading(false)
+    }
+
+    fetchDashboard()
+  }, [showToast, user?.id])
+
+  const dashboardData = useMemo(() => {
+    const now = new Date()
+    const todayKey = formatLocalDateKey(now)
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - 6)
+    weekStart.setHours(0, 0, 0, 0)
+    const monthStart = new Date(now)
+    monthStart.setDate(now.getDate() - 29)
+    monthStart.setHours(0, 0, 0, 0)
+
+    const normalizedAppointments = appointments
+      .map((appointment) => {
+        const rawDate = appointment.appointmentDate || appointment.date
+        const rawTime = appointment.appointmentTime || appointment.time
+        const parsedDateTime = parseAppointmentDateTime(rawDate, rawTime)
+        const dateKey = parsedDateTime ? formatLocalDateKey(parsedDateTime) : null
+        const stage = getAppointmentStage(appointment.status)
+
+        return {
+          ...appointment,
+          dateKey,
+          parsedDateTime,
+          timeLabel: normalizeTime(rawTime, parsedDateTime),
+          stage,
+          typeLabel: getAppointmentTypeLabel(appointment.type),
+          amount: getAmountFromAppointment(appointment),
+        }
+      })
+      .sort((left, right) => {
+        const leftTime = left.parsedDateTime?.getTime() || 0
+        const rightTime = right.parsedDateTime?.getTime() || 0
+        return leftTime - rightTime
+      })
+
+    const todayAppointments = normalizedAppointments.filter((appointment) => appointment.dateKey === todayKey)
+    const upcomingAppointments = normalizedAppointments.filter(
+      (appointment) =>
+        appointment.parsedDateTime &&
+        appointment.parsedDateTime >= now &&
+        appointment.stage !== 'cancelled' &&
+        appointment.stage !== 'completed'
+    )
+    const completedAppointments = normalizedAppointments.filter((appointment) => appointment.stage === 'completed')
+    const cancelledAppointments = normalizedAppointments.filter((appointment) => appointment.stage === 'cancelled')
+    const todayRevenue = todayAppointments
+      .filter((appointment) => appointment.stage !== 'cancelled')
+      .reduce((sum, appointment) => sum + appointment.amount, 0)
+
+    const actionItems = todayAppointments
+      .map((appointment) => ({
+        ...appointment,
+        actionState: getActionState(appointment, now),
+      }))
+      .filter((appointment) => appointment.actionState)
+      .sort((left, right) => {
+        const leftTime = left.parsedDateTime?.getTime() || 0
+        const rightTime = right.parsedDateTime?.getTime() || 0
+        return leftTime - rightTime
+      })
+      .slice(0, 6)
+
+    const recentPatients = normalizedAppointments
+      .slice()
+      .sort((left, right) => (right.parsedDateTime?.getTime() || 0) - (left.parsedDateTime?.getTime() || 0))
+      .filter((appointment, index, list) => {
+        const patientKey = String(appointment.patientId || appointment.patientName || appointment.id)
+        return index === list.findIndex((item) => String(item.patientId || item.patientName || item.id) === patientKey)
+      })
+      .slice(0, 6)
+
+    const totalAppointments = normalizedAppointments.length
+    const cancellationRate = totalAppointments === 0 ? 0 : Math.round((cancelledAppointments.length / totalAppointments) * 100)
+    const hasRevenue = todayRevenue > 0 || Number(stats?.monthlyRevenue || 0) > 0
+    const recent7Days = normalizedAppointments.filter(
+      (appointment) => appointment.parsedDateTime && appointment.parsedDateTime >= weekStart
+    )
+    const recent30Days = normalizedAppointments.filter(
+      (appointment) => appointment.parsedDateTime && appointment.parsedDateTime >= monthStart
+    )
+
+    const kpis = [
+      {
+        id: 'today',
+        label: 'Lịch hôm nay',
+        value: todayAppointments.length,
+        hint: 'Tổng số lịch trong ngày',
+        icon: CalendarDays,
+        iconClass: 'bg-[#eff4ef] text-[#2f5a36]',
+      },
+      {
+        id: 'upcoming',
+        label: 'Lịch sắp tới',
+        value: upcomingAppointments.length,
+        hint: 'Các lịch chưa diễn ra',
+        icon: Clock3,
+        iconClass: 'bg-[#f2f6ff] text-[#35548a]',
+      },
+      {
+        id: 'completed',
+        label: 'Đã hoàn thành',
+        value: completedAppointments.length,
+        hint: 'Tổng lịch đã xử lý xong',
+        icon: CheckCircle2,
+        iconClass: 'bg-[#f3f7f3] text-[#4b6b53]',
+      },
+      {
+        id: 'cancelled',
+        label: 'Tỷ lệ hủy',
+        value: `${cancellationRate}%`,
+        hint: `${cancelledAppointments.length} lịch đã hủy`,
+        icon: Ban,
+        iconClass: 'bg-[#fff1f1] text-[#b84141]',
+      },
+    ]
+
+    if (hasRevenue) {
+      kpis.push({
+        id: 'revenue',
+        label: 'Doanh thu hôm nay',
+        value: currencyFormatter.format(todayRevenue),
+        hint: 'Tính từ lịch có phí trong ngày',
+        icon: Wallet,
+        iconClass: 'bg-[#fff6e9] text-[#9a5d12]',
+      })
+    }
+
+    return {
+      kpis,
+      timeline: todayAppointments,
+      actionItems,
+      recentPatients,
+      totalPatients: stats?.totalPatients ?? recentPatients.length,
+      compactStats: [
+        {
+          id: 'today',
+          label: 'Hôm nay',
+          total: todayAppointments.length,
+          completed: todayAppointments.filter((appointment) => appointment.stage === 'completed').length,
+          cancelled: todayAppointments.filter((appointment) => appointment.stage === 'cancelled').length,
+        },
+        {
+          id: 'last-7-days',
+          label: '7 ngày qua',
+          total: recent7Days.length,
+          completed: recent7Days.filter((appointment) => appointment.stage === 'completed').length,
+          cancelled: recent7Days.filter((appointment) => appointment.stage === 'cancelled').length,
+        },
+        {
+          id: 'last-30-days',
+          label: '30 ngày qua',
+          total: recent30Days.length,
+          completed: recent30Days.filter((appointment) => appointment.stage === 'completed').length,
+          cancelled: recent30Days.filter((appointment) => appointment.stage === 'cancelled').length,
+        },
+      ],
+    }
+  }, [appointments, stats])
+
+  const quickActions = [
     {
-      id: 'today-appointments',
-      label: vi.doctor.dashboard.todayAppointments,
-      value: stats?.todayAppointments || 0,
-      icon: Calendar,
-      color: 'sage',
+      label: 'Tạo lịch làm việc',
+      to: '/schedule',
+      icon: CalendarDays,
     },
     {
-      id: 'weekly-appointments',
-      label: vi.doctor.dashboard.weeklyAppointments,
-      value: stats?.weeklyAppointments || 0,
-      icon: Activity,
-      color: 'terra',
+      label: 'Xem lịch hẹn',
+      to: '/doctor/bookings',
+      icon: FileText,
     },
     {
-      id: 'total-patients',
-      label: vi.doctor.dashboard.totalPatients,
-      value: stats?.totalPatients || 0,
+      label: 'Mở danh sách bệnh nhân',
+      to: '/patients',
       icon: Users,
-      color: 'blue',
-    },
-    {
-      id: 'avg-rating',
-      label: vi.doctor.dashboard.avgRating,
-      value: stats?.avgRating ? stats.avgRating.toFixed(1) : '0.0',
-      icon: Star,
-      color: 'yellow',
     },
   ]
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <SkeletonCard />
-        <div className="grid md:grid-cols-4 gap-4">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
+        <SkeletonCard />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="text-3xl font-display font-bold text-sage-900 mb-2">
-          {vi.doctor.dashboard.welcome} {getGreeting()}, Dr. {doctorLastName}
-        </h1>
-        <p className="text-sage-600">
-          {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-        </p>
-      </motion.div>
+      <Card className="overflow-hidden rounded-[18px] border-slate-200 bg-[linear-gradient(135deg,#fbfcfb_0%,#f3f6f4_100%)] p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+        <CardContent className="px-5 py-5 lg:px-6 lg:py-6">
+          <div className={`grid gap-4 ${dashboardData.kpis.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'} md:grid-cols-2`}>
+            {dashboardData.kpis.map((item) => {
+              const Icon = item.icon
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <motion.div
-              key={stat.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-12 h-12 bg-${stat.color}-100 rounded-lg flex items-center justify-center`}>
-                      <Icon className={`w-6 h-6 text-${stat.color}-600`} />
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_28px_rgba(15,23,42,0.04)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-500">{item.label}</div>
+                      <div className="mt-3 text-[30px] font-semibold leading-none text-slate-900">{item.value}</div>
+                      <div className="mt-2 text-sm text-slate-500">{item.hint}</div>
                     </div>
-                    {stat.label === vi.doctor.dashboard.totalPatients && (
-                      <TrendingUp className="w-4 h-4 text-green-500" />
-                    )}
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] ${item.iconClass}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
                   </div>
-                  <p className="text-sm font-medium text-sage-600 mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-sage-900">{stat.value}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )
-        })}
-      </div>
-
-      {/* Today's Schedule */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{vi.doctor.dashboard.todaySchedule}</CardTitle>
-            <Link to="/doctor/appointments">
-              <Button variant="ghost" size="sm">Xem tất cả</Button>
-            </Link>
+                </div>
+              )
+            })}
           </div>
-        </CardHeader>
-        <CardContent>
-          {todayAppointments.length === 0 ? (
-            <div className="text-center py-8 text-sage-500">
-              {vi.doctor.dashboard.noAppointmentsToday}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {todayAppointments.map((appointment) => (
-                (() => {
-                  const rawTime = appointment.time || appointment.appointmentTime
-                  const formattedTime = rawTime ? formatTime(rawTime) : '--:--'
-                  const [hour, minute] = formattedTime.split(':')
-                  return (
-                    <div
-                      key={`${appointment.id ?? 'apt'}-${appointment.patientId ?? 'unknown'}-${rawTime ?? 'time'}`}
-                      className="flex items-center justify-between p-4 bg-sage-50 rounded-lg hover:bg-sage-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-sage-900">
-                            {hour || '--'}
-                          </div>
-                          <div className="text-xs text-sage-600">
-                            {minute || '--'}
-                          </div>
-                        </div>
-                        <Avatar
-                          src={`https://i.pravatar.cc/150?u=${appointment.patientId}`}
-                          alt={appointment.patientName}
-                        />
-                        <div>
-                          <h4 className="font-semibold text-sage-900">{appointment.patientName}</h4>
-                          <p className="text-sm text-sage-600">{appointment.reason || appointment.symptoms || ''}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={`${
-                          appointment.status === 'CONFIRMED'
-                            ? 'bg-sage-100 text-sage-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {translateStatus(appointment.status)}
-                        </Badge>
-                        <Button size="sm" variant="outline">
-                          {vi.appointments.actions.startConsultation}
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })()
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{vi.doctor.dashboard.quickActions}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Link to="/schedule">
-              <Button variant="outline" className="w-full justify-start">
-                <Calendar className="w-5 h-5 mr-2" />
-                {vi.doctor.dashboard.viewSchedule}
-              </Button>
-            </Link>
-            <Link to="/patients">
-              <Button variant="outline" className="w-full justify-start">
-                <Users className="w-5 h-5 mr-2" />
-                {vi.doctor.dashboard.managePatients}
-              </Button>
-            </Link>
-            <Button variant="outline" className="w-full justify-start">
-              <Activity className="w-5 h-5 mr-2" />
-              {vi.doctor.dashboard.createPrescription}
-            </Button>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.95fr)]">
+        <Card className="rounded-[18px] border-slate-200 bg-white p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+          <CardContent className="px-5 py-5 lg:px-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[24px] font-semibold tracking-[-0.02em] text-slate-900">Timeline hôm nay</div>
+              </div>
+              <Link
+                to="/doctor/bookings"
+                className="rounded-[12px] border border-slate-200 bg-slate-50 px-4 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-white"
+              >
+                Xem tất cả
+              </Link>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {dashboardData.timeline.length === 0 ? (
+                <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-5 py-12 text-center text-[15px] text-slate-600">
+                  Hôm nay chưa có lịch hẹn nào.
+                </div>
+              ) : (
+                dashboardData.timeline.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="grid gap-4 rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfa_100%)] p-4 md:grid-cols-[88px_minmax(0,1fr)_auto]"
+                  >
+                    <div className="rounded-[14px] bg-[#f3f6f4] px-3 py-4 text-center">
+                      <div className="text-[24px] font-semibold leading-none text-slate-900">{appointment.timeLabel}</div>
+                      <div className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                        {appointment.typeLabel}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          src={`https://i.pravatar.cc/150?u=${appointment.patientId || appointment.id}`}
+                          name={appointment.patientName}
+                          size="md"
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-[18px] font-semibold text-slate-900">
+                            {appointment.patientName || 'Bệnh nhân'}
+                          </div>
+                          <div className="mt-1 text-[15px] text-slate-600">
+                            {appointment.reason || appointment.symptoms || 'Khám và theo dõi sức khỏe'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-end md:justify-start">
+                      <span className={`rounded-[12px] border px-3 py-2 text-sm font-semibold ${getStageBadge(appointment.stage)}`}>
+                        {getStageLabel(appointment.stage)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="rounded-[18px] border-slate-200 bg-white p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+          <CardContent className="px-5 py-5 lg:px-6">
+              <div className="text-[24px] font-semibold tracking-[-0.02em] text-slate-900">Lịch cần xử lý</div>
+
+              <div className="mt-5 space-y-3">
+                {dashboardData.actionItems.length === 0 ? (
+                  <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-[15px] text-slate-600">
+                    Chưa có lịch nào cần xử lý ngay lúc này.
+                  </div>
+                ) : (
+                  dashboardData.actionItems.map((appointment) => (
+                    <div key={appointment.id} className="rounded-[16px] border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-[15px] font-semibold text-slate-500">{appointment.timeLabel}</div>
+                          <div className="mt-1 text-[17px] font-semibold text-slate-900">
+                            {appointment.patientName || 'Bệnh nhân'}
+                          </div>
+                          <div className="mt-1 text-[15px] text-slate-600">{appointment.typeLabel}</div>
+                        </div>
+                        <span className={`rounded-[12px] border px-3 py-2 text-sm font-semibold ${appointment.actionState.tone}`}>
+                          {appointment.actionState.label}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <Link
+                          to={appointment.type === 'ONLINE' ? '/doctor/messages' : '/doctor/bookings'}
+                          className={`rounded-[12px] px-4 py-2.5 text-[15px] font-medium transition ${doctorPrimaryButtonClass}`}
+                        >
+                          {appointment.type === 'ONLINE' ? 'Mở tư vấn' : 'Mở lịch hẹn'}
+                        </Link>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[18px] border-slate-200 bg-white p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+            <CardContent className="px-5 py-5 lg:px-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[24px] font-semibold tracking-[-0.02em] text-slate-900">Bệnh nhân gần đây</div>
+                </div>
+                <div className="rounded-[12px] bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-600">
+                  {dashboardData.totalPatients} bệnh nhân
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {dashboardData.recentPatients.length === 0 ? (
+                  <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-[15px] text-slate-600">
+                    Chưa có bệnh nhân gần đây.
+                  </div>
+                ) : (
+                  dashboardData.recentPatients.map((appointment) => (
+                    <Link
+                      key={`${appointment.patientId || appointment.patientName}-${appointment.id}`}
+                      to="/patients"
+                      className="flex items-center justify-between gap-4 rounded-[16px] border border-slate-200 bg-white px-4 py-4 transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(15,23,42,0.06)]"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar
+                          src={`https://i.pravatar.cc/150?u=${appointment.patientId || appointment.id}`}
+                          name={appointment.patientName}
+                          size="md"
+                        />
+                        <div className="min-w-0">
+                          <div className="truncate text-[17px] font-semibold text-slate-900">
+                            {appointment.patientName || 'Bệnh nhân'}
+                          </div>
+                          <div className="mt-1 text-[15px] text-slate-600">
+                            {appointment.timeLabel} • {appointment.typeLabel}
+                          </div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 shrink-0 text-slate-400" />
+                    </Link>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Card className="rounded-[18px] border-slate-200 bg-white p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+        <CardContent className="px-5 py-5 lg:px-6">
+          <div className="text-[24px] font-semibold tracking-[-0.02em] text-slate-900">Lối tắt</div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {quickActions.map((action) => {
+              const Icon = action.icon
+
+              return (
+                <Link
+                  key={action.to}
+                  to={action.to}
+                  className="rounded-[16px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8faf8_100%)] px-4 py-5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(15,23,42,0.06)]"
+                >
+                  <div className="flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#eff4ef] text-slate-700">
+                      <Icon className="h-5 w-5" style={{ color: DOCTOR_PRIMARY }} />
+                    </div>
+                    <div className="text-[17px] font-semibold text-slate-900">{action.label}</div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-[18px] border-slate-200 bg-white p-0 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+        <CardContent className="px-5 py-5 lg:px-6">
+          <div className="text-[24px] font-semibold tracking-[-0.02em] text-slate-900">Mini thống kê</div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {dashboardData.compactStats.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-[18px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#fafbfa_100%)] p-5"
+              >
+                <div className="text-[18px] font-semibold text-slate-900">{item.label}</div>
+                <div className="mt-4 space-y-3 text-[15px] text-slate-700">
+                  <div className="flex items-center justify-between gap-4">
+                    <span>Lịch hẹn</span>
+                    <span className="font-semibold text-slate-900">{item.total}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span>Hoàn thành</span>
+                    <span className="font-semibold text-slate-900">{item.completed}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span>Hủy</span>
+                    <span className="font-semibold text-slate-900">{item.cancelled}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
     </div>
   )
 }
-
-export default DoctorDashboard

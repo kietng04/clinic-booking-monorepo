@@ -89,12 +89,14 @@ const normalizeRevenueReport = (data) => {
     totalRevenue: Number(data.totalRevenue ?? 0),
     onlinePayment: Number(data.onlinePayment ?? 0),
     cashPayment: Number(data.cashPayment ?? 0),
+    unclassifiedPayment: Number(data.unclassifiedPayment ?? 0),
     monthlyTrend: Array.isArray(data.monthlyTrend)
       ? data.monthlyTrend.map((item) => ({
           name: item?.month ?? '',
           revenue: Number(item?.revenue ?? 0),
           online: Number(item?.online ?? 0),
           cash: Number(item?.cash ?? 0),
+          unclassified: Number(item?.unclassified ?? 0),
         }))
       : [],
   }
@@ -239,8 +241,9 @@ const Reports = () => {
     if (!revenueReport) return []
 
     return [
-      { name: 'Trực tuyến', value: revenueReport.onlinePayment },
-      { name: 'Tiền mặt', value: revenueReport.cashPayment },
+      { name: 'Tr\u1ef1c tuy\u1ebfn', value: revenueReport.onlinePayment },
+      { name: 'Ti\u1ec1n m\u1eb7t', value: revenueReport.cashPayment },
+      { name: 'Ch\u01b0a ph\u00e2n lo\u1ea1i', value: revenueReport.unclassifiedPayment },
     ].filter((item) => item.value > 0)
   }, [revenueReport])
 
@@ -438,7 +441,7 @@ const Reports = () => {
 
           {activeTab === 'revenue' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   {
                     label: 'Tổng doanh thu',
@@ -451,9 +454,14 @@ const Reports = () => {
                     icon: TrendingUp,
                   },
                   {
-                    label: 'Thanh toán tiền mặt',
+                    label: 'Thanh to\u00e1n ti\u1ec1n m\u1eb7t',
                     value: formatCurrency(revenueReport?.cashPayment ?? 0),
                     icon: Users,
+                  },
+                  {
+                    label: 'Ch\u01b0a ph\u00e2n lo\u1ea1i',
+                    value: formatCurrency(revenueReport?.unclassifiedPayment ?? 0),
+                    icon: FileText,
                   },
                 ].map((kpi, index) => {
                   const Icon = kpi.icon
@@ -496,6 +504,7 @@ const Reports = () => {
                         <Line type="monotone" dataKey="revenue" name="Tổng" stroke={COLORS[0]} strokeWidth={2} dot={{ r: 4 }} />
                         <Line type="monotone" dataKey="online" name="Trực tuyến" stroke={COLORS[1]} strokeWidth={2} dot={{ r: 4 }} />
                         <Line type="monotone" dataKey="cash" name="Tiền mặt" stroke={COLORS[2]} strokeWidth={2} dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="unclassified" name="Chưa phân loại" stroke={COLORS[3]} strokeWidth={2} dot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </CardContent>

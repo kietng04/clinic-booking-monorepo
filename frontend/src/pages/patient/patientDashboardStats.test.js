@@ -1,4 +1,8 @@
-import { buildPatientDashboardStats, deriveUpcomingAppointments } from './patientDashboardStats'
+import {
+  buildPatientDashboardStats,
+  deriveRecentAppointments,
+  deriveUpcomingAppointments,
+} from './patientDashboardStats'
 
 describe('patientDashboardStats', () => {
   it('maps backend patient stats fields to the dashboard shape', () => {
@@ -58,14 +62,39 @@ describe('patientDashboardStats', () => {
     })
   })
 
+  it('prefers derived upcoming counts when aggregate stats lag behind appointment data', () => {
+    const result = buildPatientDashboardStats({
+      statsData: {
+        upcomingAppointments: 0,
+      },
+      appointmentsData: [
+        { appointmentDate: '2099-03-10', appointmentTime: '08:30:00', status: 'PENDING' },
+        { appointmentDate: '2099-03-11', appointmentTime: '09:00:00', status: 'CONFIRMED' },
+      ],
+    })
+
+    expect(result.upcomingAppointments).toBe(2)
+  })
+
   it('derives upcoming appointments from future non-cancelled entries', () => {
     const result = deriveUpcomingAppointments([
       { date: '2099-04-01', status: 'PENDING' },
       { date: '2099-04-02', status: 'CONFIRMED' },
       { date: '2099-04-03', status: 'CANCELLED' },
       { date: '2020-04-03', status: 'PENDING' },
+      { appointmentDate: '2099-04-04', appointmentTime: '08:00:00', status: 'PENDING' },
     ])
 
-    expect(result).toHaveLength(2)
+    expect(result).toHaveLength(3)
+  })
+
+  it('sorts recent appointments by newest appointment date/time first', () => {
+    const result = deriveRecentAppointments([
+      { id: 1, appointmentDate: '2026-04-01', appointmentTime: '08:00:00', status: 'COMPLETED' },
+      { id: 2, date: '2026-04-02', time: '10:30', status: 'CANCELLED' },
+      { id: 3, appointmentDate: '2026-04-02', appointmentTime: '11:00:00', status: 'PENDING' },
+    ])
+
+    expect(result.map((appointment) => appointment.id)).toEqual([3, 2, 1])
   })
 })

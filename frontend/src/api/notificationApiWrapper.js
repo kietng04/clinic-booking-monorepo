@@ -1,6 +1,5 @@
 import { notificationApi as realNotificationApi } from './realApis/notificationApi'
 import { notificationApi as mockNotificationApi } from './mockApi'
-import { devLog } from '../utils/devLogger'
 
 const USE_MOCK_BACKEND = import.meta.env.VITE_USE_MOCK_BACKEND === 'true'
 
@@ -22,7 +21,7 @@ export const notificationApi = USE_MOCK_BACKEND
     deleteNotification: (notificationId) => api.deleteNotification(notificationId),
   }
 
-devLog(
+console.log(
   `🔔 Notification Backend: ${USE_MOCK_BACKEND ? 'MOCK (Demo Mode)' : 'REAL (Production)'}`
 )
 

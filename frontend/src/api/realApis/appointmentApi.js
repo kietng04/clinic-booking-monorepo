@@ -15,6 +15,7 @@ const normalizeAppointment = (appointment) => {
 
   return {
     ...appointment,
+    id: appointment.id || appointment.appointmentId || appointment.bookingId || null,
     appointmentDate: appointment.appointmentDate || appointment.date || null,
     appointmentTime: appointment.appointmentTime || appointment.time || null,
     date: appointmentDate,
